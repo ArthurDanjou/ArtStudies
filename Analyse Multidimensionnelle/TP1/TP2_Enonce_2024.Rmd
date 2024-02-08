@@ -1,0 +1,157 @@
+---
+title: "TP2 : ACP "
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Objectifs du TP
+
+
+* Rappel méthodologique 
+* ACP avec le package FactoMineR sur les données "voitures anciennes"
+* ACP avec le package FactoMineR sur les données "Habitudes alimentaires de certaines CSP"
+* ACP sur le jeu de données "iris" : quantifier les variations de morphologie des fleurs d'iris de trois espèces 
+
+
+# Modèle type de rédaction 
+
+* Exploration de la structure du jeu de données 
+
+* Inertie expliquée et choix du nombre d'axes à retenir
+
+* Analyse des contributions et interprétation des individus axes par axes sur le modèle du cours $I^{+}$ et $I^{-}$
+
+* Analyse des corrélations et interprétation des variables par axe
+
+* Interprétation et synthèse
+
+
+
+# ACP sur le jeu de données "voitures anciennes"
+
+* Importation du jeu de données "autos.csv" (il comporte 18 voitures et 6 variables actives : Cylindrée, Puissance, Longueur, Largeur, Poids, Vitesse maximum)
+
+
+```{r}
+autos <- read.table("autos.csv", sep=";",header=TRUE)
+```
+```{r}
+rownames(autos)<-autos$Modele
+autos$Modele<-NULL
+```
+
+```{r}
+autos<-autos[,c(1:6,8)]
+```
+
+
+* Lancer FactoMineR sur le jeu de données autos en mettant la variable PRIX en supplémentaire, comparez avec les résultats obtenus "à la main" ci-dessus. 
+
+```{r,echo=FALSE}
+library(FactoMineR)
+help(PCA)
+```
+
+
+```{r,echo=FALSE}
+res.autos<-PCA(autos, scale.unit=TRUE, quanti.sup = c("PRIX") )
+```
+```{r}
+summary(res.autos, nb.dec=2, nb.elements =Inf, nbind = Inf, ncp=3) #les résultats avec deux décimales, pour tous les individus, toutes les variables, sur les 3 premières CP
+```
+
+
+
+```{r}
+eigenvalues <- res.autos$eig  # pour faire l'eboulis des valeurs propres
+
+```
+```{r}
+bplt <- barplot(eigenvalues[, 2], names.arg=1:nrow(eigenvalues),
+                main = "Eboulis des valeurs propres",
+                xlab = "Principal Components",
+                ylab = "Percentage of variances",
+                col ="steelblue",
+                )
+lines(x = bplt, eigenvalues[, 2], type="b", pch=19, col = "red")
+```
+Axe 1
+
+https://www.google.com/search?q=renault+30&sxsrf=AJOqlzXa7fdk2FHIzJnBMybS2VVl848JTw:1675932953411&source=lnms&tbm=isch&sa=X&ved=2ahUKEwjMx-viiIj9AhX0VKQEHayxCH8Q_AUoAXoECAIQAw&biw=1920&bih=973&dpr=1#imgrc=Do9PtlcmoQ22EM
+https://www.google.com/search?q=toyota+corolla&sxsrf=AJOqlzUZUO_FZkxQBSnrw_fECwllyzSicA:1675932937647&source=lnms&tbm=isch&sa=X&ved=2ahUKEwi_tanbiIj9AhWkaqQEHeKnB64Q_AUoAXoECAEQAw&biw=1920&bih=973&dpr=1#imgrc=Ia1iG0X2ojWldM
+
+Axe 2 
+
+https://www.google.com/search?q=Alfetta+1.66&tbm=isch&ved=2ahUKEwi3-KXeiYj9AhWjmicCHZPPAJ8Q2-cCegQIABAA&oq=Alfetta+1.66&gs_lcp=CgNpbWcQA1DhAVjlCWCEDGgBcAB4AIABMYgBYJIBATKYAQCgAQGqAQtnd3Mtd2l6LWltZ8ABAQ&sclient=img&ei=HLbkY7f6EqO1nsEPk5-D-Ak&bih=973&biw=1920
+
+https://www.google.com/search?q=Audi+100&tbm=isch&ved=2ahUKEwiYsc7fiYj9AhVgnCcCHVTHBzQQ2-cCegQIABAA&oq=Audi+100&gs_lcp=CgNpbWcQAzIICAAQgAQQsQMyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQ6BAgjECc6BggAEAUQHjoECAAQHjoGCAAQCBAeOgcIABCABBAYOgQIABBDOgcIABCxAxBDUJMHWPwhYMwjaABwAHgAgAGBAYgB6AeSAQQxOC4xmAEAoAEBqgELZ3dzLXdpei1pbWfAAQE&sclient=img&ei=H7bkY9ilBOC4nsEP1I6foAM&bih=973&biw=1920#imgrc=HcD1MCnYOiL6CM
+
+
+# ACP normée sur les données "Habitudes alimentaires de certaines CSP"
+
+
+
+Individus : AGRI : exploitants agricoles // SAAG : salariés agricoles // PRIN : professions indépendantes // CSUP : cadres supérieurs // CMOY : cadres moyens // EMPL : employés // OUVR : ouvriers // INAC : inactifs
+
+Variables : Pains ordinaires (PAO), Autres pains (plus sophistiqués) (PAA), Vins ordinaires (VIO), Autres vins (plus sophistiqués) (VIA), Pommes de terre (POT), Légumes secs (lentilles, flageolets etc) (LEC), Raisins (fruits) (RAI), Plats préparés (coûteux à l'époque de l'enquête) (PLP)
+
+* Charger les données "alimentation.csv" vous les mettrez dans un jeu de données appelé alim.
+
+```{r, include=FALSE}
+alim <- read.table('alimentation.csv', sep=';', header=TRUE)
+```
+
+* Formater les pour l'ACP
+```{r}
+rownames(alim)<-alim$ROW_LABEL
+alim$ROW_LABEL<-NULL
+```
+
+* Calculer la matrice des corrélations 
+```{r}
+help(cor)
+corr <- cor(alim)
+corr
+```
+
+* Lancer FactoMineR sur ce jeu de données. Effectuer l'analyse statistique des résultats. 
+* Que remarquez vous chez les individus ?
+
+
+```{r}
+res.alim<-PCA(alim, scale.unit=TRUE, quanti.sup = c())
+```
+```{r}
+summary(res.alim, nb.dec = 2, nbelements = Inf, nbind = Inf, ncp = 3)
+```
+
+
+* Relancez l'ACP en prenant en compte cette modification
+
+```{r}
+res.alim2 <- PCA(alim, scale.unit=TRUE, quanti.sup = c(), ind.sup = c(3, 7))
+```
+
+```{r}
+summary(res.alim2, nb.dec = 2, nbelements = Inf, nbind = Inf, ncp = 3)
+```
+
+# ACP sur le jeu de données "iris" : quantifier les variations de morphologie des fleurs d'iris de trois espèces 
+
+https://fr.wikipedia.org/wiki/Iris_de_Fisher
+
+```{r}
+data(iris)
+head(iris)
+```
+```{r}
+res.iris <- PCA(iris, scale.unit = TRUE, quali.sup = c('Species'))
+```
+```{r}
+summary(res.iris, nbelements = Inf, nbind = Inf, ncp = 3)
+```

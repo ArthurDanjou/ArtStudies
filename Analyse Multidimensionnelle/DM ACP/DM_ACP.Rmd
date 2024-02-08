@@ -1,0 +1,120 @@
+---
+title: "DM Statistique exploratoire multidimensionelle"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+------------------------------------------------------------------------
+
+Ce devoir maison est à rendre individuellement au plus tard le 1er mars 2024 sous format RMarkdown (.Rmd) à l'adresse mail de votre chargé de TD. Vous veillerez à respecter la structure du document en répondant aux questions directement dans celui-ci. Des cellules vides de code ont été ajoutées en dessous de chaque question, libre à vous d'en rajouter d'autres si vous voulez segmenter vos réponses. Vous renommerez votre fichier réponse avec votre NOM et Prénom (ex: NOM_Prénom_DM_ACP.Rmd)
+
+------------------------------------------------------------------------
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE)
+```
+
+### PARTIE 1 : Calcul de composantes principales sous R (Sans FactoMineR)
+
+-   Vide l'environnement de travail, initialise la matrice avec laquelle vous allez travailler
+
+```{r}
+
+rm(list=ls())
+
+```
+
+-   Importation du jeu de données (compiler ce qui est ci-dessous mais NE SURTOUT PAS MODIFIER)
+
+```{r}
+library(dplyr)
+notes_MAN <- read.table("notes_MAN.csv", sep=";", dec=",", row.names=1, header=TRUE)
+# on prépare le jeu de données en retirant la colonne des Mentions
+# qui est une variable catégorielle
+notes_MAN_prep <- notes_MAN[,-1]
+
+X <- notes_MAN[1:6,]%>%select(c("Probas","Analyse","Anglais","MAN.Stats","Stats.Inférentielles"))
+# on prépare le jeu de données en retirant la colonne des Mentions
+# qui est une variable catégorielle
+#View(X)
+
+```
+
+```{r}
+X <- scale(X,center=TRUE,scale=TRUE)
+```
+
+-   Question 1 : que fait la fonction “scale” dans la cellule ci-dessus ? (1 point)
+
+-   Question 2: utiliser la fonction eigen afin de calculer les valeurs propres et vecteurs propres de la matrice de corrélation de X. Vous stockerez les valeurs propres dans un vecteur nommé lambda et les vecteurs propres dans une matrice nommée vect (1 point).
+
+```{r}
+```
+
+-   Question 3 : quelle est la part d’inertie expliquée par les 2 premières composantes principales ? (1 point)
+
+```{r}
+```
+
+-   Question 4 : calculer les coordonnées des individus sur les deux premières composantes principales (1 point)
+
+```{r}
+```
+
+-   Question 5 : représenter les individus sur le plan formé par les deux premières composantes principales (1 point)
+
+```{r}
+```
+
+------------------------------------------------------------------------
+
+### PARTIE 2 : ACP avec FactoMineR
+
+À partir de maintenant, on considère l'entièreté des notes et des étudiants.
+
+-   Question 1 : Écrire maximum 2 lignes de code qui renvoient le nombre d’individus et le nombre de variables.
+
+```{r}
+```
+
+-   Question 2 : Réaliser l’ACP normée.
+
+```{r}
+
+# Ne pas oublier de charger la librairie FactoMineR
+
+# Indication : pour afficher les résultats de l'ACP pour tous les individus, utiliser la 
+# fonction summary en précisant dedans nbind=Inf et nbelements=Inf
+
+```
+
+-   Question 3 : Afficher l’éboulis des valeurs propre.
+
+```{r}
+```
+
+-   Question 4 : Quelles sont les coordonnées de la variable MAN.Stats sur le cercle des corrélations ?
+
+-   Question 5 : Quelle est la contribution moyenne des individus ? Quelle est la contribution de Thérèse au 3e axe principal ?
+
+```{r}
+```
+
+-   Question 6 : Quelle est la qualité de représentation de Julien sur le premier plan factoriel (constitué du premier et deuxième axe) ?
+
+-   Question 7 : Discuter du nombre d’axes à conserver selon les deux critères vus en cours. Dans toutesla suite on gardera néanmoins 2 axes.
+
+-   Question 8 : Effectuer l’étude des individus. Être en particulier vigilant aux étudiants mal représentéset commenter.
+
+-   Question 9 : Relancer une ACP en incluant la variable catégorielle des mentions comme variable supplémentaire.
+
+```{r}
+```
+
+-   Qestion 10 : Déduire des deux questions précédentes une interprétation du premier axe principal.
+
+-   Question 11 : Effectuer l’analyse des variables. Commenter les UE mal représentées.
+
+-   Question 12 : Interpréter les deux premières composantes principales.
