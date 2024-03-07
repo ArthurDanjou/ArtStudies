@@ -59,7 +59,7 @@ help(PCA)
 
 
 ```{r,echo=FALSE}
-res.autos<-PCA(autos, scale.unit=TRUE, quanti.sup = c("PRIX") )
+res.autos<-PCA(autos, scale.unit=TRUE, quanti.sup = c("PRIX"))
 ```
 ```{r}
 summary(res.autos, nb.dec=2, nb.elements =Inf, nbind = Inf, ncp=3) #les résultats avec deux décimales, pour tous les individus, toutes les variables, sur les 3 premières CP
@@ -134,7 +134,7 @@ summary(res.alim, nb.dec = 2, nbelements = Inf, nbind = Inf, ncp = 3)
 * Relancez l'ACP en prenant en compte cette modification
 
 ```{r}
-res.alim2 <- PCA(alim, scale.unit=TRUE, quanti.sup = c(), ind.sup = c(3, 7))
+res.alim2 <- PCA(alim, scale.unit=TRUE, quanti.sup = c(), ind.sup = c(8))
 ```
 
 ```{r}
@@ -151,6 +151,8 @@ head(iris)
 ```
 ```{r}
 res.iris <- PCA(iris, scale.unit = TRUE, quali.sup = c('Species'))
+plot.PCA(res.iris, choix = "ind", habillage = 5, label = "none")
+dimdesc(res.iris)
 ```
 ```{r}
 summary(res.iris, nbelements = Inf, nbind = Inf, ncp = 3)
