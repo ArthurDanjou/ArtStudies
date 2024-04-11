@@ -39,41 +39,58 @@ barplot(data,beside=TRUE,legend.text =rownames(data),main=" Effectifs observés"
 
   1) Commentez le barplot ci-dessus ? S'attend on à une situation d'indépendance ?
   
+On voit que la couleur des yeux a une incidence sur la couleur des cheveux car il n'y a pas la même proportion de blond pour les yeux bleus que pour les autres couleurs de yeux. On peut donc s'attendre à une situation de dépendance entre ces deux variables.
+  
   2) Etudiez cette situation par un test du chi-deux d'indépendance
   
 ```{r}
-
+test <- chisq.test(data)
+test
 ```
   3) Affichez le tableau des effectifs théoriques et la contribution moyenne
 ```{r}
+test$expected
 
+n_cases <- ncol(data) * nrow(data)
+contrib_moy <- 100/n_cases
+contrib_moy
 ```
   4) Calculer le tableau des contributions au khi-deux  
   
 ```{r}
-
-
+contribs <- (test$observed - test$expected)**2 / test$expected / test$statistic * 100
+contribs 
 ```
   5) Calculer le tableau des probabilités associé au tableau de contingence.
   
 ```{r}
-
+prob <- data/sum(data)
+prob
 ```
   6) Calculer le tableau des profils lignes et le profil moyen associé.
   
+-> Le profil ligne est une probabilité conditionnelle.
+  
 ```{r}
-
+marginale_ligne <- apply(prob, 1, sum)
+profil_ligne <- prob / marginale_ligne
+profil_ligne_moyen <- apply(prob, 2, sum)
 ```
+
   7) Calculer le tableau des profils colonnes et le profil moyen associé.
 ```{r}
-
-
+marginale_colonne <- apply(prob, 2, sum)
+profil_colonne <- t(t(prob) / marginale_colonne)
+profil_colonne_moyen <- apply(prob, 1, sum)
 ```
+ 
   8) Que vaut l’inertie du nuage des profils lignes ? Celle du nuage des profils colonnes ?
 
+-> inertie : la variance des profils par rapport au profil moyen. l'inertie des lignes et la même que celle des colonnes. I = chi2/Nombre d'individus
 
 ```{r}
-
+inertie <- test$statistic/sum(data)
+inertie
 ```
 
   9) Lancer une AFC avec FactoMineR
@@ -96,8 +113,18 @@ plot(res.afc, invisible = "col")
   10) Faire la construcution des éboulis des valeurs propres
   
 ```{r}
+eigen_values <- res.afc$eig
 
-
+bplot <- barplot(
+  eigen_values[, 1], 
+  names.arg = 1:nrow(eigen_values),
+  main = "Eboulis des valeurs propres",
+  xlab = "Principal Components",
+  ylab = "Eigenvalues",
+  col = "lightblue"
+)
+lines(x = bplot, eigen_values[, 1], type = "b", col = "red")
+abline(h=1, col = "darkgray", lty = 5)
 ```
   11) Effectuer l'analyse des correspondances 
   
@@ -108,7 +135,7 @@ Exercice 2
 AFC sur la répartition des tâches ménagères dans un foyer
 
 ```{r}
-data<-read.table("housetasks",sep=";",header = TRUE)
+data<-read.table("housetasks.csv",sep=";",header = TRUE)
 data
 ```
 
@@ -119,42 +146,55 @@ barplot(as.matrix(data),beside=TRUE,legend.text=rownames(data),main="Effectifs o
 
   1) Commentez le barplot ci-dessus ? S'attend on à une situation d'indépendance ?
   
+On voit que la place dans la famille a une incidence sur les taches de la famille car il n'y a pas la même proportion de Laundry chez la femme que pour les autres membres de la famille. On peut donc s'attendre à une situation de dépendance entre ces deux variables.
+  
+  
   2) Etudiez cette situation par un test du chi-deux d'indépendance
   
 ```{r}
-
+data_house <- apply(data, c(1, 2), sum)
+test_house <- chisq.test(data_house)
+test_house
 ```
   3) Affichez le tableau des effectifs théoriques et la contribution moyenne
 ```{r}
+test_house$expected
 
+n_cases <- ncol(data_house) * nrow(data_house)
+contrib_moy_house <- 100/n_cases
+contrib_moy_house
 ```
   4) Calculer le tableau des contributions au khi-deux  
   
 ```{r}
-
+contrib_house <- (test_house$observed - test_house$expected)**2 / test_house$expected / test_house$statistic * 100
+contrib_house
 ```
   5) Calculer le tableau des probabilités associé au tableau de contingence.
   
 ```{r}
-
+proba_house <- data_house / sum(data_house)
+proba_house
 ```
   6) Calculer le tableau des profils lignes et le profil moyen associé.
   
 ```{r}
-
+marginale_ligne <- apply(proba_house, 1, sum)
+profil_ligne <- proba_house / marginale_ligne
+profil_ligne_moyen <- apply(proba_house, 2, sum)
 ```
   7) Calculer le tableau des profils colonnes et le profil moyen associé.
 ```{r}
-
-
-
+marginale_colonne <- apply(proba_house, 2, sum)
+profil_colonne <- t(t(proba_house) / marginale_colonne)
+profil_colonne_moyen <- apply(proba_house, 1, sum)
 ```
   8) Que vaut l’inertie du nuage des profils lignes ? Celle du nuage des profils colonnes ?
 
 
 ```{r}
-
-
+inertie <- test_house$statistic / sum(data_house)
+inertie
 ```
 
   9) Lancer une AFC avec FactoMineR
@@ -173,9 +213,20 @@ plot(res.afc, invisible = "col")
   10) Faire la construcution des éboulis des valeurs propres
   
 ```{r}
+eigen_values <- res.afc$eig
 
+bplot <- barplot(
+  eigen_values[, 1], 
+  names.arg = 1:nrow(eigen_values),
+  main = "Eboulis des valeurs propres",
+  xlab = "Principal Components",
+  ylab = "Eigenvalues",
+  col = "lightblue"
+)
+lines(x = bplot, eigen_values[, 1], type = "b", col = "red")
+abline(h=1, col = "darkgray", lty = 5)
 ```
-  11) Effectuer l'analyse des correspondances 
   
-
-
+  11) Effectuer l'analyse des correspondances 
+Axe 1 : taches pour les femmes a gauche et les maris a droite
+Axe 2 : taches individuelles en haut, taches collectives au milieu et en bas
