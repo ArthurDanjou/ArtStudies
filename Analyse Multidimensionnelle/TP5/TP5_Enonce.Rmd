@@ -1,0 +1,181 @@
+---
+title: "TP5_Enonce"
+author: ''
+date: ''
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list=ls())
+library(FactoMineR)
+```
+
+----------------------------------------------------------------------------------------
+
+Exercice 1
+
+AFC sur le lien entre couleur des cheveux et ceux des yeux 
+
+```{r}
+data("HairEyeColor")
+```
+
+```{r}
+HairEyeColor
+```
+```{r}
+data <- apply(HairEyeColor, c(1, 2), sum)
+data
+```
+```{r}
+barplot(data,beside=TRUE,legend.text =rownames(data),main=" Effectifs observés",col=c("black","brown","red","yellow"))
+```
+
+  1) Commentez le barplot ci-dessus ? S'attend on à une situation d'indépendance ?
+  
+  2) Etudiez cette situation par un test du chi-deux d'indépendance
+  
+```{r}
+
+```
+  3) Affichez le tableau des effectifs théoriques et la contribution moyenne
+```{r}
+
+```
+  4) Calculer le tableau des contributions au khi-deux  
+  
+```{r}
+
+
+```
+  5) Calculer le tableau des probabilités associé au tableau de contingence.
+  
+```{r}
+
+```
+  6) Calculer le tableau des profils lignes et le profil moyen associé.
+  
+```{r}
+
+```
+  7) Calculer le tableau des profils colonnes et le profil moyen associé.
+```{r}
+
+
+```
+  8) Que vaut l’inertie du nuage des profils lignes ? Celle du nuage des profils colonnes ?
+
+
+```{r}
+
+```
+
+  9) Lancer une AFC avec FactoMineR
+  
+```{r}
+library(FactoMineR)
+res.afc<-CA(data)
+
+summary(res.afc)
+
+plot(res.afc, invisible = "row")
+plot(res.afc, invisible = "col")
+
+```
+```{r}
+
+```
+  
+  
+  10) Faire la construcution des éboulis des valeurs propres
+  
+```{r}
+
+
+```
+  11) Effectuer l'analyse des correspondances 
+  
+  ----------------------------------------------------------------------------------------
+
+Exercice 2
+
+AFC sur la répartition des tâches ménagères dans un foyer
+
+```{r}
+data<-read.table("housetasks",sep=";",header = TRUE)
+data
+```
+
+```{r}
+
+barplot(as.matrix(data),beside=TRUE,legend.text=rownames(data),main="Effectifs observés",col=rainbow(length(rownames(data))))
+```
+
+  1) Commentez le barplot ci-dessus ? S'attend on à une situation d'indépendance ?
+  
+  2) Etudiez cette situation par un test du chi-deux d'indépendance
+  
+```{r}
+
+```
+  3) Affichez le tableau des effectifs théoriques et la contribution moyenne
+```{r}
+
+```
+  4) Calculer le tableau des contributions au khi-deux  
+  
+```{r}
+
+```
+  5) Calculer le tableau des probabilités associé au tableau de contingence.
+  
+```{r}
+
+```
+  6) Calculer le tableau des profils lignes et le profil moyen associé.
+  
+```{r}
+
+```
+  7) Calculer le tableau des profils colonnes et le profil moyen associé.
+```{r}
+
+
+
+```
+  8) Que vaut l’inertie du nuage des profils lignes ? Celle du nuage des profils colonnes ?
+
+
+```{r}
+
+
+```
+
+  9) Lancer une AFC avec FactoMineR
+  
+```{r}
+res.afc<-CA(data)
+
+summary(res.afc,nbelements = Inf)
+
+plot(res.afc, invisible = "row")
+plot(res.afc, invisible = "col")
+
+```
+  
+  
+  10) Faire la construcution des éboulis des valeurs propres
+  
+```{r}
+
+```
+  11) Effectuer l'analyse des correspondances 
+  
+
+
