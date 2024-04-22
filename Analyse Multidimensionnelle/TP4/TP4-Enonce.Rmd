@@ -1,0 +1,167 @@
+---
+title: "TP4 Enoncé"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Nous allons étudier un exemple qui porte sur les exploitations agricoles de la région Midi-Pyrénées. Les données proviennent des “Tableaux Economiques de Midi-Pyrénées”, publiées par la Direction Régionale de Toulouse de l’INSEE, en 1996. 
+
+Le tableau de contingence provient du croisement de deux variables, Département (8 modalités) et S.A.U (Surface Agricole Utilisée, 6 classes). Notez que cette dernière est une variable continue discrétisée. 
+
+Voici les abréviations :
+
+Pour les départements
+
+ARIE= Ariège, AVER: Aveyron, H.G. = Haute-Garonne, GERS, LOT, H.P. = Hautes-Pyrénées, TARN, T.G. = Tarn et Garonne.
+
+Pour les S.A.U 
+
+INF05: moins de 5 hectares, S0510: entre 5 et 10 hectares etc..., SUP50: plus de 50 hectares.
+
+1) Importer le tableau de contingence. Appeler le depsau.
+
+```{r}
+library(FactoMineR)
+
+rm(list=ls())
+
+depsau <- read.table("depsau.csv", sep=";",header=TRUE, row.names=c("X"))
+```
+
+
+
+2) L'étude porte sur combien d'exploitations agricoles ? 
+
+```{r}
+n = sum(depsau)
+print(c("l'étude porte sur",n,"exploitations"),quote=FALSE)
+```
+
+
+3) Afin d'étudier la liaison entre les variables Département et S.A.U. réalisez un test du khi-2 d'indépendance au seuil d'erreur 5% (bien écrire le test complètement sur votre copie avec les hypothèses etc.). Vous pourrez utiliser la fonction chisq.test 
+
+```{r}
+chi <- chisq.test(depsau)
+chi$statistic
+```
+```{r}
+tobs <- sum((depsau - chi$expected)**2/chi$expected)
+tobs
+```
+```{r}
+quantile <- qchisq(0.95,(dim(depsau)[1]-1)*(dim(depsau)[2]-1))
+quantile
+```
+
+```{r}
+chi
+```
+
+4) Afficher le tableau des effectifs observés. Vous pourrez utiliser la fonction summary et la question 3.
+
+```{r}
+par(mar =c(a=6,b=6,c=6,d=6))
+barplot(t(chi$observed),beside = TRUE, col = rainbow(6),main = "Observés")
+```
+
+
+5) Afficher le tableau des effectifs attendus sous l'hypothèse d'indépendance entre les deux variables. Vous pourrez utiliser la fonction summary et la question 3.
+
+```{r}
+par(mar =c(a=6,b=6,c=6,d=6))
+barplot(t(chi$expected),beside = TRUE, col = rainbow(6),main = "Observés")
+```
+
+
+6) Calculer le tableau des contributions au chi-2. Commenter.
+
+```{r}
+contrib <- round(((depsau - chi$expected)**2/chi$expected) * 100/tobs,digits = 2)
+```
+
+```{r}
+```
+
+7) Calculer le tableau des probabilités associé au tableau de contingence.
+
+```{r}
+prob <- depsau/n
+```
+
+
+8) Calculer les probabilités marginales des lignes. On pourra utiliser la fonction apply.
+
+
+```{r}
+marg.ligne <- apply(prob,MARGIN = 1,FUN = sum)
+```
+
+9) Calculer le tableau des profils lignes et le profil moyen associé. Commenter.
+
+```{r}
+prof.ligne <- prob / marg.line
+```
+
+```{r}
+prof.ligne.moyen <- apply(prob,2,sum)
+```
+
+
+
+10) Calculer les probabilités marginales des colonnes.
+
+
+```{r}
+marg.col <- prof.ligne.moyen
+```
+
+
+11) Calculer le tableau des profils colonnes et le profil moyen associé.
+
+```{r}
+prof.col <- t(t(prob) / marg.col) 
+```
+
+```{r}
+prof.col.moyen <- marg.ligne
+```
+
+
+12) Lancer une AFC avec FactoMineR sur depsau. 
+
+
+```{r}
+
+res.depsau<-CA(depsau)
+
+summary(res.depsau)
+
+eig.val <- res.depsau$eig
+barplot(eig.val[, 2], 
+        names.arg = 1:nrow(eig.val), 
+        main = "Variances Explained by Dimensions (%)",
+        xlab = "Principal Dimensions",
+        ylab = "Percentage of variances",
+        col ="steelblue")
+# Add connected line segments to the plot
+#lines(x = 1:nrow(eig.val), eig.val[, 2], 
+  #    type = "b", pch = 19, col = "red")
+
+plot(res.depsau, invisible = "row")
+plot(res.depsau, invisible = "col")
+
+```
+13) Combien d'axes factoriels y-a-t-il à calculer ? 
+
+Le nombre d'axes factoriels a calculer est min(I-1,J-1) avec I le nombre de lignes et J le nombres de colones. Il y en a donc 5. Cependant, par le critère du coude, on en concerve que 2. 
+
+14) Faire l'étude statistique complète. 
+
+Le premier axe range les espaces agricoles selon leur superficie et les régions selon le nombres de espaces agricoles ayant la même taille. 
+Le second axe range les régions selon leur concentration en espaces agricole extrême. 

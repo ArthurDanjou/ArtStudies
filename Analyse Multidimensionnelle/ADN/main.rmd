@@ -1,0 +1,6 @@
+```{r}
+library(FactoMineR)
+data(iris)
+res.test <- PCA(iris[,1:4], scale.unit=TRUE, ncp=4)
+res.test
+```

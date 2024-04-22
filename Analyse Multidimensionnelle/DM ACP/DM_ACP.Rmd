@@ -1,12 +1,12 @@
 ---
 title: "DM Statistique exploratoire multidimensionelle - Arthur DANJOU"
 output:
-  pdf_document: default
-  html_document:
-    df_print: paged
-editor_options: 
-  markdown: 
-    wrap: 72
+pdf_document: default
+html_document:
+df_print: paged
+editor_options:
+markdown:
+wrap: 72
 ---
 
 ------------------------------------------------------------------------
@@ -28,23 +28,23 @@ knitr::opts_chunk$set(include = FALSE)
 # PARTIE 1 : Calcul de composantes principales sous R (Sans FactoMineR)
 
 -   Vide l'environnement de travail, initialise la matrice avec laquelle
-    vous allez travailler
+vous allez travailler
 
 ```{r}
-rm(list=ls())
+rm(list = ls())
 ```
 
 -   Importation du jeu de données (compiler ce qui est ci-dessous mais
-    NE SURTOUT PAS MODIFIER)
+NE SURTOUT PAS MODIFIER)
 
 ```{r}
 library(dplyr)
-notes_MAN <- read.table("notes_MAN.csv", sep=";", dec=",", row.names=1, header=TRUE)
+notes_MAN <- read.table("notes_MAN.csv", sep = ";", dec = ",", row.names = 1, header = TRUE)
 # on prépare le jeu de données en retirant la colonne des Mentions
 # qui est une variable catégorielle
-notes_MAN_prep <- notes_MAN[,-1]
+notes_MAN_prep <- notes_MAN[, -1]
 
-X <- notes_MAN[1:6,]%>%select(c("Probas","Analyse","Anglais","MAN.Stats","Stats.Inférentielles"))
+X <- notes_MAN[1:6,] %>% select(c("Probas", "Analyse", "Anglais", "MAN.Stats", "Stats.Inférentielles"))
 # on prépare le jeu de données en retirant la colonne des Mentions
 # qui est une variable catégorielle
 # View(X)
@@ -52,19 +52,19 @@ X <- notes_MAN[1:6,]%>%select(c("Probas","Analyse","Anglais","MAN.Stats","Stats.
 ```
 
 ```{r}
-X <- scale(X,center=TRUE,scale=TRUE)
+X <- scale(X, center = TRUE, scale = TRUE)
 X
 ```
 
 -   Question 1 : que fait la fonction “scale” dans la cellule ci-dessus
-    ? (1 point)
+? (1 point)
 
 La fonction *scale* permet de normaliser et de réduire notre matrice X.
 
 -   Question 2: utiliser la fonction eigen afin de calculer les valeurs
-    propres et vecteurs propres de la matrice de corrélation de X. Vous
-    stockerez les valeurs propres dans un vecteur nommé lambda et les
-    vecteurs propres dans une matrice nommée vect (1 point).
+propres et vecteurs propres de la matrice de corrélation de X. Vous
+stockerez les valeurs propres dans un vecteur nommé lambda et les
+vecteurs propres dans une matrice nommée vect (1 point).
 
 ```{r}
 cor_X <- cor(X)
@@ -78,7 +78,7 @@ lambda
 ```
 
 -   Question 3 : quelle est la part d’inertie expliquée par les 2
-    premières composantes principales ? (1 point)
+premières composantes principales ? (1 point)
 
 ```{r}
 inertie_total_1 <- sum(diag(cor_X)) # Inertie est égale à la trace de la matrice de corrélation
@@ -90,26 +90,26 @@ inertie_axes
 ```
 
 -   Question 4 : calculer les coordonnées des individus sur les deux
-    premières composantes principales (1 point)
+premières composantes principales (1 point)
 
 ```{r}
 C <- X %*% vect
-C[,1:2]
+C[, 1:2]
 ```
 
 -   Question 5 : représenter les individus sur le plan formé par les
-    deux premières composantes principales (1 point)
+deux premières composantes principales (1 point)
 
 ```{r}
 colors <- c('blue', 'red', 'green', 'yellow', 'purple', 'orange')
 plot(
-  C[,1],C[,2], 
-  main="Coordonnées des individus par rapport \n aux deux premières composantes principales",
+  C[, 1], C[, 2],
+  main = "Coordonnées des individus par rapport \n aux deux premières composantes principales",
   xlab = "Première composante principale",
   ylab = "Deuxieme composante principale",
   panel.first = grid(),
   col = colors,
-  pch=15
+  pch = 15
 )
 legend(x = 'topleft', legend = rownames(X), col = colors, pch = 15)
 ```
@@ -122,7 +122,7 @@ legend(x = 'topleft', legend = rownames(X), col = colors, pch = 15)
 étudiants.
 
 -   Question 1 : Écrire maximum 2 lignes de code qui renvoient le nombre
-    d’individus et le nombre de variables.
+d’individus et le nombre de variables.
 
 ```{r}
 nrow(notes_MAN_prep) # Nombre d'individus
@@ -161,7 +161,7 @@ summary(res.notes, nbind = Inf, nbelements = Inf, nb.dec = 2)
 eigen_values <- res.notes$eig
 
 bplot <- barplot(
-  eigen_values[, 1], 
+  eigen_values[, 1],
   names.arg = 1:nrow(eigen_values),
   main = "Eboulis des valeurs propres",
   xlab = "Principal Components",
@@ -169,11 +169,11 @@ bplot <- barplot(
   col = "lightblue"
 )
 lines(x = bplot, eigen_values[, 1], type = "b", col = "red")
-abline(h=1, col = "darkgray", lty = 5)
+abline(h = 1, col = "darkgray", lty = 5)
 ```
 
 -   Question 4 : Quelles sont les coordonnées de la variable MAN.Stats
-    sur le cercle des corrélations ?
+sur le cercle des corrélations ?
 
 La variable **MAN.Stats** est la **9-ième** variable de notre dataset. Les
 coordonnées de cette variable sont : $(corr(C_1, X_9), corr(C_2, X_9))$
@@ -198,12 +198,12 @@ Les coordonnées de la variable **MAN.Stats** sont donc environ
 **(0.766,-0.193)**
 
 -   Question 5 : Quelle est la contribution moyenne des individus ?
-    Quelle est la contribution de Thérèse au 3e axe principal ?
+Quelle est la contribution de Thérèse au 3e axe principal ?
 
 ```{r}
 contribs <- res.notes$ind$contrib
 contrib_moy_ind <- mean(contribs) # 100 * 1/42
-contrib_therese <- res.notes$ind$contrib["Thérèse",3]
+contrib_therese <- res.notes$ind$contrib["Thérèse", 3]
 
 contrib_moy_ind
 contrib_therese
@@ -213,7 +213,7 @@ La contribution moyenne est donc environ égale à **2,38%**. La
 contribution de Thérèse au 3e axe principal est environ égal à **5.8%**
 
 -   Question 6 : Quelle est la qualité de représentation de Julien sur
-    le premier plan factoriel (constitué du premier et deuxième axe) ?
+le premier plan factoriel (constitué du premier et deuxième axe) ?
 
 La qualité de représentation de 'Julien' sur le premier plan factoriel
 est donné par la formule :
@@ -236,8 +236,8 @@ principales. On a donc une qualité environ égale à **0.95** soit
 **95%.**
 
 -   Question 7 : Discuter du nombre d’axes à conserver selon les deux
-    critères vus en cours. Dans toutes la suite on gardera néanmoins 2
-    axes.
+critères vus en cours. Dans toutes la suite on gardera néanmoins 2
+axes.
 
 Nous avons vu deux critères principaux: le critère de Kaiser et le
 critère du coude. Le critère de Kaiser dit de garder uniquement les
@@ -253,7 +253,7 @@ plus grandes valeurs propres ou bien les quatre plus grandes**, donc
 conserver ou bien **deux axes principaux, ou bien quatre**.
 
 -   Question 8 : Effectuer l’étude des individus. Être en particulier
-    vigilant aux étudiants mal représentés et commenter.
+vigilant aux étudiants mal représentés et commenter.
 
 ## Contribution moyenne
 
@@ -266,7 +266,7 @@ La contribution moyenne est donc environ égale à **2,38%**
 ## Axe 1
 
 ```{r}
-indiv_contrib_axe_1 <- sort(res.notes$ind$contrib[,1], decreasing = TRUE)
+indiv_contrib_axe_1 <- sort(res.notes$ind$contrib[, 1], decreasing = TRUE)
 head(indiv_contrib_axe_1, 3)
 ```
 
@@ -278,7 +278,7 @@ sur l'axe 1.
 ## Axe 2
 
 ```{r}
-indiv_contrib_axe_2 <- sort(res.notes$ind$contrib[,2], decreasing = TRUE)
+indiv_contrib_axe_2 <- sort(res.notes$ind$contrib[, 2], decreasing = TRUE)
 head(indiv_contrib_axe_2, 3)
 ```
 
@@ -294,12 +294,12 @@ axes, c'est à dire ceux qui se distinguent ni par l'axe 1, ni par l'axe
 2.
 
 ```{r}
-mal_representes <- rownames(res.notes$ind$cos2)[rowSums(res.notes$ind$cos2[,1:2]) <= mean(res.notes$ind$cos2[,1:2])]
+mal_representes <- rownames(res.notes$ind$cos2)[rowSums(res.notes$ind$cos2[, 1:2]) <= mean(res.notes$ind$cos2[, 1:2])]
 mal_representes
 ```
 
 -   Question 9 : Relancer une ACP en incluant la variable catégorielle
-    des mentions comme variable supplémentaire.
+des mentions comme variable supplémentaire.
 
 ```{r}
 res.notes_sup <- PCA(notes_MAN, scale.unit = TRUE, quali.sup = c("Mention"))
@@ -311,7 +311,7 @@ summary(res.notes_sup, nb.dec = 2, nbelements = Inf, nbind = Inf)
 ```
 
 -   Question 10 : Déduire des deux questions précédentes une
-    interprétation du premier axe principal.
+interprétation du premier axe principal.
 
 La prise en compte de la variable supplémentaire **Mentions**, montre en outre que la
 première composante principale est liée à la mention obtenue par les étudiants.
@@ -320,7 +320,7 @@ réussite des étudiants.
 
 
 -   Question 11 : Effectuer l’analyse des variables. Commenter les UE
-    mal représentées.
+mal représentées.
 
 ## Contribution moyenne
 
@@ -340,7 +340,7 @@ toutes une coordonnée positive.
 ## Axe 2
 
 ```{r}
-var_contrib_axe_2 <- sort(res.notes_sup$var$contrib[,2], decreasing = TRUE)
+var_contrib_axe_2 <- sort(res.notes_sup$var$contrib[, 2], decreasing = TRUE)
 head(var_contrib_axe_2, 3)
 ```
 
@@ -351,9 +351,9 @@ et **Options.S6**, corrélées négativement.
 ## Qualité de la représentation
 
 ```{r}
-mal_representes <- rownames(res.notes_sup$var$cos2[,1:2])[rowSums(res.notes_sup$var$cos2[,1:2]) <= 0.6]
+mal_representes <- rownames(res.notes_sup$var$cos2[, 1:2])[rowSums(res.notes_sup$var$cos2[, 1:2]) <= 0.6]
 mal_representes
-mal_representes_moy <- rownames(res.notes_sup$var$cos2[,1:2])[rowSums(res.notes_sup$var$cos2[,1:2]) <= mean(res.notes_sup$var$cos2[,1:2])]
+mal_representes_moy <- rownames(res.notes_sup$var$cos2[, 1:2])[rowSums(res.notes_sup$var$cos2[, 1:2]) <= mean(res.notes_sup$var$cos2[, 1:2])]
 mal_representes_moy
 ```
 
@@ -364,7 +364,7 @@ sauf 4 variables : l'**Anglais**, **MAN.PPEI.Projet**, **Options.S5** et
 On remarque également que l'**Options.S5** est la variable la moins bien représentée dans le plan car sa qualité de représentation dans le plan est inférieure à la moyenne des qualités de représentation des variables dans le plan.
 
 -   Question 12 : Interpréter les deux premières composantes
-    principales.
+principales.
 
 On dira que la première composante principale définit un “facteur de taille” car
 toutes les variables sont corrélées positivement entre elles. Ce phénomène
@@ -379,5 +379,5 @@ moyenne), c'est à dire selon leur réussite, donc leur moyenne générale de le
 
 Le deuxième axe définit un “facteur de forme” : il y a deux groupes de variables
 opposées, celles qui contribuent positivement à l’axe, celles qui contribuent
-négativement. Vu les variables en question, la deuxième composante principale 
+négativement. Vu les variables en question, la deuxième composante principale
 s’interprète aisément comme opposant les matières du semestre 5 à celles du semestre 6.

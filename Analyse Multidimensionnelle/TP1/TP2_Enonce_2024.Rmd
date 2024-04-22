@@ -3,6 +3,7 @@ title: "TP2 : ACP "
 output:
   pdf_document: default
   html_document: default
+output: rmarkdown::html_vignette
 ---
 
 ```{r setup, include=FALSE}
@@ -59,7 +60,7 @@ help(PCA)
 
 
 ```{r,echo=FALSE}
-res.autos<-PCA(autos, scale.unit=TRUE, quanti.sup = c("PRIX"))
+res.autos<-PCA(autos, scale.unit=TRUE, quanti.sup = "PRIX")
 ```
 ```{r}
 summary(res.autos, nb.dec=2, nb.elements =Inf, nbind = Inf, ncp=3) #les résultats avec deux décimales, pour tous les individus, toutes les variables, sur les 3 premières CP
