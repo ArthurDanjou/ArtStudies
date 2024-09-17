@@ -1,0 +1,27 @@
+# Exercice 1 : Uniform
+
+```{r}
+n <- 10e4
+U <- runif(n)
+X <- 5 * (U <= 0.4) + 6 * (0.4 < U & U <= 0.6) + 7 * (0.6 < U & U <= 0.9) + 8 * (0.9 < U)
+barplot(table(X)/n)
+```
+
+# Exercice 3 : Box Muller Algo
+
+```{r}
+BM <- function(n) {
+  U1 <- runif(n)
+  U2 <- runif(n)
+  X1 <- sqrt(-2 * log(U1)) * cos(2 * pi * U2)
+  X2 <- sqrt(-2 * log(U1)) * sin(2 * pi * U2)
+  return(c(X1, X2))
+}
+
+n <- 10e4
+X <- BM(n)
+
+hist(X, breaks = 100, freq = FALSE)
+curve(dnorm(x), add = TRUE, col = "red")
+```
+
