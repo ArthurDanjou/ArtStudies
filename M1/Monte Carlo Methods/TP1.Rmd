@@ -1,4 +1,4 @@
-# Exercice 1 : Uniform
+# Exercise 1 : Uniform
 
 ```{r}
 n <- 10e4
@@ -7,7 +7,7 @@ X <- 5 * (U <= 0.4) + 6 * (0.4 < U & U <= 0.6) + 7 * (0.6 < U & U <= 0.9) + 8 * 
 barplot(table(X)/n)
 ```
 
-# Exercice 3 : Box Muller Algo
+# Exercise 3 : Box Muller Algo
 
 ```{r}
 BM <- function(n) {
