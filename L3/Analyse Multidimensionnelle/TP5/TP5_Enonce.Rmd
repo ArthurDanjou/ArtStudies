@@ -31,10 +31,11 @@ HairEyeColor
 ```
 ```{r}
 data <- apply(HairEyeColor, c(1, 2), sum)
+n <- sum(data)
 data
 ```
 ```{r}
-barplot(data,beside=TRUE,legend.text =rownames(data),main=" Effectifs observés",col=c("black","brown","red","yellow"))
+barplot(data,beside=TRUE,legend.text =rownames(data),main="Effectifs observés",col=c("black","brown","red","yellow"))
 ```
 
   1) Commentez le barplot ci-dessus ? S'attend on à une situation d'indépendance ?
@@ -58,7 +59,7 @@ contrib_moy
   4) Calculer le tableau des contributions au khi-deux  
   
 ```{r}
-contribs <- (test$observed - test$expected)**2 / test$expected / test$statistic * 100
+contribs <- (test$observed - test$expected)**2 / test$expected * 100/test$statistic
 contribs 
 ```
   5) Calculer le tableau des probabilités associé au tableau de contingence.
@@ -75,6 +76,10 @@ prob
 marginale_ligne <- apply(prob, 1, sum)
 profil_ligne <- prob / marginale_ligne
 profil_ligne_moyen <- apply(prob, 2, sum)
+
+marginale_ligne
+profil_ligne
+profil_ligne_moyen
 ```
 
   7) Calculer le tableau des profils colonnes et le profil moyen associé.
@@ -82,6 +87,10 @@ profil_ligne_moyen <- apply(prob, 2, sum)
 marginale_colonne <- apply(prob, 2, sum)
 profil_colonne <- t(t(prob) / marginale_colonne)
 profil_colonne_moyen <- apply(prob, 1, sum)
+
+marginale_colonne
+profil_colonne
+profil_colonne_moyen
 ```
  
   8) Que vaut l’inertie du nuage des profils lignes ? Celle du nuage des profils colonnes ?
@@ -167,7 +176,7 @@ contrib_moy_house
   4) Calculer le tableau des contributions au khi-deux  
   
 ```{r}
-contrib_house <- (test_house$observed - test_house$expected)**2 / test_house$expected / test_house$statistic * 100
+contrib_house <- (test_house$observed - test_house$expected)**2 / test_house$expected * 100/test_house$statistic
 contrib_house
 ```
   5) Calculer le tableau des probabilités associé au tableau de contingence.
@@ -182,12 +191,20 @@ proba_house
 marginale_ligne <- apply(proba_house, 1, sum)
 profil_ligne <- proba_house / marginale_ligne
 profil_ligne_moyen <- apply(proba_house, 2, sum)
+
+marginale_ligne
+profil_ligne
+profil_ligne_moyen
 ```
   7) Calculer le tableau des profils colonnes et le profil moyen associé.
 ```{r}
 marginale_colonne <- apply(proba_house, 2, sum)
 profil_colonne <- t(t(proba_house) / marginale_colonne)
 profil_colonne_moyen <- apply(proba_house, 1, sum)
+
+marginale_colonne
+profil_colonne
+profil_colonne_moyen
 ```
   8) Que vaut l’inertie du nuage des profils lignes ? Celle du nuage des profils colonnes ?
 
