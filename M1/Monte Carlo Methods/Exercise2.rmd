@@ -1,5 +1,6 @@
 # Exercise 2 : Exponential distribution and related distributions
 
+### Question 1
 ```{r}
 n <- 10000
 u <- runif(n)
@@ -8,4 +9,19 @@ hist(x, breaks = 50, freq = FALSE)
 curve(dexp(x, rate = 2), add = TRUE, col = "red")
 
 qqplot(x, rexp(n, rate = 2))
+```
+
+### Question 2
+
+```{r}
+lambda <- 1.5
+n <- 10000
+S <- numeric(n)
+for (i in 1:n) {
+    u <- runif(10)
+    x <- -1/lambda * log(1-u)
+    S[i] <- sum(x)
+}
+hist(S, freq = FALSE, breaks = 50)
+curve(dgamma(x, shape = 10, rate = lambda), add = TRUE, col = "red")
 ```
