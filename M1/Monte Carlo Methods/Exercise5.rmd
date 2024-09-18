@@ -1,0 +1,12 @@
+# Exercise 5 : Simulation of Brownian Motion
+
+```{r}
+n <- 1:1100
+brownian <- function (i) {
+  return ((i >= 1 & i <= 100)*(i/100) + (i >= 101 & i <= 110)*(1 + (i - 100)/10) + (i >= 111 & i <= 1110)*(2 + (i - 110)/1000))
+}
+t <- brownian(n)
+W0 <- 0
+Wt <- W0 + sqrt(t) * rnorm(1100)
+plot(t, Wt, type = "o")
+```
