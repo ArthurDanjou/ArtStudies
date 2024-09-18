@@ -1,12 +1,3 @@
-# Exercise 1 : Uniform
-
-```{r}
-n <- 10e4
-U <- runif(n)
-X <- 5 * (U <= 0.4) + 6 * (0.4 < U & U <= 0.6) + 7 * (0.6 < U & U <= 0.9) + 8 * (0.9 < U)
-barplot(table(X)/n)
-```
-
 # Exercise 3 : Box Muller Algo
 
 ```{r}
@@ -24,4 +15,3 @@ X <- BM(n)
 hist(X, breaks = 100, freq = FALSE)
 curve(dnorm(x), add = TRUE, col = "red")
 ```
-

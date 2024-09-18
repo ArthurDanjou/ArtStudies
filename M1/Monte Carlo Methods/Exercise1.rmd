@@ -1,0 +1,8 @@
+# Exercise 1 : Uniform
+
+```{r}
+n <- 10e4
+U <- runif(n)
+X <- 5 * (U <= 0.4) + 6 * (0.4 < U & U <= 0.6) + 7 * (0.6 < U & U <= 0.9) + 8 * (0.9 < U)
+barplot(table(X)/n)
+```
