@@ -1,0 +1,32 @@
+# Exercise 7 : Rejection
+
+```{r}
+n <- 5000
+
+f <- function(x, y) {
+  return(
+    1 / pi * (x^2 + y^2 <= 1)
+  )
+}
+
+M <- 4 / pi
+g <- function(x, y) {
+  return(
+    1 / 4 * (x >= -1 & x <= 1 & y >= -1 & y <= 1)
+  )
+}
+
+x <- NULL
+y <- NULL
+while (length(x) < n) {
+  U <- runif(1)
+  X <- runif(1, -1, 1)
+  Y <- runif(1, -1, 1)
+  x <- append(x, X[U <= (f(X, Y) / (M * g(X, Y)))])
+  y <- append(y, Y[U <= (f(X, Y) / (M * g(X, Y)))])
+}
+
+t <- seq(-1, 1, 0.01)
+plot(x, y)
+contour(t, t, outer(t, t, Vectorize(f)), add = TRUE, col = "red", lwd = 2)
+```
