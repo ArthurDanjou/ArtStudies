@@ -4,7 +4,7 @@
 ```{r}
 n <- 10000
 u <- runif(n)
-x <- -1/2 * log(1-u)
+x <- -1 / 2 * log(1 - u)
 hist(x, breaks = 50, freq = FALSE)
 curve(dexp(x, rate = 2), add = TRUE, col = "red")
 
@@ -19,9 +19,9 @@ n <- 10000
 d <- 10
 S <- numeric(n)
 for (i in 1:n) {
-    u <- runif(d)
-    x <- -1/lambda * log(1-u)
-    S[i] <- sum(x)
+  u <- runif(d)
+  x <- -1 / lambda * log(1 - u)
+  S[i] <- sum(x)
 }
 hist(S, freq = FALSE, breaks = 50)
 curve(dgamma(x, shape = d, rate = lambda), add = TRUE, col = "red")
@@ -29,19 +29,18 @@ curve(dgamma(x, shape = d, rate = lambda), add = TRUE, col = "red")
 
 ### Question 3
 ```{r}
-lambda <- 4
 n <- 10000
-X <- numeric(n)
-p <- 1
-for (i in 1:n) {
-    S <- -1/lambda * log(1-runif(1))
-    while (S <= 1) {
-      S <- x - 1/lambda * log(1-runif(1))
-      p <- p+1
-    }
-    X[i] <- p
-    p <- 1
+S <- numeric(n)
+i <- 1
+for (j in (1:n)) {
+  x <- -1 / 4 * log(1 - runif(1))
+  while (x <= 1) {
+    i <- i + 1
+    x <- x - 1 / 4 * log(1 - runif(1))
+  }
+  S[j] <- i
+  i <- 1
 }
-hist(X, freq = FALSE, breaks = 50)
-curve(dpois(x, lambda), add = TRUE, col = "red")
+hist(S, freq = FALSE)
+# curve(dpois(S, lambda = 4), add = TRUE, col = "red")
 ```
