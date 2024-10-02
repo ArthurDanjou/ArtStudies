@@ -1,0 +1,33 @@
+# Exercise 8 : Truncated Normal Distribution
+```{r}
+f <- function(x, b, mean, sd) {
+  1 / (sqrt(2 * pi * sd^2) * pnorm((mean - b) / sd)) *
+    exp(-(x - mean)^2 / (2 * sd^2)) *
+    (x >= b)
+}
+
+M <- function(b, mean, sd) {
+  1 / pnorm((mean - b) / sd)
+}
+
+g <- function(x, b, mean, sd) {
+  1 / (sqrt(2 * pi * sd^2) * pnorm((mean - b) / sd)) *
+    exp(-(x - mean)^2 / (2 * sd^2))
+}
+
+n <- 10000
+mean <- 0
+sd <- 2
+b <- 2
+
+x <- numeric(0)
+while (length(x) < n) {
+  U <- runif(1)
+  X <- rnorm(1, mean, b)
+  x <- append(x, X[U <= (f(X, b, mean, sd) / (M(b, mean, sd) * g(X, b, mean, sd)))])
+}
+
+t <- seq(b, 8, 0.01)
+hist(x, freq = FALSE, breaks = 35)
+lines(t, f(t, b, mean, sd), col = "red", lwd = 2)
+```
