@@ -27,7 +27,7 @@ while (length(x) < n) {
   x <- append(x, X[U <= (f(X, b, mean, sd) / (M(b, mean, sd) * g(X, b, mean, sd)))])
 }
 
-t <- seq(b, 8, 0.01)
+t <- seq(b, 7, 0.01)
 hist(x, freq = FALSE, breaks = 35)
 lines(t, f(t, b, mean, sd), col = "red", lwd = 2)
 ```
