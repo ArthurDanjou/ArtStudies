@@ -2,21 +2,17 @@
 
 ```{r}
 f <- function(x) {
-  return(
-    (2 / pi * sqrt(1 - x^2)) * (x >= -1 & x <= 1)
-  )
+  2 / pi * sqrt(1 - x^2) * (x >= -1 & x <= 1)
 }
 
 n <- 10000
 
 M <- 4 / pi
 g <- function(x) {
-  return(
-    1 / 2 * (x >= -1 & x <= 1)
-  )
+  1 / 2 * (x >= -1 & x <= 1)
 }
 
-x <- NULL
+x <- numeric(0)
 while (length(x) < n) {
   U <- runif(1)
   X <- runif(1, -1, 1)
