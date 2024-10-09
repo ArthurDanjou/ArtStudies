@@ -1,0 +1,37 @@
+# Exercise 9 : Estimation of Pi
+
+## Methode 1
+
+```{r}
+n <- 150000
+
+pi_1 <- function(n) {
+  U <- runif(n, 0, 1)
+  return(4 / n * sum(sqrt(1 - U^2)))
+}
+pi_1(n)
+```
+
+## Methode 2
+```{r}
+n <- 150000
+
+pi_2 <- function(n) {
+  U1 <- runif(n, 0, 1)
+  U2 <- runif(n, 0, 1)
+  return(4 / n * sum(U1^2 + U2^2 <= 1))
+}
+pi_2(n)
+```
+
+## Best Estimator
+```{r}
+n <- 1000
+m <- 150000
+
+sample_1 <- replicate(n, pi_1(m))
+sample_2 <- replicate(n, pi_2(m))
+
+cat(sprintf("[Methode 1] Mean: %s. Variance: %s \n", mean(sample_1), var(sample_1)))
+cat(sprintf("[Methode 2] Mean: %s. Variance: %s", mean(sample_2), var(sample_2)))
+```
