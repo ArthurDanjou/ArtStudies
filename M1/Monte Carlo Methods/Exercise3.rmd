@@ -12,6 +12,6 @@ BM <- function(n) {
 n <- 10e4
 X <- BM(n)
 
-hist(X, breaks = 100, freq = FALSE)
+hist(X, breaks = 50, freq = FALSE)
 curve(dnorm(x), add = TRUE, col = "red")
 ```
