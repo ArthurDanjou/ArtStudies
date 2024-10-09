@@ -1,4 +1,5 @@
-# Exercise 8 : Truncated Normal Distribution
+# Exercise 8 - a : Truncated Normal Distribution
+
 ```{r}
 f <- function(x, b, mean, sd) {
   1 / (sqrt(2 * pi * sd^2) * pnorm((mean - b) / sd)) *
@@ -11,7 +12,7 @@ M <- function(b, mean, sd) {
 }
 
 g <- function(x, b, mean, sd) {
-  1 / (sqrt(2 * pi * sd^2) * pnorm((mean - b) / sd)) *
+  1 / sqrt(2 * pi * sd^2) *
     exp(-(x - mean)^2 / (2 * sd^2))
 }
 
@@ -23,7 +24,7 @@ b <- 2
 x <- numeric(0)
 while (length(x) < n) {
   U <- runif(1)
-  X <- rnorm(1, mean, b)
+  X <- rnorm(1, mean, sd)
   x <- append(x, X[U <= (f(X, b, mean, sd) / (M(b, mean, sd) * g(X, b, mean, sd)))])
 }
 
@@ -31,3 +32,34 @@ t <- seq(b, 7, 0.01)
 hist(x, freq = FALSE, breaks = 35)
 lines(t, f(t, b, mean, sd), col = "red", lwd = 2)
 ```
+
+# Exercise 8 - b : Truncated Exponential Distribution
+```{r}
+f <- function(x, b, lambda) {
+  lambda * exp(-lambda * (x - b)) * (x >= b)
+}
+
+M <- function(b, lambda) {
+  exp(lambda * b)
+}
+
+g <- function(x, lambda) {
+  lambda * exp(-lambda * x)
+}
+
+n <- 10000
+b <- 2
+lambda <- 1
+
+x <- numeric(0)
+while (length(x) < n) {
+  U <- runif(1)
+  X <- rexp(1, lambda)
+  x <- append(x, X[U <= (f(X, b, lambda) / (M(b, lambda) * g(X, lambda)))])
+}
+
+t <- seq(b, 7, 0.01)
+hist(x, freq = FALSE, breaks = 35)
+lines(t, f(t, b, lambda), col = "red", lwd = 2)
+```
+
