@@ -24,7 +24,7 @@ pi_2 <- function(n) {
 pi_2(n)
 ```
 
-## Best Estimator
+## Best Estimator of pi
 ```{r}
 n <- 1000
 m <- 15e4
