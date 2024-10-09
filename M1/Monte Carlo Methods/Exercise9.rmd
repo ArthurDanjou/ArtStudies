@@ -3,7 +3,7 @@
 ## Methode 1
 
 ```{r}
-n <- 150000
+n <- 15e4
 
 pi_1 <- function(n) {
   U <- runif(n, 0, 1)
@@ -14,7 +14,7 @@ pi_1(n)
 
 ## Methode 2
 ```{r}
-n <- 150000
+n <- 15e4
 
 pi_2 <- function(n) {
   U1 <- runif(n, 0, 1)
@@ -27,7 +27,7 @@ pi_2(n)
 ## Best Estimator
 ```{r}
 n <- 1000
-m <- 150000
+m <- 15e4
 
 sample_1 <- replicate(n, pi_1(m))
 sample_2 <- replicate(n, pi_2(m))
