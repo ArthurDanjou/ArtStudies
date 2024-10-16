@@ -1,0 +1,48 @@
+# Exercise 10 : Integral Calculation.
+
+## Estimation of δ using the classical Monte Carlo
+
+### Uniform + Normal distributions
+
+```{r}
+n <- 10e4
+X <- runif(n, 0, 5)
+Y <- rnorm(n, 0, sqrt(2))
+Y[Y <= 2] <- 0
+
+h <- function(x, y) {
+  10 *
+    sqrt(pi) *
+    sqrt(x + y) *
+    sin(y^4) *
+    exp(-3 * x / 2)
+}
+
+I1 <- mean(h(X, Y))
+I1
+```
+
+### Exponential + Normal distributions
+
+```{r}
+n <- 10e4
+X <- runif(n, 0, 5)
+Y <- rexp(n, 3 / 2)
+Y[Y <= 2] <- 0
+X[X <= 5] <- 0
+
+h <- function(x, y) {
+  4 / 3 * sqrt(pi) * sqrt(x + y) * sin(y^4)
+}
+
+I2 <- mean(h(X, Y))
+I2
+```
+
+### Exponential + Truncated Normal distributions
+
+```{r}
+
+```
+
+## Computational cost of these methods.
