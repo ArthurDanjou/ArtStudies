@@ -1,0 +1,93 @@
+```{r}
+library(rmarkdown)
+health <- read.table("health.txt", header = TRUE, sep = " ", dec = ".")
+paged_table(health)
+```
+
+```{r}
+Health <- health[2:5]
+
+library(dplyr)
+library(corrplot)
+correlation_matrix<-cor(Health)
+corrplot(correlation_matrix, order = 'hclust',addrect = 3)
+```
+
+```{r}
+model <- lm(y ~ ., data = Health)
+
+coefficients(model)
+summary(model)
+```
+
+```{r}
+library(ggfortify)
+library(car)
+autoplot(model,1)
+```
+
+The points are not well distributed around 0 -> [P1] is not verified
+
+```{r}
+autoplot(model,3)
+```
+
+The points are not well distributed around 1 -> [P2] is not verified
+
+```{r}
+set.seed(0)
+durbinWatsonTest(model)
+```
+
+The p-value is 0.58 > 0.05 -> We do not reject H0 so the residuals are not autocorrelated -> [P3] is verified
+
+```{r}
+autoplot(model,2)
+```
+
+The QQPlot is align with the line y = x, so it is globally gaussian -> [P4] is verified
+
+```{r}
+library(GGally)
+ggpairs(Health, progress = F)
+```
+
+We observe that the variable age is correlated with the variable y. There is a quadratic relation between both variables.
+
+```{r}
+Health2 <- Health
+Health2$age_sq <- Health2$age^2
+Health2 <- Health2[1:24,]
+
+model2 <- lm(y ~ ., data = Health2)
+
+summary(model2)
+coefficients(model2)
+```
+
+```{r}
+library(ggfortify)
+library(car)
+autoplot(model2,1)
+```
+
+The points are well distributed around 0 -> [P1] is verified
+
+```{r}
+autoplot(model2,3)
+```
+
+The points are not well distributed around 1 -> [P2] is verified
+
+```{r}
+set.seed(0)
+durbinWatsonTest(model2)
+```
+
+The p-value is 0.294 > 0.05 -> We do not reject H0 so the residuals are not autocorrelated -> [P3] is verified
+
+```{r}
+autoplot(model2,2)
+```
+
+The QQPlot is align with the line y = x, so it is gaussian -> [P4] is verified
