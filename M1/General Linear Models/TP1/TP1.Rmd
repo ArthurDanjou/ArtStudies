@@ -1,6 +1,10 @@
 ```{r}
+setwd('./M1/General Linear Models/TP1')
+```
+
+```{r}
 library(rmarkdown)
-health <- read.table("health.txt", header = TRUE, sep = " ", dec = ".")
+health <- read.table("./health.txt", header = TRUE, sep = " ", dec = ".")
 paged_table(health)
 ```
 
@@ -9,8 +13,8 @@ Health <- health[2:5]
 
 library(dplyr)
 library(corrplot)
-correlation_matrix<-cor(Health)
-corrplot(correlation_matrix, order = 'hclust',addrect = 3)
+correlation_matrix <- cor(Health)
+corrplot(correlation_matrix, order = 'hclust', addrect = 3)
 ```
 
 ```{r}
@@ -23,19 +27,19 @@ summary(model)
 ```{r}
 library(ggfortify)
 library(car)
-autoplot(model,1:3)
+autoplot(model, 1:3)
 ```
 
 The points are not well distributed around 0 -> [P1] is not verified
 The points are not well distributed around 1 -> [P2] is not verified
-The QQPlot is align with the line y = x, so it is globally gaussian -> [P4] is verified
+The QQPlot is aligned with the line y = x, so it is globally gaussian -> [P4] is verified
 
 ```{r}
 set.seed(0)
 durbinWatsonTest(model)
 ```
 
-The p-value is 0.58 > 0.05 -> We do not reject H0 so the residuals are not autocorrelated -> [P3] is verified
+The p-value is 0.58 > 0.05 -> We do not reject H0 so the residuals are not auto-correlated -> [P3] is verified
 
 ```{r}
 library(GGally)
@@ -58,17 +62,16 @@ coefficients(model2)
 ```{r}
 library(ggfortify)
 library(car)
-autoplot(model2,1:4)
+autoplot(model2, 1:4)
 ```
 
 The points are well distributed around 0 -> [P1] is verified
 The points are not well distributed around 1 -> [P2] is verified
-The QQPlot is align with the line y = x, so it is gaussian -> [P4] is verified
+The QQPlot is aligned with the line y = x, so it is gaussian -> [P4] is verified
 
 ```{r}
 set.seed(0)
 durbinWatsonTest(model2)
 ```
 
-The p-value is 0.294 > 0.05 -> We do not reject H0 so the residuals are not autocorrelated -> [P3] is verified
-
+The p-value is 0.294 > 0.05 -> We do not reject H0 so the residuals are not auto-correlated -> [P3] is verified
