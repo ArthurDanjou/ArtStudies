@@ -1,0 +1,313 @@
+---
+title: "Groupe 03 Projet DANJOU - DUROUSSEAU"
+output: html_document
+---
+
+# Exercise 1 : Negative weighted mixture
+
+### Definition
+
+##### Question 1
+
+The conditions for a function f to be a probability density are :
+
+-   f is defined on $\mathbb{R}$
+-   f is non-negative, ie $f(x) \ge 0$, $\forall x \in \mathbb{R}$
+-   f is Lebesgue-integrable
+-   and $\int_{\mathbb{R}} f(x) \,dx = 1$
+
+The function f, to be a density, needs to be non-negative, ie $f(|x|) \ge 0$ when $|x| \rightarrow \infty$
+
+We have, when $|x| \rightarrow \infty$, $f_i(|x|) \sim exp(\frac{-x^2}{\sigma_i^2})$ for $i = 1, 2$
+
+Then, $f(|x|) \sim exp(\frac{-x^2}{\sigma_1^2}) - exp(\frac{-x^2}{\sigma_2^2})$
+
+We want $f(|x|) \ge 0$, ie, $exp(\frac{-x^2}{\sigma_1^2}) - exp(\frac{-x^2}{\sigma_2^2}) \ge 0$
+
+$\Leftrightarrow \sigma_1^2 \ge \sigma_2^2$
+
+We can see that $f_1$ dominates the tail behavior.
+
+\
+
+##### Question 2
+
+For given parameters $(\mu_1, \sigma_1^2)$ and $(\mu_2, \sigma_2^2)$, we have $\forall x \in \mathbb{R}$, $f(x) \ge 0$
+
+$\Leftrightarrow \frac{1}{\sigma_1} exp(\frac{-(x-\mu_1)^2}{2 \sigma_1^2}) \ge \frac{a}{\sigma_2} exp(\frac{-(x-\mu_2)^2}{2 \sigma_2^2})$
+
+$\Leftrightarrow 0 < a \le a^* = \min_{x \in \mathbb{R}} \frac{f_1(x)}{f_2(x)} = \min_{x \in \mathbb{R}} \frac{\sigma_2}{\sigma_1} exp(\frac{(x-\mu_2)^2}{2 \sigma_2^2} - \frac{(x-\mu_1)^2}{2 \sigma_1^2})$
+
+To find $a^*$, we just have to minimize $g(x) := \frac{(x-\mu_2)^2}{2 \sigma_2^2} - \frac{(x-\mu_1)^2}{2 \sigma_1^2}$
+
+First we derive $g$: $\forall x \in \mathbb{R}, g^{\prime}(x) = \frac{x - \mu_2}{\sigma_2^2} - \frac{x - \mu_1}{\sigma_1^2}$
+
+We search $x^*$ such that $g^{\prime}(x^*) = 0$
+
+$\Leftrightarrow x^* = \frac{\mu_2 \sigma_1^2 - \mu_1 \sigma_2^2}{\sigma_1^2 - \sigma_2^2}$
+
+Then, we compute $a^* = \frac{f_1(x^*)}{f_2(x^*)}$
+
+We call $C \in \mathbb{R}$ the normalization constant such that $f(x) = C (f_1(x) - af_2(x))$
+
+To find $C$, we know that $1 = \int_{\mathbb{R}} f(x) \,dx = \int_{\mathbb{R}} C (f_1(x) - af_2(x)) \,dx = C \int_{\mathbb{R}} f_1(x) \,dx - Ca \int_{\mathbb{R}} f_2(x) \,dx = C(1-a)$ as $f_1$ and $f_2$ are density functions and by linearity of the integrals.
+
+$\Leftrightarrow C = \frac{1}{1-a}$
+
+\
+
+##### Question 3
+
+```{r}
+f <- function(a, mu1, mu2, s1, s2, x) {
+  fx <- dnorm(x, mu1, s1) - a * dnorm(x, mu2, s2)
+  fx[fx < 0] <- 0
+  return(fx / (1 - a))
+}
+
+a_star <- function(mu1, mu2, s1, s2) {
+  x_star <- (mu2 * s1^2 - mu1 * s2^2) / (s1^2 - s2^2)
+  return(dnorm(x_star, mu1, s1) / dnorm(x_star, mu2, s2))
+}
+```
+
+```{r}
+mu1 <- 0
+mu2 <- 1
+s1 <- 3
+s2 <- 1
+
+x <- seq(-10, 10, length.out = 1000)
+as <- a_star(mu1, mu2, s1, s2)
+a_values <- c(0.1, 0.2, 0.3, 0.4, 0.5, as)
+
+plot(x, f(as, mu1, mu2, s1, s2, x),
+     type = "l",
+     col = "red",
+     xlab = "x",
+     ylab = "f(a, mu1, mu2, s1, s2, x)",
+     main = "Density function of f(a, mu1, mu2, s1, s2, x) for different a"
+)
+for (i in (length(a_values) - 1):1) {
+  lines(x, f(a_values[i], mu1, mu2, s1, s2, x), lty = 3, col = "blue")
+}
+legend("topright", legend = c("a = a*", "a != a*"), col = c("red", "blue"), lty = 1)
+```
+
+We observe that for small values of a, the density f is close to the density of $f_1 \sim \mathcal{N}(\mu_1, \sigma_1^2)$. When a increases, the shape of evolves into the combinaison of two normal distributions. We observe that for $a = a^*$, the density the largest value of a for which the density is still a density function, indeed for $a > a^*$, the function f takes negative values so it is no longer a density.
+
+```{r}
+s2_values <- seq(1, 10, length.out = 5)
+a <- 0.2
+
+plot(x, f(a, mu1, mu2, s1, max(s2_values), x),
+     type = "l",
+     xlab = "x",
+     ylab = "f(a, mu1, mu2, s1, s2, x)",
+     col = "red",
+     main = "Density function of f(a, mu1, mu2, s1, s2, x) for different s2"
+)
+
+for (i in length(s2_values):1) {
+  lines(x, f(a, mu1, mu2, s1, s2_values[i], x), lty = 1, col = rainbow(length(s2_values))[i])
+}
+
+legend("topright", legend = paste("s2 =", s2_values), col = rainbow(length(s2_values)), lty = 1)
+```
+
+We observe that when $\sigma_2^2 = 1$, the density $f$ has two peaks and when $\sigma_2^1 > 1$, the density $f$ has only one peak.
+
+```{r}
+mu1 <- 0
+mu2 <- 1
+sigma1 <- 3
+sigma2 <- 1
+a <- 0.2
+as <- a_star(mu1, mu2, sigma1, sigma2)
+
+cat(sprintf("a* = %f, a = %f, a <= a* [%s]", as, a, a <= as))
+```
+
+We have $\sigma_1^2 \ge \sigma_2^2$ and $0 < a \le a^*$, so the numerical values are compatible with the constraints defined above.
+
+### Inverse c.d.f Random Variable simulation
+
+##### Question 4
+
+To prove that the cumulative density function F associated with f is available in closed form, we need to compute $F(x) = \int_{-\infty}^{x} f(t) \,dt = \frac{1}{1-a} (\int_{-\infty}^{x} f_1(t)\, dt - a \int_{-\infty}^{x} f_2(t)\, dt) = \frac{1}{1-a} (F_1(x) - aF_2(x))$ where $F_1$ and $F_2$ are the cumulative density functions of $f_1 \sim \mathcal{N}(\mu1, \sigma_1^2)$ and $f_2 \sim \mathcal{N}(\mu2, \sigma_2^2)$ respectively.
+
+Then, $F$ is a closed-form as a finite sum of closed forms.
+
+```{r}
+F <- function(a, mu1, mu2, s1, s2, x) {
+  Fx <- pnorm(x, mu1, s1) - a * pnorm(x, mu2, s2)
+  return(Fx / (1 - a))
+}
+```
+
+To construct an algorithm that returns the value of the inverse function method as a function of u ∈(0,1), of the parameters $a, \mu_1, \mu_2, \sigma_1, \sigma_2, x$, and of an approximation precision $\epsilon$, we can use the bisection method.
+
+We fixe $\epsilon > 0$.\
+We set $u \in (0, 1)$.\
+We define $L = -10$ and $U = -L$, the bounds and $M = \frac{L + U}{2}$, the middle of our interval.\
+While $U - L > \epsilon$ :
+
+-   We compute $F(M) = \frac{1}{1-a} (F_1(M) - aF_2(M))$
+-   If $F(M) < u$, we set $L = M$
+-   Else, we set $U = M$
+-   We set $M = \frac{L + U}{2}$
+
+End while
+
+For the generation of random variables from F, we can use the inverse transform sampling method.\
+
+We set $X$ as an empty array and $n$ the number of random variables we want to generate.\
+We fixe $\epsilon > 0$.\
+For $i = 1, \dots, n$ :
+
+-   We set $u \in (0, 1)$.\
+
+-   We define $L = -10$ and $U = -L$, the bounds and $M = \frac{L + U}{2}$, the middle of our interval.\
+
+-   While $U - L > \epsilon$ :
+
+-   We compute $F(M) = \frac{1}{1-a} (F_1(M) - aF_2(M))$
+
+-   If $F(M) < u$, we set $L = M$
+
+-   Else, we set $U = M$
+
+-   We set $M = \frac{L + U}{2}$
+
+-   End while
+
+-   We add $M$ to $X$
+
+End for We return $X$
+
+##### Question 5
+
+```{r}
+inv_cdf <- function(n) {
+  X <- numeric(n)
+  for (i in 1:n) {
+    u <- runif(1)
+    L <- -10
+    U <- -L
+    M <- (L + U) / 2
+    while (U - L > 1e-6) {
+      FM <- F(a, mu1, mu2, s1, s2, M)
+      if (FM < u) {
+        L <- M
+      } else {
+        U <- M
+      }
+      M <- (L + U) / 2
+    }
+    X[i] <- M
+  }
+  return(X)
+}
+```
+
+```{r}
+set.seed(123)
+n <- 10000
+X <- inv_cdf(n)
+x <- seq(-10, 10, length.out = 1000)
+
+hist(X, breaks = 100, freq = FALSE, col = "lightblue", main = "Empirical density function", xlab = "x")
+lines(x, f(a, mu1, mu2, s1, s2, x), col = "red")
+legend("topright", legend = c("Theorical density", "Empirical density"), col = c("red", "lightblue"), lty = 1)
+```
+
+```{r}
+plot(ecdf(X), col = "blue", main = "Empirical cumulative distribution function", xlab = "x", ylab = "F(x)")
+lines(x, F(a, mu1, mu2, s1, s2, x), col = "red")
+legend("bottomright", legend = c("Theoretical cdf", "Empirical cdf"), col = c("red", "blue"), lty = 1)
+```
+
+We can see of both graphs that the empirical cumulative distribution function is close to the theoretical one.
+
+### Accept-Reject Random Variable simulation
+
+##### Question 6
+
+To simulate under f using the accept-reject algorithm, we need to find a density function g such that $f(x) \le M g(x)$ for all $x \in \mathbb{R}$, where M is a constant.\
+
+Then, we generate $X \sim g$ and $U \sim \mathcal{U}([0,1])$.\
+We accept $Y = X$ if $U \le \frac{f(X)}{Mg(X)}$. Return $1$ otherwise.
+
+The probability of acceptance is $\int_{\mathbb{R}} \frac{f(x)}{Mg(x)} g(x) \,dx = \frac{1}{M} \int_{\mathbb{R}} f(x) \,dx = \frac{1}{M}$
+
+Here we pose $g = f1$.
+
+Then we have $\frac{f(x)}{g(x)} = \frac{1}{1-a} (1 - a\frac{f_2(x)}{f_1(x)})$
+
+We pose earlier that $a^* = \min_{x \in \mathbb{R}} \frac{f_1(x)}{f_2(x)} \Rightarrow \frac{1}{a^*} =  \max_{x \in \mathbb{R}} \frac{f_2(x)}{f_1(x)}$.
+
+We compute in our fist equation : $\frac{1}{1-a} (1 - a\frac{f_2(x)}{f_1(x)}) \leq  \frac{1}{1-a} (1 - \frac{a}{a^*}) \leq \frac{1}{1-a}$ because $a \leq a^* \Rightarrow 1 - \frac{a}{a^*} \leq 0$
+
+To conclude, we have $M = \frac{1}{1-a}$ and the probability of acceptance is $\frac{1}{M} = 1-a$
+
+##### Question 7
+
+```{r}
+accept_reject <- function(n, a) {
+  X <- numeric(0)
+  M <- 1 / (1 - a)
+
+  while (length(X) < n) {
+    Y <- rnorm(1, mu1, s1)
+    U <- runif(1)
+
+    if (U <= f(a, mu1, mu2, s1, s2, Y) / (M * dnorm(Y, mu1, s1))) {
+      X <- append(X, Y)
+    }
+  }
+  return(X)
+}
+```
+
+```{r}
+set.seed(123)
+n <- 10000
+a <- 0.2
+X <- accept_reject(n, a)
+x <- seq(-10, 10, length.out = 1000)
+
+hist(X, breaks = 100, freq = FALSE, col = "lightblue", main = "Empirical density function", xlab = "x")
+lines(x, f(a, mu1, mu2, s1, s2, x), col = "red")
+legend("topright", legend = c("Theorical density", "Empirical density"), col = c("red", "lightblue"), lty = 1)
+```
+
+```{r}
+set.seed(123)
+
+acceptance_rate <- function(n, a = 0.2) {
+  Y <- rnorm(n, mu1, s1)
+  U <- runif(n)
+  return(mean(U <= f(a, mu1, mu2, s1, s2, Y) / (M * dnorm(Y, mu1, s1))))
+}
+
+M <- 1 / (1 - a)
+n <- 10000
+cat(sprintf("[M = %.2f] Empirical acceptance rate: %f, Theoretical acceptance rate: %f \n", M, acceptance_rate(n), 1 / M))
+```
+
+##### Question 8
+
+```{r}
+set.seed(123)
+a_values <- seq(0.01, 1, length.out = 100)
+acceptance_rates <- numeric(length(a_values))
+as <- a_star(mu1, mu2, s1, s2)
+
+for (i in seq_along(a_values)) {
+  acceptance_rates[i] <- acceptance_rate(n, a_values[i])
+}
+
+plot(a_values, acceptance_rates, type = "l", col = "blue", xlab = "a", ylab = "Acceptance rate", main = "Acceptance rate as a function of a")
+points(as, acceptance_rate(n, as), col = "red", pch = 16)
+legend("topright", legend = c("Acceptance rate for all a", "Acceptance rate for a_star"), col = c("lightblue", "red"), lty = c(1, NA), pch = c(NA, 16))
+```
