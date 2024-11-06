@@ -17,7 +17,7 @@ h <- function(x, a) {
   x >= a
 }
 
-G <- function(x, a, k) {
+G_inv <- function(x, a, k) {
   a / (1 - x)^(1 / k)
 }
 
@@ -26,7 +26,7 @@ x1 <- rcauchy(n, 0, 1)
 p1 <- h(x1, a)
 
 # Importance sampling
-x2 <- G(runif(n), a, k)
+x2 <- G_inv(runif(n), a, k)
 p2 <- f(x2) / g(x2, a, k) * h(x2, a)
 
 # Results (cat the results and the var of the estimators)
