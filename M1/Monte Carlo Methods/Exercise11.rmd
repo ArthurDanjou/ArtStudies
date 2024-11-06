@@ -1,0 +1,35 @@
+# Exercise 11 : Importance Sampling, Cauchy Distribution
+```{r}
+set.seed(110)
+n <- 10000
+a <- 50
+k <- 5
+
+f <- function(x) {
+  1 / (pi * (1 + x^2))
+}
+
+g <- function(x, a, k) {
+  k * a^k / x^(k + 1) * (x >= a)
+}
+
+h <- function(x, a) {
+  x >= a
+}
+
+G <- function(x, a, k) {
+  a / (1 - x)^(1 / k)
+}
+
+# Classical Monte Carlo method
+x1 <- rcauchy(n, 0, 1)
+p1 <- h(x1, a)
+
+# Importance sampling
+x2 <- G(runif(n), a, k)
+p2 <- f(x2) / g(x2, a, k) * h(x2, a)
+
+# Results (cat the results and the var of the estimators)
+cat(sprintf("Classical Monte Carlo: mean = %f, variance = %f \n", mean(p1), var(p1)))
+cat(sprintf("Importance sampling: mean = %f, variance = %f", mean(p2), var(p2)))
+```
