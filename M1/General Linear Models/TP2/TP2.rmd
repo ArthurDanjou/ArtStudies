@@ -25,13 +25,13 @@ table(cepages$Origine, cepages$Couleur)
 ## Display the table of average Ph according to couleur and average ph
 
 ```{r}
-tapply(cepages$pH, list(Couleur = cepages$Couleur), mean)
+tapply(cepages$pH, list(cepages$Couleur), mean)
 ```
 
 ## Display the table of average pH according to couleur and origine
 
 ```{r}
-tapply(cepages$pH, list(Couleur = cepages$Couleur, Origine = cepages$Origine), mean)
+tapply(cepages$pH, list(cepages$Couleur, cepages$Origine), mean)
 ```
 
 # Question 4 : Regression lines of ph over AcTol for different Color
