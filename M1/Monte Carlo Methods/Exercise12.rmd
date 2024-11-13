@@ -1,0 +1,48 @@
+# Exercise 12 : Rejection vs Importance Sampling
+```{r}
+set.seed(123)
+n <- 10000
+
+f <- function(x, y) {
+  3 / 2 * exp(-3 / 2 * x) * (x > 0) * 1 / (2 * sqrt(pi)) *
+    exp(-y^2 / 4) *
+    (x > 0)
+}
+
+g <- function(x, y, lambda) {
+  (3 / 2 * exp(-3 / 2 * x)) *
+    (x >= 0) *
+    (lambda * exp(-lambda * (y - 2))) *
+    (y >= 2)
+}
+
+h <- function(x, y) {
+  sqrt(x + y) *
+    sin(y^4) *
+    (x <= 5) *
+    (x > 0) *
+    (y >= 2) *
+    (4 * sqrt(pi) / 3)
+}
+
+X <- rexp(n, 3 / 2)
+Y <- rexp(n, 2) + 2
+
+mean(h(X, Y) * f(X, Y) / g(X, Y, 0.4))
+```
+
+### Monte Carlo method
+
+```{r}
+set.seed(123)
+n <- 10e4
+
+X <- rexp(n, 3 / 2)
+Y <- rexp(n, 3 / 2) + 2
+
+X[X > 5] <- 0
+X[X < 0] <- 0
+Y[Y < 2] <- 0
+
+mean(h(X, Y))
+```

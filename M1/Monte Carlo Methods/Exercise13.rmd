@@ -1,0 +1,6 @@
+# Exercise 13 : Gaussian integral and Variance reduction
+
+```{r}
+n <- 10000
+
+```

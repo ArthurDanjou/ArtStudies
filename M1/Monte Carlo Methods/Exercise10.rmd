@@ -38,11 +38,3 @@ h <- function(x, y) {
 I2 <- mean(h(X, Y))
 I2
 ```
-
-### Exponential + Truncated Normal distributions
-
-```{r}
-
-```
-
-## Computational cost of these methods.
