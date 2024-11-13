@@ -1,0 +1,86 @@
+```{r}
+setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP2')
+```
+
+# Question 1 : Import dataset and check variables
+
+```{r}
+library(dplyr)
+cepages <- read.csv("Cepages B TP2.csv", header = TRUE, sep = ";", dec = ",")
+cepages$Couleur <- as.factor(cepages$Couleur)
+cepages$Origine <- as.factor(cepages$Origine)
+cepages <- cepages %>% mutate(across(where(is.character), as.numeric))
+cepages <- cepages %>% mutate(across(where(is.integer), as.numeric))
+paged_table(cepages)
+```
+
+# Question 2 : Table of counts
+
+```{r}
+table(cepages$Origine, cepages$Couleur)
+```
+
+# Question 3
+
+## Display the table of average Ph according to couleur and average ph
+
+```{r}
+tapply(cepages$pH, list(Couleur = cepages$Couleur), mean)
+```
+
+## Display the table of average pH according to couleur and origine
+
+```{r}
+tapply(cepages$pH, list(Couleur = cepages$Couleur, Origine = cepages$Origine), mean)
+```
+
+# Question 4 : Regression lines of ph over AcTol for different Color
+```{r}
+library(ggplot2)
+
+ggplot(cepages, aes(x = AcTot, y = pH, color = Couleur)) +
+  geom_point(col = 'red', size = 0.5) +
+  geom_smooth(method = "lm", se = F)
+
+ggplot(cepages, aes(y = pH, x = AcTot, colour = Couleur, fill = Couleur)) +
+  geom_boxplot(alpha = 0.5, outlier.alpha = 0)
+```
+
+# Question 5 : Regression Ligne of pH over AcTot for different Origine
+
+```{r}
+ggplot(cepages, aes(x = AcTot, y = pH, color = Origine)) +
+  geom_smooth(method = 'lm', se = F) +
+  geom_point(col = 'red', size = 0.5)
+
+ggplot(cepages, aes(y = pH, x = AcTot, colour = Origine, fill = Origine)) +
+  geom_boxplot(alpha = 0.5, outlier.alpha = 0)
+```
+
+# Question 6 : ANOVA
+```{r}
+model_full <- lm(pH ~ Couleur, data = cepages)
+summary(model_full)
+```
+
+```{r}
+autoplot(model_full, 1:4)
+```
+
+[P1] is verified as the 'Residuals vs Fitted' plot shows that the points are well distributed around 0
+[P2] is verified as the 'Scale-Location' plot shows that the points are well distributed around 1
+[P4] is verified as the 'QQPlot' is aligned with the 'y=x' line
+
+```{r}
+set.seed(12)
+durbinWatsonTest(model_full)
+```
+
+[P3] is verified as the p-value is 0.7 > 0.05, so we do not reject H0 so the residuals are not auto-correlated
+
+# Bonus : Type II Test
+
+```{r}
+library(car)
+Anova(model_full)
+```
