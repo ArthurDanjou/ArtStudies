@@ -3,3 +3,6 @@
 .Rproj.user
 
 .idea
+
+.RData
+.RHistory
