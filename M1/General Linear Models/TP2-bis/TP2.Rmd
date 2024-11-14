@@ -1,0 +1,117 @@
+```{r}
+setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP2-bis')
+
+library(tidyverse)
+library(GGally)
+library(broom)
+library(scales)
+library(car)
+library(qqplotr)
+options(scipen = 999, digits = 5)
+```
+```{r}
+data <- read.csv('data02.csv', sep = ',', header = TRUE, dec = ".")
+data %>%
+  mutate(type = factor(type, levels = c("maths", "english", "final"), labels = c("maths", "english", "final"))) %>%
+  ggplot(aes(x = note)) +
+  facet_wrap(vars(type), scales = "free_x") +
+  geom_histogram(binwidth = 4, color = "black", fill = "grey80") +
+  labs(title = "Histogram of notes", x = "Note") +
+  theme_bw(14)
+```
+```{r}
+data_wide <- pivot_wider(data, names_from = type, values_from = note)
+data_wide %>%
+  select(-id) %>%
+  ggpairs() + theme_bw(14)
+```
+```{r}
+model <- lm(data_wide, formula = final ~ maths + english)
+summary(model)
+```
+
+```{r}
+tidy(model, conf.int = TRUE, conf.level = 0.95)
+glance(model)
+
+(R2 <- summary(model)$r.squared)
+(R2 / 2) * 57 / (1 - R2)
+vcov(model)
+```
+
+# Hypothesis testing
+
+```{r}
+C <- c(0, 1, -1)
+beta <- cbind(coef(model))
+(C_beta <- C %*% beta)
+
+X <- model.matrix(model)
+(inv_XtX <- solve(t(X) %*% X))
+
+q <- 1
+numerator <- t(C_beta) %*%
+  solve(t(C) %*% inv_XtX %*% C) %*%
+  C_beta
+denominator <- sigma(model)^2
+F <- (numerator / q) / denominator
+F
+
+dof <- nrow(data_wide) - 3
+
+qf(0.95, q, dof)
+pf(F, q, dof, lower.tail = FALSE)
+
+linearHypothesis(model, "maths - english = 0")
+```
+
+# Submodel testing
+```{r}
+data_predict <- predict(model, newdata = expand.grid(maths = seq(70, 90, 2), english = c(75, 85)), interval = "confidence") %>%
+  as_tibble() %>%
+  bind_cols(expand.grid(maths = seq(70, 90, 2), english = c(75, 85)))
+
+data_predict %>%
+  mutate(english = as.factor(english)) %>%
+  ggplot(aes(x = maths, y = fit, color = english, fill = english, label = round(fit, 1))) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2, show.legend = FALSE) +
+  geom_point(size = 2) +
+  geom_line(aes(y = fit)) +
+  geom_text(vjust = -1, show.legend = FALSE) +
+  labs(title = "Prediction of final note", x = "Maths note", y = "Final note", color = "English", fill = "English") +
+  theme_bw(14)
+```
+```{r}
+diag_data <- augment(model)
+
+ggplot(diag_data, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  labs(title = "Residuals vs Fitted", x = "Fitted values", y = "Residuals") +
+  theme_bw(14)
+```
+```{r}
+ggplot(diag_data, aes(sample = .resid)) +
+  stat_qq_band(alpha = 0.2, fill = "blue") +
+  stat_qq_line(color = "red") +
+  stat_qq_point(size = 1) +
+  labs(y = "Sample quantile", x = "Theoritical quantile") +
+  theme_minimal(base_size = 14)
+
+ggplot(diag_data, aes(x = .resid)) +
+  geom_histogram(fill = "dodgerblue", color = "black", bins = 7) +
+  labs(y = "Count", x = "Résiduals") +
+  scale_y_continuous(expand = expansion(c(0, 0.05))) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10)) +
+  theme_minimal(base_size = 14)
+
+mutate(diag_data, obs = row_number()) |>
+  ggplot(aes(x = obs, y = .cooksd)) +
+  geom_segment(aes(x = obs, y = 0, xend = obs, yend = .cooksd)) +
+  geom_point(color = "blue", size = 1) +
+  scale_x_continuous(breaks = seq(0, 60, 10)) +
+  labs(y = "Cook's distance", x = "Index") +
+  theme_minimal(base_size = 14)
+
+influenceIndexPlot(model, vars = "cook", id = list(n = 5), main = NULL)
+```
