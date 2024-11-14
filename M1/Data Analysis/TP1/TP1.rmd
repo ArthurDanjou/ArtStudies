@@ -1,0 +1,120 @@
+```{r}
+setwd('/Users/arthurdanjou/Workspace/studies/M1/Data Analysis/TP1')
+```
+
+# Part 1 - Analysis of the data
+
+```{r}
+x <- c(1, 2, 3, 4)
+mean(x)
+
+y <- x - mean(x)
+mean(y)
+t(y)
+
+sum(y^2)
+```
+
+```{r}
+T <- read.table("Temperature Data.csv", header = TRUE, sep = ";", dec = ",", row.names = 1)
+n <- nrow(T)
+
+g <- colMeans(T)
+Y <- as.matrix(T - rep(1, n) %*% t(g))
+
+Dp <- diag(1 / n, n)
+
+V <- t(Y) %*% Dp %*% Y
+
+eigen_values <- eigen(V)$values
+vectors <- eigen(V)$vectors
+total_inertia <- sum(eigen_values)
+inertia_one <- max(eigen_values) / sum(eigen_values)
+inertia_plan <- (eigen_values[1] + eigen_values[2]) / sum(eigen_values)
+
+P <- Y %*% vectors[, 1:2]
+
+plot(P, pch = 19, xlab = "PC1", ylab = "PC2")
+text(P, rownames(T), cex = 0.7, pos = 3)
+axis(1, -10:10, pos = 0, labels = F)
+axis(2, -5:5, pos = 0, labels = F)
+```
+
+```{r}
+France <- P %*% matrix(c(0, -1, 1, 0), 2, 2)
+plot(France, pch = 19, xlab = "PC1", ylab = "PC2")
+text(France, rownames(T), cex = 0.7, pos = 3)
+axis(1, -10:10, pos = 0, labels = F)
+axis(2, -5:5, pos = 0, labels = F)
+```
+```{r}
+results <- matrix(NA, nrow = n, ncol = 2)
+colnames(results) <- c("Quality of Representation (%)", "Contribution to Inertia (%)")
+rownames(results) <- rownames(T)
+
+for (i in 1:n) {
+  yi <- Y[i,]
+  norm_yi <- sqrt(sum(yi^2))
+  qlt <- sum((yi %*% vectors[, 1:2])^2) / norm_yi^2 * 100
+  ctr <- (P[i, 1]^2 / eigen_values[1]) / n * 100
+  results[i,] <- c(qlt, ctr)
+}
+
+# Add the total row
+results <- rbind(results, colSums(results))
+rownames(results)[n + 1] <- "Total"
+
+results
+```
+
+# Part 2 - PCA with FactoMineR
+
+```{r}
+library(FactoMineR)
+T <- read.csv("Temperature Data.csv", header = TRUE, sep = ";", dec = ",", row.names = 1)
+summary(T)
+```
+
+```{r}
+T.pca <- PCA(T, graph = F)
+plot.PCA(T.pca, axes = c(1, 2), habillage = 1, choix = "ind")
+plot.PCA(T.pca, axes = c(1, 2), habillage = 1, choix = "var")
+
+print("Var coords")
+round(T.pca$var$coord[, 1:2], 2)
+
+print("Eigen values")
+round(T.pca$eig, 2)
+
+print("Ind dis")
+round(T.pca$ind$dist, 2)
+
+print("Ind contrib")
+round(T.pca$ind$contrib[, 1:2], 2)
+
+print("Var contrib")
+round(T.pca$var$contrib[, 1:2], 2)
+```
+
+## We add new values
+```{r}
+Amiens <- c(3.1, 3.8, 6.7, 9.5, 12.8, 15.8, 17.6, 17.6, 15.5, 11.1, 6.8, 4.2)
+T <- rbind(T, Amiens)
+row.names(T)[16] <- "Amiens"
+
+Moscow <- c(-9.2, -8, -2.5, 5.9, 12.8, 16.8, 18.4, 16.6, 11.2, 4.9, -1.5, -6.2)
+T <- rbind(T, Moscow)
+row.names(T)[17] <- "Moscow"
+
+Marrakech <- c(11.3, 12.8, 15.8, 18.1, 21.2, 24.7, 28.6, 28.6, 25, 20.9, 15.9, 12.1)
+T <- rbind(T, Marrakech)
+row.names(T)[18] <- "Marrakech"
+```
+
+## We redo the PCA
+
+```{r}
+T.pca <- PCA(T, ind.sup = 16:18, graph = F)
+plot.PCA(T.pca, axes = c(1, 2), habillage = 1, choix = "ind")
+plot.PCA(T.pca, axes = c(1, 2), habillage = 1, choix = "var")
+```
