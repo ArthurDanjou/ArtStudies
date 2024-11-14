@@ -1,0 +1,139 @@
+```{r}
+setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP1-bis')
+
+library(tidyverse)
+options(scipen = 999, digits = 5)
+```
+```{r}
+data <- read.csv("data01.csv", header = TRUE, sep = ",", dec = ".")
+head(data, 20)
+```
+
+```{r}
+ggplot(data, aes(x = cholesterol)) +
+  geom_histogram(binwidth = 5, color = "black", fill = "gray80") +
+  labs(x = "Cholesterol", y = "Frequency", title = "Histogram of cholesterol") +
+  theme_bw(14)
+
+ggplot(data, aes(x = poids)) +
+  geom_histogram(binwidth = 2.5, color = "black", fill = "gray80") +
+  labs(x = "Poids", y = "Frequency", title = "Histogram of Poids") +
+  theme_bw(14)
+
+ggplot(aes(y = cholesterol, x = poids), data = data) +
+  geom_point() +
+  labs(y = "Cholesterol (y)", x = "Poids, kg (x)", title = "Scatter plot of cholesterol and poids") +
+  theme_bw(14)
+```
+
+# OLSE
+```{r}
+x <- data[, "poids"]
+y <- data[, "cholesterol"]
+Sxy <- sum((x - mean(x)) * y)
+Sxx <- sum((x - mean(x))^2)
+
+beta1 <- Sxy / Sxx
+beta0 <- mean(y) - beta1 * mean(x)
+
+c(beta0, beta1)
+```
+
+Final Equation: y = 18.4470 + 2.0523 * x
+
+```{r}
+X <- cbind(1, x)
+
+colnames(X) <- NULL
+X_t_X <- t(X) %*% X
+inv_X_t_x <- solve(X_t_X)
+betas <- inv_X_t_x %*% t(X) %*% y
+betas
+```
+```{r}
+model <- lm(data, formula = cholesterol ~ poids)
+summary(model)
+coef(model)
+```
+```{r}
+data <- data %>%
+  mutate(yhat = beta0 + beta1 * poids) %>%
+  mutate(residuals = cholesterol - yhat)
+
+data
+
+ggplot(data, aes(x = poids, y = cholesterol)) +
+  geom_point(size = 2, shape = 21, fill = "blue", color = "cyan") +
+  geom_line(aes(y = yhat), color = "blue") +
+  labs(x = "Poids", y = "Cholesterol", title = "OLS Regression Line") +
+  theme_bw(14)
+```
+```{r}
+mean(data[, "cholesterol"])
+mean(data[, "yhat"])
+mean(data[, "residuals"]) %>% round(10)
+cov(data[, "residuals"], data[, "poids"]) %>% round(10)
+(RSS <- sum((data[, "residuals"])^2))
+(TSS <- sum((y - mean(y))^2))
+TSS - beta1 * Sxy
+```
+
+```{r}
+dof <- nrow(data) - 2
+
+sigma_hat_2 <- RSS / dof
+
+cov_beta <- sigma_hat_2 * inv_X_t_x
+var_beta <- diag(cov_beta)
+std_beta <- sqrt(var_beta)
+
+sigma(model)^2
+vcov(model)
+```
+
+
+# Hypothesis Testing
+
+```{r}
+(t_beta <- beta1 / std_beta[2])
+qt(0.975, dof)
+2 * pt(abs(t_beta), dof, lower.tail = FALSE)
+summary(model)
+```
+```{r}
+MSS <- (TSS - RSS)
+(F <- MSS / (RSS / dof))
+qf(0.95, 1, dof)
+pf(F, 1, dof, lower.tail = FALSE)
+anova(model)
+```
+
+# Confidence Interval
+```{r}
+(CI_beta1 <- c(beta1 - qt(0.97, dof) * std_beta[2], beta1 + qt(0.97, dof) * std_beta[2]))
+confint(model, 0.95)
+
+t <- qt(0.975, dof)
+sigma_hat <- sigma(model)
+n <- nrow(data)
+
+data <- data %>%
+  mutate(error = t *
+    sigma_hat *
+    sqrt(1 / n + (poids - mean(poids))^2 / RSS)) %>%
+  mutate(conf.low = yhat - error, conf.high = yhat + error, error = NULL)
+
+ggplot(data, aes(x = poids, y = cholesterol)) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.3, fill = "blue") +
+  geom_point(size = 2, shape = 21, fill = "blue", color = "cyan") +
+  geom_line(aes(y = yhat), color = "blue") +
+  labs(x = "Poids", y = "Cholesterol", title = "OLS Regression Line") +
+  theme_bw(14)
+```
+
+# R^2
+```{r}
+(R2 <- MSS / TSS)
+summary(model)$r.squared
+cor(data[, "cholesterol"], data[, "poids"])^2
+```
