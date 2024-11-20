@@ -1,0 +1,134 @@
+```{r}
+setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP3')
+```
+
+# Question 1 : Import dataset and check variables
+
+```{r}
+library(dplyr)
+ozone <- read.table("ozone.txt", header = TRUE, sep = " ", dec = ".")
+ozone$vent <- as.factor(ozone$vent)
+ozone$temps <- as.factor(ozone$temps)
+ozone <- ozone %>% mutate(across(where(is.character), as.numeric))
+ozone <- ozone %>% mutate(across(where(is.integer), as.numeric))
+paged_table(ozone)
+```
+
+# Question 2 : max03 ~ T12
+
+```{r}
+model_T12 <- lm(maxO3 ~ T12, data = ozone)
+summary(model_T12)
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(ozone, aes(x = T12, y = maxO3)) +
+  geom_smooth(method = 'lm', se = T) +
+  geom_point(col = 'red', size = 0.5) +
+  labs(title = "maxO3 ~ T12") +
+  theme_minimal()
+```
+
+```{r}
+library(ggfortify)
+library(car)
+
+autoplot(model_T12, 1:4)
+durbinWatsonTest(model_T12)
+```
+
+The p-value of the Durbin-Watson test is 0, so [P3] is not valid. The residuals are correlated.
+
+The model is not valid.
+
+# Question 3 : max03 ~ T12 + temps
+
+```{r}
+library(ggplot2)
+
+ggplot(ozone, aes(y = maxO3, x = temps, colour = temps, fill = temps)) +
+  geom_boxplot(alpha = 0.5, outlier.alpha = 0) +
+  geom_jitter(width = 0.25, size = 1) +
+  stat_summary(fun = mean, colour = "black", geom = "point", shape = 18, size = 3)
+```
+
+```{r}
+model_temps <- lm(maxO3 ~ -1 + temps, data = ozone)
+summary(model_temps)
+```
+
+```{r}
+autoplot(model_temps, 1:4)
+durbinWatsonTest(model_temps)
+```
+```{r}
+model_vent <- lm(maxO3 ~ -1 + vent, data = ozone)
+summary(model_vent)
+```
+
+```{r}
+autoplot(model_vent, 1:4)
+durbinWatsonTest(model_vent)
+```
+The p-value of the Durbin-Watson test is 0, so [P3] is not valid. The residuals are correlated.
+
+The model is not valid.
+```{r}
+model_temps_vent <- lm(maxO3 ~ temps * vent, data = ozone)
+summary(model_temps_vent)
+```
+
+```{r}
+autoplot(model_temps_vent, 1:4)
+durbinWatsonTest(model_temps_vent)
+```
+
+# Question 4 : Multiple linear regression
+```{r}
+model <- lm(maxO3 ~ ., data = ozone)
+summary(model)
+```
+
+```{r}
+autoplot(model, 1:4)
+durbinWatsonTest(model)
+```
+
+[P1] is verified as the 'Residuals vs Fitted' plot shows that the points are well distributed around 0
+[P2] is verified as the 'Scale-Location' plot shows that the points are well distributed around 1
+[P4] is verified as the 'QQPlot' is aligned with the 'y=x' line
+
+[P3] is verified as the p-value is 0.7 > 0.05, so we do not reject H0 so the residuals are not auto-correlated
+
+The model is valid.
+
+```{r}
+library(GGally)
+ggpairs(ozone, progress = FALSE)
+```
+```{r}
+library(MASS)
+
+model_backward <- stepAIC(model, ~., trace = FALSE, direction = c("backward"))
+summary(model_backward)
+```
+
+```{r}
+AIC(model_backward)
+autoplot(model_backward, 1:4)
+durbinWatsonTest(model_backward)
+```
+
+# Question 5 : Prediction
+```{r}
+new_obs <- list(
+  T12 = 18,
+  Ne9 = 3,
+  Vx9 = 0.7,
+  maxO3v = 85
+)
+predict(model_backward, new_obs, interval = "confidence")
+
+```

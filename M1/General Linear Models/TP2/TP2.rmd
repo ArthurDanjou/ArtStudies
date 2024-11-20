@@ -75,7 +75,6 @@ autoplot(model_full, 1:4)
 set.seed(12)
 durbinWatsonTest(model_full)
 ```
-
 [P3] is verified as the p-value is 0.7 > 0.05, so we do not reject H0 so the residuals are not auto-correlated
 
 # Bonus : Type II Test
