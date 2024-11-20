@@ -1,0 +1,286 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+### Random Variable simulation with stratification
+
+##### Question 9
+
+We consider a partition $\mathcal{P}= (D_0,D_1,...,D_k)$, $k \in \mathbb{N}$ of $\mathbb{R}$ such that $D_0$ covers the tails of $f_1$ and $f_1$ is upper bounded and $f_2$ lower bounded in $D_1, \dots, D_k$.
+
+To simulate under $f$ using the accept-reject algorithm, we need to find a density function $g$ such that $f(x) \le M g(x)$ for all $x \in \mathbb{R}$, where M is a constant.\
+
+We generate $X \sim g$ and $U \sim \mathcal{U}([0,1])$ $\textit{(1)}$.\
+We accept $Y = X$ if $U \le \frac{f(X)}{Mg(X)}$. Otherwise, we return to $\textit{(1)}$.
+
+Here we pose $g(x) = f_1(x)$ if $x \in D_0$ and $g(x) = sup_{D_i} f_1(x)$ if $x \in D_i, i \in \{1, \dots, k\}$.
+
+To conclude, we have $M = \frac{1}{1-a}$ and the probability of acceptance is $r = \frac{1}{M} = 1-a$
+
+
+##### Question 10
+
+Let $P_n = (D_0, \dots D_n)$ a partition of $\mathbb{R}$ for $n \in \mathbb{N}$.
+We have $\forall x \in P_n$ and $\forall i \in \{0, \dots, n\}$, $\lim_{n \to\infty} sup_{D_i} f_1(x) = f_1(x)$ and $\lim_{x\to\infty} inf_{D_i} f_2(x) = f_2(x)$.
+
+$\Rightarrow \lim_{x\to\infty} g(x) = f(x)$
+
+$\Rightarrow \lim_{x\to\infty} \frac{g(x)}{f(x)} = 1$ as $f(x) > 0$ as $f$ is a density function.
+
+$\Rightarrow \forall \epsilon > 0, \exists n_{\epsilon} \in \mathbb{N}$ such that $\forall n \ge n_{\epsilon}$, $M = sup_{x \in P_n} \frac{g(x)}{f(x)} < \epsilon$
+
+$\Rightarrow r = \frac{1}{M} > \frac{1}{\epsilon} := \delta \in ]0, 1]$ where $r$ is the acceptance rate defined in the question 10.
+
+##### Question 11
+
+We recall the parameters and the functions of the problem.
+```{r}
+mu1 <- 0
+mu2 <- 1
+s1 <- 3
+s2 <- 1
+a <- 0.2
+
+f1 <- function(x) {
+  dnorm(x, mu1, s1)
+}
+
+f2 <- function(x) {
+  dnorm(x, mu2, s2)
+}
+
+f <- function(x) {
+  fx <- f1(x) - a * f2(x)
+  fx[fx < 0] <- 0
+  return(fx / (1 - a))
+}
+
+f1_bounds <- c(mu1 - 3 * s1, mu1 + 3 * s1)
+```
+
+We implement the partition, the given $g$ function to understand the behavior of $g$ compared to $f$ and the computation of the supremum and infimum of $f_1$ and $f_2$ on each partition.
+```{r}
+create_partition <- function(k = 10) {
+  return(seq(f1_bounds[1], f1_bounds[2], , length.out = k))
+}
+
+sup_inf <- function(f, P, i) {
+  x <- seq(P[i], P[i + 1], length.out = 1000)
+  f_values <- sapply(x, f)
+  return(c(max(f_values), min(f_values)))
+}
+
+g <- function(X, P) {
+  values <- numeric(0)
+  for (x in X) {
+    if (x <= P[1] | x >= P[length(P)]) {
+      values <- c(values, 1 / (1 - a) * f1(x))
+    } else {
+      for (i in 1:(length(P) - 1)) {
+        if (x >= P[i] & x <= P[i + 1]) {
+          values <- c(values, 1 / (1 - a) * (sup_inf(f1, P, i)[1]) - a * sup_inf(f2, P, i)[2])
+        }
+      }
+    }
+  }
+  return(values)
+}
+```
+
+We plot the function $f$ and the dominating function $g$ for different sizes of the partition.
+```{r}
+library(ggplot2)
+
+X <- seq(-12, 12, length.out = 1000)
+
+# Plot for different k with ggplot on same graph
+k_values <- c(10, 20, 50, 100)
+P_values <- lapply(k_values, create_partition)
+g_values <- lapply(P_values, g, X)
+
+ggplot() +
+  geom_line(aes(x = X, y = f(X)), col = "red") +
+  geom_line(aes(x = X, y = g(X, P_values[[1]])), col = "green") +
+  geom_line(aes(x = X, y = g(X, P_values[[2]])), col = "orange") +
+  geom_line(aes(x = X, y = g(X, P_values[[3]])), col = "purple") +
+  geom_line(aes(x = X, y = g(X, P_values[[4]])), col = "black") +
+  labs(title = "Dominating function g of f for different size of partition", x = "x", y = "Density") +
+  theme_minimal()
+```
+
+Here, we implement the algorithm of accept-reject with the given partition and an appropriate function $g$ to compute $f$.
+```{r}
+set.seed(123)
+
+g_accept_reject <- function(x, P) {
+  if (x < P[1] | x >= P[length(P)]) {
+    return(f1(x))
+  } else {
+    for (i in seq_along(P)) {
+      if (x >= P[i] & x < P[i + 1]) {
+        return(sup_inf(f1, P, i)[1])
+      }
+    }
+  }
+}
+
+stratified <- function(n, P) {
+  samples <- numeric(0)
+  rate <- 0
+  while (length(samples) < n) {
+    x <- rnorm(1, mu1, s1)
+    u <- runif(1)
+    if (u <= f(x) * (1 - a) / g_accept_reject(x, P)) {
+      samples <- c(samples, x)
+    }
+    rate <- rate + 1
+  }
+  list(samples = samples, acceptance_rate = n / rate)
+}
+
+n <- 10000
+k <- 100
+
+P <- create_partition(k)
+samples <- stratified(n, P)
+X <- seq(-10, 10, length.out = 1000)
+
+hist(samples$samples, breaks = 50, freq = FALSE, col = "lightblue", main = "Empirical density function f", xlab = "x")
+lines(X, f(X), col = "red")
+```
+
+We also compute the acceptance rate of the algorithm.
+```{r}
+theorical_acceptance_rate <- 1 - a
+cat(sprintf("Empirical acceptance rate: %f, Theoretical acceptance rate: %f \n", samples$acceptance_rate, theorical_acceptance_rate))
+```
+
+##### Question 12
+
+```{r}
+set.seed(123)
+
+stratified_delta <- function(n, delta) {
+  samples <- numeric(0)
+  P <- create_partition(n * delta)
+  rate <- 0
+  while (length(samples) < n | rate < delta * n) {
+    x <- rnorm(1, mu1, s1)
+    u <- runif(1)
+    if (u <= f(x) * delta / g_accept_reject(x, P)) {
+      samples <- c(samples, x)
+    }
+    rate <- rate + 1
+  }
+  list(samples = samples, partition = P, acceptance_rate = n / rate)
+}
+
+n <- 10000
+delta <- 0.8
+
+samples_delta <- stratified_delta(n, delta)
+X <- seq(-10, 10, length.out = 1000)
+
+hist(samples_delta$samples, breaks = 50, freq = FALSE, col = "lightblue", main = "Empirical density function f", xlab = "x")
+lines(X, f(X), col = "red")
+```
+
+We also compute the acceptance rate of the algorithm.
+```{r}
+theorical_acceptance_rate <- 1 - a
+cat(sprintf("Empirical acceptance rate: %f, Theoretical acceptance rate: %f \n", samples_delta$acceptance_rate, theorical_acceptance_rate))
+```
+
+Now, we will test the stratified_delta function for different delta:
+
+```{r}
+set.seed(123)
+n <- 1000
+deltas <- seq(0.1, 1, by = 0.1)
+
+for (delta in deltas) {
+  samples <- stratified_delta(n, delta)
+  cat(sprintf("Delta: %.1f, Empirical acceptance rate: %f \n", delta, samples$acceptance_rate))
+}
+```
+
+### Cumulative density function.
+
+##### Question 13
+
+The cumulative density function $\forall x \in \mathbb{R}$ $F_X(x) = \int_{-\infty}^{x} f(t) \,dt = \int_{\mathbb{R}} f(t) h(t), dt$ where $h(x) = \mathbb{1}_{X_n \le x}$
+
+For a given $x \in \mathbb{R}$, a Monte Carlo estimator $F_n(x) = \frac{1}{n} \sum_{i=1}^{n} h(X_i)$ where $h$ is the same function as above and $(X_i)_{i=1}^{n} \sim^{iid} X$
+
+##### Question 14
+
+As $X_1, \dots, X_n$ are iid and follows the law of X, and $h$ is continuous and positive, we have $h(X_1), \dots h(X_n)$ are iid and $\mathbb{E}[h(X_i)] < + \infty$. By the law of large numbers, we have $F_n(X) = \frac{1}{n} \sum_{i=1}^{n} h(X_i) \xrightarrow{a.s} \mathbb{E}[h(X_1)] = F_X(x)$.
+
+Moreover, $\forall \epsilon > 0$, $\exists N \in \mathbb{N}$ such that $\forall n \le N$, $|F_n(x) - F_X(x)| < \epsilon$, ie, $sup_{x \in \mathbb{R}} |F_n(x) - F_X(x)| \xrightarrow{a.s} 0$, by Glivenko-Cantelli theorem.
+
+Hence, $F_n$ is a good estimate of $F_X$ as a function of $x$.
+
+##### Question 15
+```{r}
+set.seed(123)
+n <- 10000
+Xn <- (rnorm(n, mu1, s1) - a * rnorm(n, mu2, s2)) / (1 - a)
+
+h <- function(x, Xn) {
+  return(Xn <= x)
+}
+
+# Fn empirical
+empirical_cdf <- function(x, Xn) {
+  return(mean(h(x, Xn)))
+}
+
+# F theoretical
+F <- function(x) {
+  Fx <- pnorm(x, mu1, s1) - a * pnorm(x, mu2, s2)
+  return(Fx / (1 - a))
+}
+
+X <- seq(-10, 10, length.out = n)
+cat(sprintf("Empirical cdf: %f, Theoretical cdf: %f \n", empirical_cdf(X, Xn), mean(F(Xn))))
+
+length(X)
+length(empirical_cdf(X, Xn))
+plot(X, empirical_cdf(X, Xn), col = "red", type = "l", xlab = "x", ylab = "F(x)")
+lines(X, F(X), col = "blue")
+```
+
+Now we plot the empirical and theoretical cumulative density functions for different n.
+```{r}
+n_values <- seq(100, 10000, length.out = 10)
+
+```
+
+##### Question 16
+
+As $X_1, \dots, X_n$ are iid and follows the law of X, and $h$ is continuous and positive, we have $h(X_1), \dots h(X_n)$ are iid and $\mathbb{E}[h(X_i)^2] < + \infty$. By the Central Limit Theorem, we have $\sqrt{n} \frac{(F_n(x) - F_X(x))}{\sigma} \xrightarrow{d} \mathcal{N}(0, 1)$ where $\sigma^2 = Var(h(X_1))$.
+
+So we have $\lim_{x\to\infty} \mathbb{P}(\sqrt{n} \frac{(F_n(x) - F_X(x))}{\sigma} \le q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0, 1)})= 1 - \alpha$
+
+So by computing the quantile of the normal distribution, we can have a confidence interval for $F_X(x)$ :
+$F_X(x) \in [F_n(x) - \frac{q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0, 1)} \sigma}{\sqrt{n}} ; F_n(x) + \frac{q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0, 1)} \sigma}{\sqrt{n}}]$
+
+```{r}
+Fn <- empirical_cdf(X, Xn)
+sigma <- sqrt(Fn - Fn^2)
+q <- qnorm(0.975)
+interval <- c(Fn - q * sigma / sqrt(n), Fn + q * sigma / sqrt(n))
+cat(sprintf("Confidence interval: [%f, %f] \n", interval[1], interval[2]))
+```
+
+##### Question 17
+
+```{r}
+q <- qnorm(0.975)
+x <- 1
+epsilon <- 0.01
+n_required <- (1.96^2 * F(x) * (1 - F(x))) / epsilon^2
+ceiling(n_required)
+```
+
