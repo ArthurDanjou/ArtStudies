@@ -11,7 +11,7 @@ Y <- rnorm(n, 0, sqrt(2))
 Y[Y <= 2] <- 0
 
 h <- function(x, y) {
-  10 *
+  5 *
     sqrt(pi) *
     sqrt(x + y) *
     sin(y^4) *
