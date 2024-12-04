@@ -1,6 +1,52 @@
 # Exercise 13 : Gaussian integral and Variance reduction
 
 ```{r}
+set.seed(123)
 n <- 10000
+
+# Normal distribution
+h1 <- function(x) {
+  sqrt(2 * pi) *
+    exp(-x^2 / 2) *
+    (x <= 2) *
+    (x >= 0)
+}
+
+# Uniform (0, 2) distribution
+h2 <- function(x) {
+  2 * exp(-x^2)
+}
+
+X1 <- rnorm(n)
+X2 <- runif(n, 0, 2)
+
+cat(sprintf("Integral of h1(x) using normal distribution is %f and variance is %f \n", mean(h1(X1)), var(h1(X1))))
+cat(sprintf("Integral of h2(x) using normal distribution is %f and variance is %f \n", mean(h2(X2)), var(h2(X2))))
+
+X3 <- 2 - X2
+cat(sprintf("Integral of h2(x) using normal distribution is %f and variance is %f \n",
+            (mean(h2(X3)) + mean(h2(X2))) / 2,
+            (var(h2(X3)) +
+              var(h2(X2)) +
+              2 * cov(h2(X2), h2(X3))) / 4))
+
+X4 <- -X1
+cat(sprintf("Integral of h2(x) using normal distribution is %f and variance is %f",
+            (mean(h1(X1)) + mean(h1(X4))) / 2,
+            (var(h1(X1)) +
+              var(h1(X4)) +
+              2 * cov(h1(X1), h1(X4))) / 4))
+```
+
+## K-th moment of a uniform random variable on [0, 2]
+
+```{r}
+k <- 1:10
+moment <- round(2^k / (k + 1), 2)
+cat(sprintf("The k-th moment for k ∈ N* of a uniform random variable on [0, 2] is %s", paste(moment, collapse = ", ")))
+```
+
+
+```{r}
 
 ```
