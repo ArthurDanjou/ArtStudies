@@ -1,0 +1,95 @@
+```{r}
+setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP4')
+
+set.seed(0911)
+library(ggplot2)
+library(gridExtra)
+library(cowplot)
+library(plotly) # interactif plot
+library(ggfortify) # diagnostic plot
+library(forestmodel) # plot odd ratio
+library(arm) # binnedplot diagnostic plot in GLM
+
+library(knitr)
+library(dplyr)
+library(tidyverse)
+library(tidymodels)
+library(broom) # funtion augment to add columns to the original data that was modeled
+library(effects) # plot effect of covariate/factor
+library(questionr) # odd ratio
+
+library(lmtest) # LRtest
+library(survey) # Wald test
+library(vcdExtra) # deviance test
+
+library(rsample)   # for data splitting
+library(glmnet)
+library(nnet) # multinom, glm
+library(caret)
+library(ROCR)
+#library(PRROC) autre package pour courbe roc et courbe pr
+library(ISLR) # dataset for statistical learning
+
+ggplot2::theme_set(ggplot2::theme_light())# Set the graphical theme
+```
+```{r}
+car <- read.table('car_income.txt', header = TRUE, sep = ';')
+car %>% rmarkdown::paged_table()
+summary(car)
+```
+
+```{r}
+model_purchase <- glm(purchase ~ ., data = car, family = "binomial")
+summary(model_purchase)
+```
+
+```{r}
+p1 <- car %>%
+  ggplot(aes(y = purchase, x = income + age)) +
+  geom_point(alpha = .15) +
+  geom_smooth(method = "lm") +
+  ggtitle("Linear regression model fit") +
+  xlab("Income") +
+  ylab("Probability of Purchase")
+
+
+p2 <- car %>%
+  ggplot(aes(y = purchase, x = income + age)) +
+  geom_point(alpha = .15) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial")) +
+  ggtitle("Logistic regression model fit") +
+  xlab("Income") +
+  ylab("Probability of Purchase")
+
+ggplotly(p1)
+ggplotly(p2)
+```
+
+```{r}
+car <- car %>%
+  mutate(old = ifelse(car$age > 3, 1, 0))
+car <- car %>%
+  mutate(rich = ifelse(car$income > 40, 1, 0))
+model_old <- glm(purchase ~ age + income + rich + old, data = car, family = "binomial")
+summary(model_old)
+```
+
+# Diabetes in Pima Indians
+```{r}
+library(MASS)
+pima.tr <- Pima.tr
+pima.te <- Pima.te
+
+model_train_pima <- glm(type ~ npreg + glu + bp + skin + bmi + ped + age, data = pima.tr, family = "binomial")
+summary(model_train_pima)
+```
+```{r}
+
+pima.te$pred <- predict(model_train_pima, newdata = pima.te, type = "response")
+pima.te$pred <- ifelse(pima.te$pred > 0.5, "Yes", "No")
+pima.te$pred <- as.factor(pima.te$pred)
+pima.te$type <- as.factor(pima.te$type)
+
+# Confusion matrix
+confusionMatrix(data = pima.te$type, reference = pima.te$pred)
+```
