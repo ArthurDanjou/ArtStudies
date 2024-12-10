@@ -1,0 +1,206 @@
+```{r}
+setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP3-bis')
+
+library(GGally)
+library(broom)
+library(scales)
+library(car)
+library(glue)
+library(janitor)
+library(marginaleffects)
+library(tidyverse)
+library(qqplotr)
+options(scipen = 999, digits = 5)
+```
+```{r}
+data03 <- read.csv('data03.csv', header = TRUE, sep = ',', dec = '.')
+data03$sexe <- as.factor(data03$sexe)
+data03$travail <- as.factor(data03$travail)
+head(data03, 15)
+```
+```{r}
+tab_sexe <- data03 |>
+  count(sexe) |>
+  mutate(freq1 = n / sum(n)) |>
+  mutate(freq2 = glue("{n} ({label_percent()(freq1)})")) |>
+  rename(Sexe = 1, Effectif = n, Proportion = freq1, "n (%)" = freq2)
+tab_sexe
+```
+
+```{r}
+tab_travail <- data03 |>
+  count(travail) |>
+  mutate(freq1 = n / sum(n)) |>
+  mutate(freq2 = glue("{n} ({label_percent()(freq1)})")) |>
+  rename(Travail = 1, Effectif = n, Proportion = freq1, "n (%)" = freq2)
+tab_travail
+```
+
+```{r}
+cross_sexe_travail <- data03 |>
+  count(sexe, Travail = travail) |>
+  group_by(sexe) |>
+  mutate(freq1 = n / sum(n)) |>
+  mutate(freq2 = glue("{n} ({label_percent(0.1)(freq1)})"), n = NULL, freq1 = NULL) |>
+  pivot_wider(names_from = sexe, values_from = freq2)
+cross_sexe_travail
+```
+
+```{r}
+data03 <- mutate(data03, logy = log(y))
+
+data03 |>
+  pivot_longer(c(y, logy), names_to = "variable", values_to = "value") |>
+  mutate(variable = factor(
+    variable,
+    levels = c("y", "logy"),
+    labels = c("Salaire", "Log-Salaire"))
+  ) |>
+  ggplot(aes(x = value)) +
+  facet_wrap(vars(variable), scales = "free") +
+  geom_histogram(
+    fill = "dodgerblue",
+    color = "black",
+    bins = 15) +
+  scale_y_continuous(expand = expansion(c(0, 0.05))) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  labs(x = "Valeur", y = "Effectif") +
+  theme_bw(base_size = 14) +
+  theme(strip.text = element_text(size = 11, face = "bold"))
+```
+```{r}
+data03 |>
+  pivot_longer(c(y, logy), names_to = "variable", values_to = "value") |>
+  mutate(variable = factor(
+    variable,
+    levels = c("y", "logy"), labels = c("Salaire", "Log-Salaire")
+  )) |>
+  ggplot(aes(x = sexe, y = value)) +
+  facet_wrap(vars(variable), scales = "free") +
+  geom_boxplot(
+    width = 0.5, fill = "cyan", linewidth = 0.5, outlier.size = 2, outlier.alpha = 0.3
+  ) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = NULL, y = "Valeur") +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(size = 11, face = "bold"),
+    panel.border = element_rect(linewidth = 0.5)
+  )
+```
+```{r}
+data03 |>
+  pivot_longer(c(y, logy), names_to = "variable", values_to = "value") |>
+  mutate(variable = factor(
+    variable,
+    levels = c("y", "logy"), labels = c("Salaire", "Log-Salaire")
+  )) |>
+  ggplot(aes(x = travail, y = value)) +
+  facet_wrap(vars(variable), scales = "free") +
+  stat_boxplot(width = 0.25, geom = "errorbar", linewidth = 0.5) +
+  geom_boxplot(
+    width = 0.5, fatten = 0.25, fill = "cyan", linewidth = 0.5,
+    outlier.size = 2, outlier.alpha = 0.3
+  ) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = NULL, y = "Valeur") +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(size = 11, face = "bold"),
+    panel.border = element_rect(linewidth = 0.5)
+  )
+```
+
+```{r}
+data03 |>
+  group_by(sexe) |>
+  summarise(n = n(), "Mean (Salaire)" = mean(y), "SD (Salaire)" = sd(y))
+```
+
+```{r}
+data03 |>
+  group_by(travail) |>
+  summarise(n = n(), "Mean (Salaire)" = mean(y), "SD (Salaire)" = sd(y))
+```
+
+```{r}
+data03 |>
+  group_by(sexe, travail) |>
+  summarise(n = n(), "Mean (Salaire)" = mean(y), "SD (Salaire)" = sd(y))
+```
+```{r}
+data03 |>
+  group_by(sexe) |>
+  summarise(n = n(), "Mean (Salaire)" = mean(logy), "SD (Salaire)" = sd(logy))
+```
+
+```{r}
+data03 |>
+  group_by(travail) |>
+  summarise(n = n(), "Mean (Salaire)" = mean(logy), "SD (Salaire)" = sd(logy))
+```
+
+```{r}
+data03 |>
+  group_by(sexe, travail) |>
+  summarise(n = n(), "Mean (Salaire)" = mean(logy), "SD (Salaire)" = sd(logy))
+```
+```{r}
+data03 <- data03 |>
+  mutate(sexef = ifelse(sexe == "Femme", 1, 0), sexeh = 1 - sexef) |>
+  mutate(job1 = (travail == "Type 1") * 1) |>
+  mutate(job2 = (travail == "Type 2") * 1) |>
+  mutate(job3 = (travail == "Type 3") * 1)
+head(data03, 15)
+```
+```{r}
+mod1 <- lm(y ~ sexeh, data = data03)
+mod2 <- lm(y ~ job2 + job3, data = data03)
+mod3 <- lm(y ~ sexeh + job2 + job3, data = data03)
+tidy(mod1)
+tidy(mod2)
+tidy(mod3)
+```
+
+Interprétations des coefficients du modèle 1
+$𝑦_i = β_0 + β_1 sexeh_i + ϵ_i$
+• (Intercept): $\hat{β_0} = 7.88$ : Salaire moyen chez les femmes
+• sexeh: $\hat{𝛽1} = 2.12$ : Les hommes gagnent en moyenne 2.12 dollars par heure de plus que les femmes
+(significatif).
+
+Interprétations des coefficients du modèle 2
+$𝑦_i = β_0 + β_1 job2_i + β_2 job3_i + ϵ_i$
+• (Intercept): $\hat{β_0} = 12.21$ : Salaire moyen pour le travail de type 1.
+• job2: $\hat{β_1} = −5.09$ : la différence de salaire entre le travail de type 2 et celui de type 1 est de −5.09 dollars par heure en moyenne (significatif)
+• job3: $\hat{β_2} = −3.78$ : la différence de salaire entre le travail de type 3 et celui de type 1 est de −3.78 dollarspar heure en moyenne (significatif).
+
+Interprétations des coefficients du modèle 3
+$𝑦_i = β_0 + β_1 sexeh_i + β_2 job2_i + β_3 job3_i + ϵ_i$
+• (Intercept): $\hat{β_0} = 11.13$ : Salaire moyen chez les femmes avec un travail de type 1
+• sexeh: $\hat{β_1 = 1.97$ : Les hommes gagnent en moyenne 1.97 dollars par heure de plus que les femmes
+(significatif), quelque soit le type de travail.
+• job2: $\hat{β_2} = −4.71$ : la différence de salaire entre le travail de type 2 et celui de type 1 est de −4.71 dollars par heure en moyenne (significatif), quelque soit le sexe.
+• job3: $\hat{β_3} = −4.3$ : la différence de salaire entre le travail de type 3 et celui de type 1 est de −4.3 dollars par heure en moyenne (significatif), quelque soit le sexe.
+
+```{r}
+anova(mod1, mod3)
+```
+La p-value du test est inférieur à 0.05, on rejette donc $𝐻0$ et on conclue qu’au moins un des coefficients (𝛽1, 𝛽2) est significativement non nulle.
+• On vient de tester si le type de travail est associé au salaire horaire. C’est donc le cas pour ces données.
+```{r}
+linearHypothesis(mod3, c("job2", "job3"))
+linearHypothesis(mod3, "job2 = job3")
+```
+Le test est non significatif (𝑝 = 0.44). On ne rejette pas $𝐻0$ et on conclue qu’il n’y pas de différence de salaire horaire entre le travail de type 2 et le travail de type 3, quelque soit le sexe.
+```{r}
+mod3bis <- lm(y ~ sexe + travail, data = data03)
+summary(mod3bis)
+```
+Les modèles mod3bis1 et mod3 sont identiques
+• Pas besoins de créer toutes ces variables indicatrices si nos variables catégorielles sont de type factor !
+• La référence sera toujours la première modalité du factor.
+• On peut changer la référence avec `relevel()` ou avec `C()`. Par exemple, si on veut la modalité 2 en référence pour le travail
+```{r}
+lm(y ~ sexe + relevel(travail, ref = 2), data = data03) |>
+  tidy()
+```
