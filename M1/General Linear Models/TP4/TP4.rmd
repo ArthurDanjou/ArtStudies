@@ -84,12 +84,11 @@ model_train_pima <- glm(type ~ npreg + glu + bp + skin + bmi + ped + age, data =
 summary(model_train_pima)
 ```
 ```{r}
-
 pima.te$pred <- predict(model_train_pima, newdata = pima.te, type = "response")
-pima.te$pred <- ifelse(pima.te$pred > 0.5, "Yes", "No")
+pima.te$pred <- ifelse(pima.te$pred > 0.55, "Yes", "No")
 pima.te$pred <- as.factor(pima.te$pred)
 pima.te$type <- as.factor(pima.te$type)
 
 # Confusion matrix
-confusionMatrix(data = pima.te$type, reference = pima.te$pred)
+confusionMatrix(data = pima.te$type, reference = pima.te$pred, positive = 'Yes')
 ```
