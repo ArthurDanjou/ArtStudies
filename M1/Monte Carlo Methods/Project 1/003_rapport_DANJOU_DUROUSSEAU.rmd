@@ -1,10 +1,10 @@
 ---
 title: "Groupe 03 Projet DANJOU - DUROUSSEAU"
 output:
-pdf_document:
-toc: yes
-toc_depth: 3
-fig_caption: yes
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    fig_caption: yes
 ---
 
 # Exercise 1 : Negative weighted mixture
@@ -331,8 +331,7 @@ To conclude, we have $M = \frac{1}{1-a}$ and the probability of acceptance is $r
 
 ### Question 10
 
-Let $P_n = (D_0, \dots D_n)$ a partition of $\mathbb{R}$ for $n \in \mathbb{N}$.
-We have $\forall x \in P_n$ and $\forall i \in \{0, \dots, n\}$, $\lim_{n \to\infty} sup_{D_i} f_1(x) = f_1(x)$ and $\lim_{x\to\infty} inf_{D_i} f_2(x) = f_2(x)$.
+Let $P_n = (D_0, \dots D_n)$ a partition of $\mathbb{R}$ for $n \in \mathbb{N}$. We have $\forall x \in P_n$ and $\forall i \in \{0, \dots, n\}$, $\lim_{n \to\infty} sup_{D_i} f_1(x) = f_1(x)$ and $\lim_{x\to\infty} inf_{D_i} f_2(x) = f_2(x)$.
 
 $\Rightarrow \lim_{x\to\infty} g(x) = f(x)$
 
@@ -345,6 +344,7 @@ $\Rightarrow r = \frac{1}{M} > \frac{1}{\epsilon} := \delta \in ]0, 1]$ where $r
 ### Question 11
 
 We recall the parameters and the functions of the problem.
+
 ```{r}
 mu1 <- 0
 mu2 <- 1
@@ -370,6 +370,7 @@ f1_bounds <- c(mu1 - 3 * s1, mu1 + 3 * s1)
 ```
 
 We implement the partition, the given $g$ function to understand the behavior of $g$ compared to $f$ and the computation of the supremum and infimum of $f_1$ and $f_2$ on each partition.
+
 ```{r}
 create_partition <- function(k = 10) {
   return(seq(f1_bounds[1], f1_bounds[2], , length.out = k))
@@ -399,6 +400,7 @@ g <- function(X, P) {
 ```
 
 We plot the function $f$ and the dominating function $g$ for different sizes of the partition.
+
 ```{r}
 library(ggplot2)
 
@@ -420,6 +422,7 @@ ggplot() +
 ```
 
 Here, we implement the algorithm of accept-reject with the given partition and an appropriate function $g$ to compute $f$.
+
 ```{r}
 set.seed(123)
 
@@ -461,6 +464,7 @@ lines(X, f(X), col = "red")
 ```
 
 We also compute the acceptance rate of the algorithm.
+
 ```{r}
 theorical_acceptance_rate <- 1 - a
 cat(sprintf("Empirical acceptance rate: %f, Theoretical acceptance rate: %.1f \n", samples$acceptance_rate, theorical_acceptance_rate))
@@ -497,6 +501,7 @@ lines(X, f(X), col = "red")
 ```
 
 We also compute the acceptance rate of the algorithm.
+
 ```{r}
 theorical_acceptance_rate <- 1 - a
 cat(sprintf("Empirical acceptance rate: %f, Theoretical acceptance rate: %f \n", samples_delta$acceptance_rate, theorical_acceptance_rate))
@@ -525,13 +530,14 @@ For a given $x \in \mathbb{R}$, a Monte Carlo estimator $F_n(x) = \frac{1}{n} \s
 
 ### Question 14
 
-As $X_1, \dots, X_n$ are iid and follows the law of X, and $h$ is continuous and positive, we have $h(X_1), \dots h(X_n)$ are iid and $\mathbb{E}[h(X_i)] < + \infty$. By the law of large numbers, we have $F_n(X) = \frac{1}{n} \sum_{i=1}^{n} h(X_i) \xrightarrow{a.s} \mathbb{E}[h(X_1)] = F_X(x)$.
+As $X_1, \dots, X_n$ are iid and follows the law of X, and $h$ is continuous by parts, and positive, we have $h(X_1), \dots h(X_n)$ are iid and $\mathbb{E}[h(X_i)] < + \infty$. By the law of large numbers, we have $F_n(X) = \frac{1}{n} \sum_{i=1}^{n} h(X_i) \xrightarrow{a.s} \mathbb{E}[h(X_1)] = F_X(x)$.
 
 Moreover, $\forall \epsilon > 0$, $\exists N \in \mathbb{N}$ such that $\forall n \le N$, $|F_n(x) - F_X(x)| < \epsilon$, ie, $sup_{x \in \mathbb{R}} |F_n(x) - F_X(x)| \xrightarrow{a.s} 0$, by Glivenko-Cantelli theorem.
 
 Hence, $F_n$ is a good estimate of $F_X$ as a function of $x$.
 
 ### Question 15
+
 ```{r}
 set.seed(123)
 n <- 10000
@@ -557,6 +563,7 @@ cat(sprintf("Empirical cdf: %f, Theoretical cdf: %f \n", empirical_cdf(X, Xn), m
 ```
 
 Now we plot the empirical and theoretical cumulative density functions for different n.
+
 ```{r}
 n_values <- c(10, 100, 1000, 10000)
 colors <- c("lightblue", "blue", "darkblue", "navy")
@@ -580,8 +587,7 @@ As $X_1, \dots, X_n$ are iid and follows the law of X, and $h$ is continuous and
 
 So we have $\lim_{x\to\infty} \mathbb{P}(\sqrt{n} \frac{(F_n(x) - F_X(x))}{\sigma} \le q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0, 1)})= 1 - \alpha$
 
-So by computing the quantile of the normal distribution, we can have a confidence interval for $F_X(x)$ :
-$F_X(x) \in [F_n(x) - \frac{q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0, 1)} \sigma}{\sqrt{n}} ; F_n(x) + \frac{q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0, 1)} \sigma}{\sqrt{n}}]$
+So by computing the quantile of the normal distribution, we can have a confidence interval for $F_X(x)$ : $F_X(x) \in [F_n(x) - \frac{q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0, 1)} \sigma}{\sqrt{n}} ; F_n(x) + \frac{q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0, 1)} \sigma}{\sqrt{n}}]$
 
 ```{r}
 set.seed(123)
@@ -612,8 +618,7 @@ We notice that the size of the sample needed to estimate the cumulative density 
 
 ### Question 18
 
-We define the empirical quantile function defined on $(0, 1)$ by : $Q_n(u) = inf\{x \in \mathbb{R} : u \le F_n(x)\}$.
-We recall the estimator $F_n(x) = \frac{1}{n} \sum_{i=1}^{n} \mathbb{1}_{X_i \le x}$
+We define the empirical quantile function defined on $(0, 1)$ by : $Q_n(u) = inf\{x \in \mathbb{R} : u \le F_n(x)\}$. We recall the estimator $F_n(x) = \frac{1}{n} \sum_{i=1}^{n} \mathbb{1}_{X_i \le x}$
 
 So we have $Q_n(u) = inf\{x \in \mathbb{R} : u \le \frac{1}{n} \sum_{i=1}^{n} \mathbb{1}_{X_i \le x}\} = inf\{x \in \mathbb{R} : n . u \le \sum_{i=1}^{n} \mathbb{1}_{X_i \le x}\}$
 
@@ -629,8 +634,7 @@ We note $Y_{j,n} := \mathbb{1}_{X_{n,j} < Q(u) + \frac{t}{\sqrt{n}} \frac{\sqrt{
 
 We know that $(X_{n,j})$ is iid as $X$ is bounded in j and n.
 
-Let $\Delta_{n} = \frac{t}{\sqrt{n}} \frac{\sqrt{u(1-u)}}{f(Q(u))}$.
-We have $F_{n}(X) = \frac{1}{n} \sum_{j=1}^{n} \mathbb{1}_{X_{n,j}} < Q(u) + \Delta_{n}$
+Let $\Delta_{n} = \frac{t}{\sqrt{n}} \frac{\sqrt{u(1-u)}}{f(Q(u))}$. We have $F_{n}(X) = \frac{1}{n} \sum_{j=1}^{n} \mathbb{1}_{X_{n,j}} < Q(u) + \Delta_{n}$
 
 then $\frac{1}{n} \sum_{j=1}^{n}Y_{j,n} = F_{n}(Q(u) + \Delta_{n})$ by definition of the empirical quantile $F_{n}(Q_{n}(u)) = u$
 
@@ -667,6 +671,7 @@ When $u \rightarrow 0$, $Q(u)$ corresponds to the lower tail of the distribution
 So $f(Q(u))$ is higher when $u$ is close to 0 and close to 1, so the variance of the estimator is higher for values of $u$ that are close to 0 and 1. So we need a higher sample size to estimate the quantile function for values of $u$ that are close to 0 and 1.
 
 ### Question 21
+
 ```{r}
 set.seed(123)
 
@@ -696,6 +701,7 @@ We can compute the confidence interval of the empirical quantile function using 
 We obtain the following formula for the confidence interval of the empirical quantile function:
 
 $Q(u) \in [Q_n(u) - q_{1 - \frac{\alpha}{2}}^{\mathcal{N}(0,1)} \frac{\sqrt{u (1-u)}}{\sqrt{n} f(Q(u))}; Q_n(u) + q_{1 - \frac{\alpha}{2}}^{\mathcal{N}(0,1)} \frac{\sqrt{u (1-u)}}{\sqrt{n} f(Q(u))}]$
+
 ```{r}
 f_q <- function(u) {
   f(1 / (1 - a) * (qnorm(u, mu1, s1) - a * qnorm(u, mu2, s2)))
@@ -713,3 +719,191 @@ data.frame(u = u_values, n = n_values)
 ```
 
 We deduce that the size of the sample needed to estimate the quantile function is higher for values of u that are close to 1. This corresponds to the deduction made in question 20.
+
+## Quantile estimation Naïve Reject algorithm
+
+### Question 23
+
+We generate a sample $(X_n)_{n \in \mathbb{N}} \sim^{iid} f_X$ the c.d.f. of $X$
+
+We choose all the $i = 1, \dots, n$ such that $X_i \in A$ and plug them in a new set $(Y_n)_{n \in \mathbb{N}}$
+
+Then, the mean of $Y_n$ simulate a random variable $X$ conditional to the event $X \in A$ with $A \subset \mathbb{R}$
+
+So when n is big enough, we can estimate $\mathbb{P}(X \in A)$ with our sample $(Y_n)_{n \in \mathbb{N}}$ and the mean of $Y_n$.
+
+### Question 24
+
+```{r}
+accept_reject_quantile <- function(q, n) {
+  X_samples <- (rnorm(n, mu1, s1) - a * rnorm(n, mu2, s2)) / (1 - a)
+  return(mean(X_samples >= q))
+}
+
+set.seed(123)
+n <- 10000
+q_values <- seq(-10, 10, by = 2)
+delta_quantile <- sapply(q_values, accept_reject_quantile, n)
+data.frame(q = q_values, quantile = delta_quantile)
+```
+
+```{r}
+plot(q_values, delta_quantile, type = "o", col = "blue", xlab = "q", ylab = "Quantile estimation", main = "Quantile estimation using accept-reject algorithm")
+lines(q_values, 1 - (pnorm(q_values, mu1, s1) - a * pnorm(q_values, mu2, s2)) / (1 - a), col = "red")
+legend("topright", legend = c("Empirical quantile", "Theoretical quantile"), col = c("blue", "red"), lty = c(2, 1))
+```
+
+### Question 25
+
+Let $X_1, \dots, X_n$ iid such that $\mathbb{E}[X_i] < \infty$, we have $\mathbb{1}_{X_1 \ge q}, \dots, \mathbb{1}_{X_n \ge q}$ and $\mathbb{E}[\mathbb{1}_{X_1 \ge q}] = \mathbb{P}(X_i \ge q) \le 1 < + \infty$. By TCL, we have $\sqrt{n} \frac{(\frac{1}{n} \sum_{i=1}^{n} \mathbb{1}_{X_i \ge q} - \mathbb{E}[\mathbb{1}_{X_1 \ge q}])}{\sqrt{Var(\mathbb{1}_{X_1 \ge q}})} \rightarrow Z \sim \mathcal{N}(0, 1)$ in distribution, with
+
+-   $\mathbb{E}[\mathbb{1}_{X_1 \ge q}] = \mathbb{P}(X_i \ge q) = \delta$
+
+-   $\sqrt{Var(\mathbb{1}_{X_1 \ge q}}) = \mathbb{E}[\mathbb{1}_{X_1 \ge q}^2] - \mathbb{E}[\mathbb{1}_{X_1 \ge q}]^2 = \delta(1-\delta)$
+
+In addition, we have $\hat{\delta}^{NR}_n \rightarrow \delta$ a.s. by the LLN, as it is a consistent estimator of $\delta$ .
+
+The function $x \mapsto \sqrt{\frac{\delta(1-\delta)}{x(1-x)}}$ is continuous on $(0,1)$, we have $\sqrt{\frac{\delta(1-\delta)}{\hat{\delta}^{NR}_n(1-\hat{\delta}^{NR}_n)}} \rightarrow \sqrt{\frac{\delta(1-\delta)}{\delta(1-\delta)}} = 1$, then by Slutsky, we have $\sqrt{n} \frac{(\hat{\delta}^{NR}_n - \delta)}{\sqrt{\delta(1-\delta)})} \sqrt{\frac{\delta(1-\delta)}{\hat{\delta}^{NR}_n(1-\hat{\delta}^{NR}_n)}} = \sqrt{n} \frac{(\hat{\delta}^{NR}_n - \delta)}{\sqrt{\hat{\delta}^{NR}_n(1-\hat{\delta}^{NR}_n)})} \rightarrow Z . 1 = Z \sim \mathcal{N}(0, 1)$.
+
+Now we can compute the confident interval for $\delta$: $IC_n(\delta) = [\hat{\delta}^{NR}_n - \frac{q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0,1)}}{\sqrt{n}}\hat{\delta}^{NR}_n(1-\hat{\delta}^{NR}_n);\hat{\delta}^{NR}_n + \frac{q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0,1)}}{\sqrt{n}}\hat{\delta}^{NR}_n(1-\hat{\delta}^{NR}_n)]$ where $q_{1-\frac{\alpha}{2}}^{\mathcal{N}(0,1)}$ is the quantile of the normal distribution $\mathcal{N}(0,1)$
+
+```{r}
+IC_Naive <- function(delta_hat, n, alpha = 0.05) {
+  q <- qnorm(1 - alpha / 2)
+  c(lower = delta_hat - q * sqrt(delta_hat * (1 - delta_hat)) / sqrt(n),
+    upper = delta_hat + q * sqrt(delta_hat * (1 - delta_hat)) / sqrt(n))
+}
+
+set.seed(123)
+n <- 10000
+q_values <- seq(-10, 10, by = 2)
+delta_quantile_naive <- sapply(q_values, accept_reject_quantile, n)
+IC_values_naive <- sapply(delta_quantile_naive, IC_Naive, n = n)
+data.frame(q = q_values, quantile = delta_quantile_naive, IC = t(IC_values_naive))
+```
+
+## Importance Sampling
+
+### Question 26
+
+Let $X_1, \dots, X_n \sim^{iid} g$ where $g$ such that $sup(f) \subseteq sup(g)$ and $g$ density easy to simulate.
+
+We want to determine $\delta = \mathbb{P}(X \ge q) = \int_{q}^{+ \infty} f_X(x) \,dx = \int_{\mathbb{R}} f(x) h(x) \,dx = \mathbb{E}[h(X)]$ for any $q$, with $h(x) = \mathbb{1}_{x \ge q}$ and $f$ the density function of $X$.
+
+Given $X_1, \dots, X_n \sim^{iid} g$ , we have $\hat{\delta}^{IS}_n = \frac{1}{n} \sum_{i=1}^{n} \frac{f(X_i)}{g(X_i)} h(X_i)$
+
+So $\hat{\delta}^{IS}_n$ is an unbiased estimator of $\delta$, since $sup(f) \subseteq sup(g)$.
+
+The importance sampling estimator is preferred to the classical Monte Carlo estimator when the variance of the importance sampling estimator is lower than the variance of the classical Monte Carlo estimator. This is the case when q is located on the tails of the distribution $f$
+
+### Question 27
+
+The density $g$ of a Cauchy distribution for parameters $(\mu_0, \gamma)$ is given by: $g(x; \mu_0, \gamma) = \frac{1}{\pi} \frac{\gamma}{(x - \mu_0)^2 + \gamma^2}$, $\forall x \in \mathbb{R}$.
+
+The parameters $(\mu_0, \gamma)$ of the Cauchy distribution used in importance sampling are chosen based on the characteristics of the target density $f(x)$.
+
+-   $\mu_0$ is chosen such that $sup(f) \subseteq sup(g)$, where $sup(f)$ is the support of the target density $f(x)$. $\mu_0$ should be chosen to place the center of $g(x)$ in the most likely region of $f(x)$, which can be approximated by the midpoint between $\mu_1$ and $\mu_2$, ie, $\mu_0 = \frac{\mu_1 + \mu_2}{2} = \frac{0 + 1}{2} = \frac{1}{2}$.
+
+-   By centering $g(x)$ at $\mu_0$ and setting $\gamma$ to capture the spread of $f(x)$, we maximize the overlap between $f(x)$ and $g(x)$, reducing the variance of the importance sampling estimator. To cover the broader spread of $f(x)$, $\gamma$ should reflect the scale of the wider normal component. A reasonable choice is to set $\gamma$ to the largest standard deviation, ie, $\gamma = max(s_1, s_2) = max(1, 3) = 3$
+
+### Question 28
+
+We can compute the confidence interval of the importance sampling estimator using the Central Limit Theorem, with the same arguments as in the question 25, since we have a consistent estimator of $\delta$.
+
+```{r}
+mu0 <- 0.5
+gamma <- 3
+g <- function(x) {
+  dcauchy(x, mu0, gamma)
+}
+
+IS_quantile <- function(q, n) {
+  X <- rcauchy(n, mu0, gamma)
+  w <- f(X) / g(X)
+  h <- (X >= q)
+  return(mean(w * h))
+}
+```
+
+```{r}
+IC_IS <- function(delta_hat, n, alpha = 0.05) {
+  q <- qnorm(1 - alpha / 2)
+  c(lower = delta_hat - q * sqrt(delta_hat * (1 - delta_hat)) / sqrt(n),
+    upper = delta_hat + q * sqrt(delta_hat * (1 - delta_hat)) / sqrt(n))
+}
+
+set.seed(123)
+q_values <- seq(-10, 10, by = 2)
+n <- 10000
+delta_quantile_IS <- sapply(q_values, IS_quantile, n = n)
+IC_values_IS <- sapply(delta_quantile_IS, IC_IS, n = n)
+data.frame(q = q_values, quantile = delta_quantile_IS, IC = t(IC_values_IS))
+```
+
+# Control Variate
+
+### Question 29
+
+Let $X_1, \dots, X_n$ iid. For $f$ density with parameter $\theta$, we can compute the score by deriving the partial derivative of the log-likelihood function. $S(\theta) = \frac{\partial l(\theta)}{\partial \theta} = \sum^{n}_{i=1} \frac{\partial log(f(X_i | \theta)}{\partial \theta} = \frac{f_1(x|\theta_1)}{f_1(x|\theta_1) - a f_2(x|\theta_2)} \frac{x - \mu_1}{\sigma_1^2}$
+
+### Question 30
+
+We recall $\delta = \mathbb{P}(X \ge q) = \int_{q}^{+ \infty} f_X(x) \,dx = \int_\mathbb{R} f_X(x) h(x) \, dx$ where $h(x) = \mathbb{1}_{x \ge q}$. We denote $\hat{\delta}^{IC}_n = \frac{1}{n} \sum^{n}_{i=1} h(X_i) - b \cdot (S_{\mu_1}(X_i) - m) = \frac{1}{n} \sum^{n}_{i=1} \mathbb{1}_{X_i \ge q} - b \cdot S_{\mu_1}(X_i)$ where $m = \mathbb{E}[S_{\mu_1}(X_1)] = 0$ and $b=\frac{Cov(\mathbb{1}_{X_1 \ge q}, \, S_{\mu_1}(X_1))}{Var(S_{\mu_1(X_1)})}$
+
+### Question 31
+
+```{r}
+CV_quantile <- function(q, n) {
+  X <- rnorm(n, mu1, s1)
+  S <- (f1(X) / (f1(X) - a * f2(X))) * (X - mu1) / s1^2
+  h <- (X >= q)
+  b <- cov(S, h) / var(S)
+  delta <- mean(h) - b * mean(S)
+  return(delta)
+}
+```
+
+We can compute the confidence interval of the importance sampling estimator using the Central Limit Theorem, with the same arguments as in the question 25, since we have a consistent estimator of $\delta$.
+```{r}
+IC_CV <- function(delta_hat, n, alpha = 0.05) {
+  q <- qnorm(1 - alpha / 2)
+  c(lower = delta_hat - q * sqrt(delta_hat * (1 - delta_hat)) / sqrt(n),
+    upper = delta_hat + q * sqrt(delta_hat * (1 - delta_hat)) / sqrt(n))
+}
+
+set.seed(123)
+n <- 10000
+q_values <- seq(-10, 10, by = 2)
+delta_quantile_CV <- sapply(q_values, CV_quantile, n)
+IC_values_CV <- sapply(delta_quantile_CV, IC_CV, n = n)
+
+data.frame(q = q_values, quantile = delta_quantile_CV, IC = t(IC_values_CV))
+```
+
+### Question 32
+```{r}
+set.seed(123)
+delta_real <- 1 - (pnorm(q_values, mu1, s1) - a * pnorm(q_values, mu2, s2)) / (1 - a)
+
+IS <- data.frame(IC = t(IC_values_IS), length = IC_values_IS[2] - IC_values_IS[1])
+naive <- data.frame(IC = t(IC_values_naive), length = IC_values_naive[2] - IC_values_naive[1])
+CV <- data.frame(IC = t(IC_values_CV), length = IC_values_CV[2] - IC_values_CV[1])
+
+data.frame(q = q_values, real_quantile = delta_real, quantile_CV = CV, quantile_IS = IS, quantile_Naive = naive)
+```
+
+```{r}
+plot(q_values, delta_real, type = "l", col = "red", xlab = "q", ylab = "Quantile estimation", main = "Quantile estimation using different methods")
+lines(q_values, delta_quantile_IS, col = "blue")
+lines(q_values, delta_quantile_naive, col = "green")
+lines(q_values, delta_quantile_CV, col = "orange")
+legend("topright", legend = c("Real quantile", "Quantile estimation IS", "Quantile estimation Naive", "Quantile estimation CV"), col = c("red", "blue", "green", "orange"), lty = c(1, 1, 1, 1))
+```
+
+Now we compare the three methods: Naive vs Importance Sampling vs Control Variate
+
+The naive method is the easiest to implement but is the least precise for some points.
+The importance sampling method is more precise than the naive method but requires the choice of a good density $g$, that can be hard to determine in some case.
+The control variate method is the most precise but requires the choice of a good control variate, and need to compute the covariance, which require more computation time.
+
+In our case, the control variate method is the most precise, but the importance sampling method is also a good choice.
