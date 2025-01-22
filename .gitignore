@@ -7,3 +7,5 @@
 .RData
 .RHistory
 *.pdf
+
+.ipynb_checkpoints
