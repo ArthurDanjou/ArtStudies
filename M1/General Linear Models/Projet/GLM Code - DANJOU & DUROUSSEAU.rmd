@@ -1,0 +1,512 @@
+---
+title: "Generalized Linear Models - Project by Arthur DANJOU"
+always_allow_html: true
+output:
+html_document:
+toc: true
+toc_depth: 4
+fig_caption: true
+---
+
+## Data Analysis
+
+```{r}
+setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/Projet')
+```
+
+```{r}
+library(MASS)
+library(AER)
+library(rmarkdown)
+library(car)
+library(corrplot)
+library(carData)
+library(ggfortify)
+library(ggplot2)
+library(gridExtra)
+library(caret)
+```
+
+### Data Preprocessing
+```{r}
+data <- read.csv("./projet.csv", header = TRUE, sep = ",", dec = ".")
+
+# Factors
+data$saison <- as.factor(data$saison)
+data$mois <- as.factor(data$mois)
+data$jour_mois <- as.factor(data$jour_mois)
+data$jour_semaine <- as.factor(data$jour_semaine)
+data$horaire <- as.factor(data$horaire)
+data$jour_travail <- as.factor(data$jour_travail)
+data$vacances <- as.factor(data$vacances)
+data$meteo <- as.factor(data$meteo)
+
+# Quantitative variables
+data$humidite_sqrt <- sqrt(data$humidite)
+data$humidite_square <- data$humidite^2
+
+data$temperature1_square <- data$temperature1^2
+data$temperature2_square <- data$temperature2^2
+
+data$vent_square <- data$vent^2
+data$vent_sqrt <- sqrt(data$vent)
+
+# Remove obs column
+rownames(data) <- data$obs
+data <- data[, -1]
+paged_table(data)
+```
+
+```{r}
+colSums(is.na(data))
+sum(duplicated(data))
+```
+
+```{r}
+str(data)
+summary(data)
+```
+
+### Study of the Quantitative Variables
+
+#### Distribution of Variables
+
+```{r}
+plot_velos <- ggplot(data, aes(x = velos)) +
+  geom_histogram(bins = 25, fill = "blue") +
+  labs(title = "Distribution du nombre de vélos loués", x = "Nombre de locations de vélos")
+
+plot_temperature1 <- ggplot(data, aes(x = temperature1)) +
+  geom_histogram(bins = 30, fill = "green") +
+  labs(title = "Distribution de la température1", x = "Température moyenne mesuré (°C)")
+
+plot_temperature2 <- ggplot(data, aes(x = temperature2)) +
+  geom_histogram(bins = 30, fill = "green") +
+  labs(title = "Distribution de la température2", x = "Température moyenne ressentie (°C)")
+
+plot_humidite <- ggplot(data, aes(x = humidite)) +
+  geom_histogram(bins = 30, fill = "green") +
+  labs(title = "Distribution de la humidité", x = "Pourcentage d'humidité")
+
+plot_vent <- ggplot(data, aes(x = vent)) +
+  geom_histogram(bins = 30, fill = "green") +
+  labs(title = "Distribution de la vent", x = "Vitesse du vent (Km/h)")
+
+grid.arrange(plot_velos, plot_temperature1, plot_temperature2, plot_humidite, plot_vent, ncol = 3)
+```
+
+#### Correlation between Quantitatives Variables
+
+```{r}
+#detach(package:arm) # If error, uncomment this line due to duplicate function 'corrplot'
+corr_matrix <- cor(data[, sapply(data, is.numeric)])
+corrplot(corr_matrix, type = "lower", tl.col = "black", tl.srt = 45)
+pairs(data[, sapply(data, is.numeric)])
+cor.test(data$temperature1, data$temperature2)
+```
+
+### Study of the Qualitative Variables
+
+```{r}
+plot_saison <- ggplot(data, aes(x = saison, y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Nombre de vélos par saison", x = "Saison", y = "Nombre de vélos loués")
+
+plot_jour_semaine <- ggplot(data, aes(x = jour_semaine, y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Nombre de vélos par jour de la semaine", x = "Jour de la semaine", y = "Nombre de vélos loués")
+
+plot_mois <- ggplot(data, aes(x = mois, y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Nombre de vélos par mois de l'année", x = "Mois de l'année", y = "Nombre de vélos loués")
+
+plot_jour_mois <- ggplot(data, aes(x = jour_mois, y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Nombre de vélos par jour du mois", x = "Jour du mois", y = "Nombre de vélos loués")
+
+plot_horaire <- ggplot(data, aes(x = horaire, y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Nombre de vélos par horaire de la journée", x = "Horaire de la journée", y = "Nombre de vélos loués")
+
+plot_jour_travail <- ggplot(data, aes(x = jour_travail, y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Nombre de vélos par jour travaillé", x = "Jour travaillé", y = "Nombre de vélos loués")
+
+plot_vacances <- ggplot(data, aes(x = vacances, y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Nombre de vélos par vacances", x = "Vacances", y = "Nombre de vélos loués")
+
+plot_meteo <- ggplot(data, aes(x = meteo, y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Nombre de vélos par météo", x = "Météo", y = "Nombre de vélos loués")
+
+grid.arrange(plot_horaire, plot_jour_semaine, plot_jour_mois, plot_mois, plot_saison, plot_jour_travail, plot_vacances, plot_meteo, ncol = 3)
+```
+
+```{r}
+chisq.test(data$mois, data$saison)
+chisq.test(data$meteo, data$saison)
+chisq.test(data$meteo, data$mois)
+```
+
+### Outliers Detection
+
+```{r}
+boxplot_velos <- ggplot(data, aes(x = "", y = velos)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de vélos", y = "Nombre de vélos")
+
+boxplot_temperature1 <- ggplot(data, aes(x = "", y = temperature1)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de température1", y = "Température moyenne mesuré (°C)")
+
+boxplot_temperature1_sq <- ggplot(data, aes(x = "", y = temperature1_square)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de température1^2", y = "Température moyenne mesuré (°C^2)")
+
+boxplot_temperature2 <- ggplot(data, aes(x = "", y = temperature2)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de température2", y = "Température moyenne ressentie (°C)")
+
+boxplot_temperature2_sq <- ggplot(data, aes(x = "", y = temperature2_square)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de température2^2", y = "Température moyenne ressentie (°C^2)")
+
+boxplot_humidite <- ggplot(data, aes(x = "", y = humidite)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de humidité", y = "Pourcentage d'humidité")
+
+boxplot_humidite_sqrt <- ggplot(data, aes(x = "", y = humidite_sqrt)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de sqrt(humidité)", y = "Pourcentage d'humidité (sqrt(%))")
+
+boxplot_humidite_square <- ggplot(data, aes(x = "", y = humidite_square)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de humidité^2", y = "Pourcentage d'humidité (%^2)")
+
+boxplot_vent <- ggplot(data, aes(x = "", y = vent)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de vent", y = "Vitesse du vent (Km/h)")
+
+boxplot_vent_sqrt <- ggplot(data, aes(x = "", y = vent_sqrt)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de sqrt(vent)", y = "Vitesse du vent sqrt(Km/h)")
+
+boxplot_vent_square <- ggplot(data, aes(x = "", y = vent_square)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de vent^2", y = "Vitesse du vent (Km/h)^2")
+
+grid.arrange(boxplot_velos, boxplot_temperature1, boxplot_temperature1_sq, boxplot_temperature2, boxplot_temperature2_sq, boxplot_humidite, boxplot_humidite_sqrt, boxplot_humidite_square, boxplot_vent, boxplot_vent_sqrt, boxplot_vent_square, ncol = 4)
+```
+
+```{r}
+length_data <- nrow(data)
+numeric_vars <- sapply(data, is.numeric)
+total_outliers <- 0
+
+for (var in names(data)[numeric_vars]) {
+  data_outlier <- data[[var]]
+  Q1 <- quantile(data_outlier, 0.25)
+  Q3 <- quantile(data_outlier, 0.75)
+  IQR <- Q3 - Q1
+
+  lower_limit <- Q1 - 1.5 * IQR
+  upper_limit <- Q3 + 1.5 * IQR
+
+  outliers <- data[data_outlier < lower_limit | data_outlier > upper_limit,]
+  cat("Number of outliers for the variable", var, ":", nrow(outliers), "\n")
+  data <- data[data_outlier >= lower_limit & data_outlier <= upper_limit,]
+}
+
+cat("Number of outliers removed :", length_data - nrow(data), "\n")
+cat("Data length after removing outliers :", nrow(data), "\n")
+```
+
+## Model Creation and Comparison
+
+### Data Split
+
+```{r}
+set.seed(123)
+data_split <- rsample::initial_split(data, prop = 0.8)
+data_train <- rsample::training(data_split)
+data_test <- rsample::testing(data_split)
+```
+
+### Choice of the Distribution *vélos*
+
+```{r}
+model_poisson <- glm(velos ~ ., family = poisson, data = data_train)
+model_nb <- glm.nb(velos ~ ., data = data_train)
+model_gaussian <- glm(velos ~ ., family = gaussian, data = data_train)
+t(AIC(model_poisson, model_nb, model_gaussian)[2])
+
+dispersiontest(model_poisson)
+
+mean_velos <- mean(data_train$velos)
+var_velos <- var(data_train$velos)
+cat("Mean :", mean_velos, "Variance :", var_velos, "\n")
+```
+
+### Model Selection
+
+```{r}
+model_full_quantitative <- glm.nb(
+  velos ~ vent +
+    vent_square +
+    vent_sqrt +
+
+    humidite +
+    humidite_square +
+    humidite_sqrt +
+
+    temperature1_square +
+    temperature1 +
+
+    temperature2 +
+    temperature2_square
+  , data = data_train)
+summary(model_full_quantitative)
+```
+
+```{r}
+anova(model_full_quantitative)
+```
+
+```{r}
+model_quantitative_quali <- glm.nb(
+  velos ~
+    vent +
+      vent_square +
+      vent_sqrt +
+      humidite +
+      humidite_square +
+      humidite_sqrt +
+      temperature1 +
+      temperature1_square +
+
+      horaire +
+      saison +
+      meteo +
+      mois +
+      vacances +
+      jour_travail +
+      jour_semaine +
+      jour_mois
+  , data = data_train)
+summary(model_quantitative_quali)
+```
+
+```{r}
+anova(model_quantitative_quali)
+```
+
+```{r}
+model_quanti_quali_final <- glm.nb(
+  velos ~
+    vent +
+      vent_square + #
+      humidite +
+      humidite_square +
+      humidite_sqrt + #
+      temperature1 +
+      temperature1_square +
+
+      horaire +
+      saison +
+      meteo +
+      mois +
+      vacances
+  , data = data_train)
+summary(model_quanti_quali_final)
+```
+
+```{r}
+model_0 <- glm.nb(velos ~ 1, data = data_train)
+model_forward <- stepAIC(
+  model_0,
+  vélos ~ vent +
+    humidite +
+    humidite_square +
+    temperature1 +
+    temperature1_square +
+
+    horaire +
+    saison +
+    meteo +
+    mois +
+    vacances,
+  data = data_train,
+  trace = FALSE,
+  direction = "forward"
+)
+model_backward <- stepAIC(
+  model_quanti_quali_final,
+  ~1,
+  trace = FALSE,
+  direction = "backward"
+)
+model_both <- stepAIC(
+  model_0,
+  vélos ~ vent +
+    humidite +
+    humidite_square +
+    temperature1 +
+    temperature1_square +
+
+    horaire +
+    saison +
+    meteo +
+    mois +
+    vacances,
+  data = data_train,
+  trace = FALSE,
+  direction = "both"
+)
+AIC(model_forward, model_both, model_backward)
+summary(model_forward)
+```
+
+```{r}
+model_final_without_interaction <- glm.nb(
+  velos ~ horaire +
+    mois +
+    meteo +
+    temperature1 +
+    saison +
+    temperature1_square +
+    humidite_square +
+    vacances +
+    humidite +
+    vent
+  , data = data_train)
+summary(model_final_without_interaction)
+```
+
+### Final Model
+
+#### Choice and Validation of the Model
+
+```{r}
+model_final <- glm.nb(
+  velos ~ horaire +
+    mois +
+    meteo +
+    temperature1 +
+    saison +
+    temperature1_square +
+    humidite_square +
+    vacances +
+    humidite +
+    vent +
+
+    horaire:temperature1 +
+    temperature1_square:mois
+  , data = data_train
+)
+summary(model_final)
+```
+
+```{r}
+anova(model_final, test = "Chisq")
+```
+
+```{r}
+lrtest(model_final, model_final_without_interaction)
+```
+
+```{r}
+dispersion_ratio <- sum(residuals(model_final, type = "pearson")^2) / df.residual(model_final)
+print(paste("Dispersion Ratio:", round(dispersion_ratio, 2)))
+
+hist(residuals(model_final, type = "deviance"), breaks = 30, freq = FALSE, col = "lightblue", main = "Histogram of Deviance Residuals")
+x <- seq(-5, 5, length = 100)
+curve(dnorm(x), col = "darkblue", lwd = 2, add = TRUE)
+
+autoplot(model_final, 1:4)
+```
+
+```{r}
+library(arm)
+binnedplot(fitted(model_final), residuals(model_final, type = "deviance"), col.int = "blue", col.pts = 2)
+```
+
+## Performance and Limitations of the Final Model
+
+### Predictions and *Mean Square Error*
+
+```{r}
+data_test$predictions <- predict(model_final, newdata = data_test, type = "response")
+data_train$predictions <- predict(model_final, newdata = data_train, type = "response")
+
+predictions_ci <- predict(
+  model_final,
+  newdata = data_test,
+  type = "link",
+  se.fit = TRUE
+)
+
+data_test$lwr <- exp(predictions_ci$fit - 1.96 * predictions_ci$se.fit)
+data_test$upr <- exp(predictions_ci$fit + 1.96 * predictions_ci$se.fit)
+
+MSE <- mean((data_test$velos - data_test$predictions)^2)
+cat("MSE :", MSE, "\n")
+cat("RMSE train :", sqrt(mean((data_train$velos - data_train$predictions)^2)), "\n")
+cat('RMSE :', sqrt(MSE), '\n')
+```
+
+### Evaluation of Model Performance
+
+```{r}
+bounds <- c(200, 650)
+
+cat("Observations vs Prédictions\n")
+cat(nrow(data_test[data_test$velos < bounds[1],]), "vs", sum(data_test$predictions < bounds[1]), "\n")
+cat(nrow(data_test[data_test$velos > bounds[1] & data_test$velos < bounds[2],]), "vs", sum(data_test$predictions > bounds[1] & data_test$predictions < bounds[2]), "\n")
+cat(nrow(data_test[data_test$velos > bounds[2],]), "vs", sum(data_test$predictions > bounds[2]), "\n")
+cat('\n')
+
+categories <- c(0, bounds, Inf)
+categories_label <- c("Low", "Mid", "High")
+
+data_test$velos_cat <- cut(data_test$velos,
+                           breaks = categories,
+                           labels = categories_label,
+                           include.lowest = TRUE)
+data_test$predictions_cat <- cut(data_test$predictions,
+                                 breaks = categories,
+                                 labels = categories_label,
+                                 include.lowest = TRUE)
+conf_matrix <- confusionMatrix(data_test$velos_cat, data_test$predictions_cat)
+conf_matrix
+```
+
+```{r}
+ggplot(data_test, aes(x = velos, y = predictions)) +
+  geom_point(color = "blue", alpha = 0.6, size = 2) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2, fill = "grey") +
+  labs(
+    title = "Comparison of Observed and Predicted Bikes",
+    x = "Number of Observed Bikes",
+    y = "Number of Predicted Bikes"
+  ) +
+  theme_minimal()
+
+ggplot(data_test, aes(x = velos_cat, fill = predictions_cat)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Predictions vs Observations (by categories)",
+       x = "Observed categories", y = "Number of predictions")
+
+df_plot <- data.frame(observed = data_test$velos, predicted = data_test$predictions)
+
+# Créer l'histogramme avec la courbe de densité
+ggplot(df_plot, aes(x = observed)) +
+  geom_histogram(aes(y = ..density..), binwidth = 50, fill = "lightblue", color = "black", alpha = 0.7) + # Histogramme des données observées
+  geom_density(aes(x = predicted), color = "red", size = 1) + # Courbe de densité des valeurs prédites
+  labs(title = "Observed distribution vs. Predicted distribution",
+       x = "Number of vélos",
+       y = "Density") +
+  theme_bw()
+
+```
