@@ -3,6 +3,7 @@
 .Rproj.user
 
 .idea
+.vscode
 
 .RData
 .RHistory
