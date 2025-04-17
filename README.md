@@ -1,4 +1,4 @@
-# ArtStudies
+# Studies
 
 [Studies Projects](https://github.com/ArthurDanjou/studies) is a curated collection of academic projects completed throughout my mathematics studies. The repository showcases work in both _Python_ and _R_, focusing on mathematical modeling, data analysis, and numerical methods.
 
