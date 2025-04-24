@@ -1,0 +1,19 @@
+[project]
+name = "studies"
+version = "0.1.0"
+description = "A curated collection of mathematics and data science projects developed during my academic journey."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.1",
+    "numpy>=2.2.5",
+    "opencv-python>=4.11.0.86",
+    "pandas>=2.2.3",
+    "scikit-learn>=1.6.1",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+    "uv>=0.6.16",
+]
