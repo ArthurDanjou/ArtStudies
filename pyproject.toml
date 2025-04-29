@@ -5,6 +5,7 @@ description = "A curated collection of mathematics and data science projects dev
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ipykernel>=6.29.5",
     "matplotlib>=3.10.1",
     "numpy>=2.2.5",
     "opencv-python>=4.11.0.86",
