@@ -11,7 +11,6 @@ dependencies = [
     "opencv-python>=4.11.0.86",
     "pandas>=2.2.3",
     "scikit-learn>=1.6.1",
-    "tensorflow==2.19.0",
 ]
 
 [dependency-groups]
@@ -19,3 +18,55 @@ dev = [
     "ipykernel>=6.29.5",
     "uv>=0.6.16",
 ]
+
+[tool.ruff.lint]
+# Activer les règles de linting courantes
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # Pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+
+# Désactiver certaines règles
+ignore = [
+    "E501", # line too long, géré par le formatter
+]
+
+# Longueur de ligne
+line-length = 88
+
+# Exclure certains fichiers ou répertoires
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Permettre à Ruff de corriger automatiquement certaines erreurs
+fixable = ["ALL"]
+unfixable = []
+
+# Formatage des imports
+[isort]
+known-third-party = ["pydantic", "django"]
