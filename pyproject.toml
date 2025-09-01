@@ -11,6 +11,7 @@ dependencies = [
     "opencv-python>=4.11.0.86",
     "pandas>=2.2.3",
     "scikit-learn>=1.6.1",
+    "scipy>=1.15.2",
 ]
 
 [dependency-groups]
@@ -18,6 +19,10 @@ dev = [
     "ipykernel>=6.29.5",
     "uv>=0.6.16",
 ]
+
+[tool.ruff]
+extend-include = ["*.ipynb"]
+line-length = 88
 
 [tool.ruff.lint]
 # Activer les règles de linting courantes
@@ -35,9 +40,6 @@ select = [
 ignore = [
     "E501", # line too long, géré par le formatter
 ]
-
-# Longueur de ligne
-line-length = 88
 
 # Exclure certains fichiers ou répertoires
 exclude = [
