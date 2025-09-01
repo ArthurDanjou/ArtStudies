@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=2.2.3",
     "scikit-learn>=1.6.1",
     "scipy>=1.15.2",
+    "tensorflow>=2.20.0",
 ]
 
 [dependency-groups]
@@ -19,6 +20,9 @@ dev = [
     "ipykernel>=6.29.5",
     "uv>=0.6.16",
 ]
+
+[tool.ty.rules]
+index-out-of-bounds = "ignore"
 
 [tool.ruff]
 extend-include = ["*.ipynb"]
