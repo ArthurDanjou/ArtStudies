@@ -1,0 +1,13 @@
+services:
+  mysql:
+    container_name: M2_SQL_COURSE
+    image: mysql:latest
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+      MYSQL_DATABASE: TP
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
