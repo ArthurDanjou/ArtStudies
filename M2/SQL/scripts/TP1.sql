@@ -54,8 +54,8 @@ GROUP BY Enseigne, Ville;
 
 -- Q1.5
 SELECT Enseigne, m.Ville, AVG(Chiffre) AS ChiffreMoyen
-FROM Magasin AS m
-JOIN Localite AS l ON m.Ville = l.Ville
+FROM Magasin m
+JOIN Localite l ON m.Ville = l.Ville
 WHERE l.Population >= 80000
 GROUP BY Enseigne, m.Ville;
 
