@@ -10,3 +10,6 @@
 *.pdf
 
 .ipynb_checkpoints
+
+*.log
+logs
