@@ -48,3 +48,24 @@ GROUP BY Ville, Enseigne
 HAVING NombreMagasins >= 2;
 
 -- Q1.4
+SELECT Enseigne, Ville, AVG(Chiffre) AS ChiffreMoyen
+FROM Magasin
+GROUP BY Enseigne, Ville;
+
+-- Q1.5
+SELECT Enseigne, m.Ville, AVG(Chiffre) AS ChiffreMoyen
+FROM Magasin AS m
+JOIN Localite AS l ON m.Ville = l.Ville
+WHERE l.Population >= 80000
+GROUP BY Enseigne, m.Ville;
+
+-- Q1.6
+SELECT Enseigne, Ville, SUM(Chiffre) as ChiffreAffaire
+FROM Magasin
+GROUP BY Ville, Enseigne;
+
+-- Q1.7
+SELECT Enseigne, Ville, SUM(Chiffre) as ChiffreAffaire
+FROM Magasin
+GROUP BY Ville, Enseigne
+HAVING ChiffreAffaire >= 1000000;
