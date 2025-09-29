@@ -1,10 +1,11 @@
-# Studies
+# ArtStudies
 
-[Studies Projects](https://github.com/ArthurDanjou/studies) is a curated collection of academic projects completed throughout my mathematics studies. The repository showcases work in both _Python_ and _R_, focusing on mathematical modeling, data analysis, and numerical methods.
+[ArtStudies Projects](https://github.com/ArthurDanjou/artstudies) is a curated collection of academic projects completed throughout my mathematics studies. The repository showcases work in both _Python_ and _R_, focusing on mathematical modeling, data analysis, and numerical methods.
 
 The projects are organized into two main sections:
 - **L3** – Third year of the Bachelor's degree in Mathematics
 - **M1** – First year of the Master's degree in Mathematics
+- **M2** – Second year of the Master's degree in Mathematics
 
 ## 📁 File Structure
 
@@ -27,6 +28,10 @@ The projects are organized into two main sections:
   - `Portfolio Management`
   - `Statistical Learning`
 
+- `M2`
+  - `Machine Learning`
+  - `SQL`
+
 ## 🛠️ Technologies & Tools
 
 - [Python](https://www.python.org): A high-level, interpreted programming language, widely used for data science, machine learning, and scientific computing.
@@ -38,6 +43,8 @@ The projects are organized into two main sections:
 - [Scikit-learn](https://scikit-learn.org): A robust library offering simple and efficient tools for machine learning and statistical modeling, including classification, regression, and clustering.
 - [TensorFlow](https://www.tensorflow.org): A comprehensive open-source framework for building and deploying machine learning and deep learning models.
 - [Matplotlib](https://matplotlib.org): A versatile plotting library for creating high-quality static, animated, and interactive visualizations in Python.
+- [Plotly](https://plotly.com): An interactive graphing library for creating dynamic visualizations in Python and R.
+- [Seaborn](https://seaborn.pydata.org): A statistical data visualization library built on top of Matplotlib, providing a high-level interface for drawing attractive and informative graphics.
 - [RMarkdown](https://rmarkdown.rstudio.com): A dynamic tool for combining code, results, and narrative into high-quality documents and presentations.
 - [FactoMineR](https://factominer.free.fr/): An R package focused on multivariate exploratory data analysis (e.g., PCA, MCA, CA).
 - [ggplot2](https://ggplot2.tidyverse.org): A grammar-based graphics package for creating complex and elegant visualizations in R.
