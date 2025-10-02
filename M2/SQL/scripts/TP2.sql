@@ -64,16 +64,14 @@ SELECT Enom, Salaire FROM Employe WHERE Salaire < 4000;
 -- Q2.6
 SELECT 'Q2.6';
 
-SELECT Enom, Prof FROM Employe e
-JOIN Departement d ON e.Dep = d.Dno 
-WHERE d.Ville = 'Lyon';
+SELECT e.Enom, e.Prof FROM Employe e, Departement d
+WHERE e.Dep = d.Dno AND d.Ville = 'Lyon';
 
 -- Q2.7
 SELECT 'Q2.7';
 
-SELECT Enom, Prof FROM Employe e
-JOIN Departement d ON d.Directeur = e.Eno
-WHERE d.Dnom = 'Production';
+SELECT Enom, Prof FROM Employe e, Departement d
+WHERE d.Directeur = e.Eno AND d.Dnom = 'Production';
 
 -- Q2.8
 SELECT 'Q2.8';
@@ -172,6 +170,13 @@ SELECT 'Q2.20';
 SELECT e.Enom, e.Date_Emb FROM Employe e
 WHERE e.Date_Emb < ALL (
     SELECT e2.Date_Emb FROM Employe e2
+    WHERE e2.Dep = 2
+);
+
+-- As an alternative to ALL, we can use a subquery with MIN. ALL is not supported in SQLite.
+SELECT e.Enom, e.Date_Emb FROM Employe e
+WHERE e.Date_Emb < (
+    SELECT MIN(e2.Date_Emb) FROM Employe e2
     WHERE e2.Dep = 2
 );
 
