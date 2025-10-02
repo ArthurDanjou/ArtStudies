@@ -64,14 +64,16 @@ SELECT Enom, Salaire FROM Employe WHERE Salaire < 4000;
 -- Q2.6
 SELECT 'Q2.6';
 
-SELECT e.Enom, e.Prof FROM Employe e, Departement d
-WHERE e.Dep = d.Dno AND d.Ville = 'Lyon';
+SELECT e.Enom, e.Prof FROM Employe e
+JOIN Departement d ON e.Dep = d.Dno
+WHERE d.Ville = 'Lyon';
 
 -- Q2.7
 SELECT 'Q2.7';
 
-SELECT Enom, Prof FROM Employe e, Departement d
-WHERE d.Directeur = e.Eno AND d.Dnom = 'Production';
+SELECT Enom, Prof FROM Employe e
+JOIN Departement d ON e.Dep = d.Dno
+WHERE d.Dnom = 'Production';
 
 -- Q2.8
 SELECT 'Q2.8';
@@ -87,14 +89,14 @@ SELECT * FROM Employe, Departement;
 -- Q.2.10
 SELECT 'Q2.10';
 
-SELECT e.Enom, d.Dnom FROM Employe e, Departement d
-WHERE e.Dep = d.Dno;
+SELECT e.Enom, d.Dnom FROM Employe e JOIN Departement d ON e.Dep = d.Dno;
 
 -- Q2.11
 SELECT 'Q2.11';
 
-SELECT e.Enom, d.Dnom, dir.Enom AS Directeur FROM Employe e, Departement d, Employe dir
-WHERE e.Dep = d.Dno AND d.Directeur = dir.Eno;
+SELECT e.Enom, d.Dnom, dir.Enom AS Directeur FROM Employe e
+JOIN Departement d ON e.Dep = d.Dno
+JOIN Employe dir ON d.Directeur = dir.Eno;
 
 -- Q2.12
 SELECT 'Q2.12';
