@@ -229,7 +229,7 @@ dfc_test %>%
 ```{r}
 set.seed(602)
 # grid_Lasso <- seq(0.001, 0.1, length = 100)
-grid_Lasso <- 10^seq(0, 0.1, length = 100)
+grid_Lasso <- 10^seq(-4, 1, length = 100)
 Lasso <- train(sugars ~ ., cookie.train,
   method = "glmnet",
   tuneGrid = expand.grid(alpha = 1, lambda = grid_Lasso),
