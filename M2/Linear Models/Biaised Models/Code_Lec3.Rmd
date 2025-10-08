@@ -170,8 +170,8 @@ cookie.test <- read.csv("Cookies_Test.csv", header = TRUE, row.names = 1)
 ```{r}
 custom <- trainControl(
   method = "repeatedcv",
-  number = 5, # Using 5-fold cross-validation
-  repeats = 3, # Repeating 3 times for robustness
+  number = 10, # Using 5-fold cross-validation
+  repeats = 10, # Repeating 3 times for robustness
   summaryFunction = defaultSummary, # Default metrics (RMSE, MAE)
   allowParallel = TRUE # Use parallel processing if resources allow
 )
