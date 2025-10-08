@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS Employe;
 
 
 -- Q2.1
--- La clé 'Dep' ne fait pas référence à une clé primaire dans la table 'Departement' car les valeurs ne sont pas uniques.
+-- 
 
 CREATE TABLE IF NOT EXISTS Employe(
     Eno      INTEGER,
