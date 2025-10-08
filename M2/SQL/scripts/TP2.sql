@@ -120,8 +120,9 @@ WHERE Dno NOT IN (SELECT DISTINCT Dep FROM Employe);
 -- Q2.15
 SELECT 'Q2.15';
 
-SELECT dir.Enom, d.Dnom, d.Ville FROM Employe dir, Departement d
-WHERE dir.Eno = d.Directeur and (d.Dno = 1 OR d.Dno = 3);
+SELECT dir.Enom, d.Dnom, d.Ville FROM Employe dir
+JOIN Departement d on dir.Eno = d.Directeur
+WHERE d.Dno IN (1, 3);
 
 -- Q2.16
 SELECT 'Q2.16';
