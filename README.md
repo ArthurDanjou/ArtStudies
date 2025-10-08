@@ -29,7 +29,9 @@ The projects are organized into two main sections:
   - `Statistical Learning`
 
 - `M2`
+  - `Linear Models`
   - `Machine Learning`
+  - `Risks Management`
   - `SQL`
 
 ## 🛠️ Technologies & Tools
