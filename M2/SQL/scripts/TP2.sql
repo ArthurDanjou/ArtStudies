@@ -102,8 +102,10 @@ JOIN Employe dir ON d.Directeur = dir.Eno;
 SELECT 'Q2.12';
 
 SELECT e.Enom, e.Date_Emb, d.Dnom, dir.Enom AS Directeur, dir.Date_Emb as 'Embauche Directeur'
-FROM Employe e, Departement d, Employe dir
-WHERE e.Dep = d.Dno AND d.Directeur = dir.Eno AND dir.Date_Emb > e.Date_Emb;
+FROM Employe e
+JOIN Departement d ON e.Dep = d.Dno
+JOIN Employe dir ON d.Directeur = dir.Eno
+WHERE dir.Date_Emb > e.Date_Emb;
 
 -- Q2.13
 SELECT 'Q2.13';
@@ -159,12 +161,13 @@ SELECT 'Q2.19';
 
 INSERT INTO Employe VALUES (80, 'Dominique', 'Technicien', '2010-03-01', 2900, 2000, 2);
 
-SELECT e.Enom, e.Date_Emb FROM Employe e, Departement d
-WHERE e.Dep = d.Dno 
-    AND d.Dnom = 'Ventes'
+SELECT e.Enom, e.Date_Emb FROM Employe e
+JOIN Departement d ON e.Dep = d.Dno
+WHERE d.Dnom = 'Ventes'
     AND e.Date_Emb IN (
-        SELECT e2.Date_Emb FROM Employe e2, Departement d2
-        WHERE e2.Dep = d2.Dno AND d2.Dnom = 'Production'
+        SELECT e2.Date_Emb FROM Employe e2
+        JOIN Departement d2 ON e2.Dep = d2.Dno
+        WHERE d2.Dnom = 'Production'
     );
 
 -- Q2.20
@@ -186,11 +189,14 @@ WHERE e.Date_Emb < (
 -- Q2.21
 SELECT 'Q2.21';
 
-SELECT e.Enom, e.Prof, d.Directeur FROM Employe e, Departement d
-WHERE e.Dep = d.Dno AND e.Prof = (
+SELECT e.Enom, e.Prof, d.Directeur FROM Employe e
+JOIN Departement d ON e.Dep = d.Dno
+WHERE e.Prof = (
     SELECT Prof FROM Employe WHERE Enom = 'Claire'
 ) AND d.Directeur = (
-    SELECT dep_claire.Directeur FROM Employe c, Departement dep_claire WHERE c.Enom = 'Claire' AND c.Dep = dep_claire.Dno
+    SELECT dep_claire.Directeur FROM Employe c
+    JOIN Departement dep_claire ON c.Dep = dep_claire.Dno
+    WHERE c.Enom = 'Claire'
 );
 
 -- Q2.22
@@ -212,13 +218,15 @@ SELECT AVG(e.Salaire) AS Salaire_Moyen FROM Employe e;
 -- Q2.25
 SELECT 'Q2.25';
 
-SELECT Count(*) as Nb_Employes FROM Employe e, Departement d
-WHERE e.Dep = d.Dno AND d.Dnom = 'Production';
+SELECT Count(*) as Nb_Employes FROM Employe e
+JOIN Departement d ON e.Dep = d.Dno
+WHERE d.Dnom = 'Production';
 
 -- Q2.26
 SELECT 'Q2.26';
 
-SELECT e.Enom, d.Dnom FROM Employe e, Departement d
-WHERE e.Dep = d.Dno AND e.Salaire >= (
+SELECT e.Enom, d.Dnom FROM Employe e
+JOIN Departement d ON e.Dep = d.Dno
+WHERE e.Salaire >= (
     SELECT MAX(e2.Salaire) FROM Employe e2 WHERE e2.Dep = d.Dno
 )
