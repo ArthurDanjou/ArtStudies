@@ -291,13 +291,13 @@ JOIN Participant act ON act.IdP = j.IdP
 WHERE act.Nom = 'Balasko' AND act.Prenom = 'Josiane';
 
 -- Q3.6
-SELECT f.Titre, real.Nom, real.Prenom FROM Film f
-JOIN Participant real ON F.Realisateur = real.IdP
+SELECT f.Titre, rea.Nom, rea.Prenom FROM Film f
+JOIN Participant rea ON f.Realisateur = rea.IdP
 WHERE f.Annee BETWEEN 1975 AND 1990;
 
 -- Q3.7
 SELECT DISTINCT s.Nom FROM Salle s
-JOIN Projection p on S.IdC = p.IdC
+JOIN Projection p on s.IdC = p.IdC
 JOIN Film f ON f.IdF = p.IdF
 JOIN Joue j ON f.IdF = j.IdF
 JOIN Participant a ON a.IdP = j.IdP

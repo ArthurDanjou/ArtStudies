@@ -1,4 +1,4 @@
---- EXERCICE 1 ---
+-- EXERCICE 1 --
 
 -- Suppression des tables si elles existent
 DROP TABLE IF EXISTS Inscription;
@@ -73,7 +73,7 @@ INSERT INTO Inscription(IDIns, IDConf, IDOr, DateIns) VALUES (15, 5, 6, '2025-01
 INSERT INTO Inscription(IDIns, IDConf, IDOr, DateIns) VALUES (16, 1, 6, '2025-01-10');
 
 -- Question 1.1
-SELECT Titre, MIN(Prix) AS 'Prix Minimum' FROM Conference;
+SELECT Titre, MIN(Prix) AS 'Prix Minimum' FROM Conference GROUP BY Titre;
 
 -- Question 1.2
 SELECT c.Titre FROM Conference c
@@ -117,10 +117,10 @@ SELECT o.NomOrateur FROM Orateur o
 WHERE NOT EXISTS (
     SELECT * FROM Conference c WHERE NOT EXISTS (
         SELECT * FROM Inscription i WHERE i.IDConf = c.IDConf AND o.IDOr = i.IDOr
-    ) AND C.DateConf = '2025-03-15'
+    ) AND c.DateConf = '2025-03-15'
 );
 
---- EXERCICE 2 ---
+-- EXERCICE 2 --
 
 -- Suppression des tables si elles existent
 DROP TABLE IF EXISTS Oeuvre;
