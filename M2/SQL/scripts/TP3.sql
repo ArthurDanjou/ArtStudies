@@ -315,3 +315,35 @@ SELECT DISTINCT Nom, Prenom FROM Participant p
 JOIN Joue j ON p.IdP = j.IdP
 JOIN Film f ON j.IdF = f.IdF
 WHERE p.IdP = f.Realisateur;
+
+-- Q3.10
+SELECT Titre FROM Film f
+WHERE NOT EXISTS (
+    SELECT * FROM Projection p WHERE p.IdF = f.IdF
+);
+
+-- Q3.11
+SELECT DISTINCT s.IdS, s.Prenom, f.Titre
+FROM Aime a
+JOIN Spectateur s ON s.IdS = a.IdS
+JOIN Film f ON f.IdF = a.IdF
+WHERE NOT EXISTS (
+    SELECT 1 FROM Vu v
+    WHERE v.IdS = a.IdS AND v.IdF = a.IdF
+);
+
+-- Q3.12
+SELECT s.Prenom FROM Spectateur s
+JOIN Vu v ON s.IdS = v.IdS
+AND NOT EXISTS (
+    SELECT 1 FROM Aime a
+    WHERE a.IdS = s.IdS
+);
+
+-- Q3.13
+SELECT s.Prenom FROM Spectateur s
+WHERE NOT EXISTS (
+    SELECT 1 FROM Film f WHERE NOT EXISTS (
+        SELECT 1 FROM Vu v WHERE v.IdS = s.IdS AND v.IdF = f.IdF
+    )
+);
