@@ -79,7 +79,7 @@ SELECT Titre, MIN(Prix) AS 'Prix Minimum' FROM Conference;
 SELECT c.Titre FROM Conference c
 WHERE EXISTS (SELECT * FROM Inscription i WHERE i.IDConf = c.IDConf) AND c.Titre LIKE '%Data%';
 
--- Question 1.4
+-- Question 1.3
 SELECT o.NomOrateur FROM Orateur o
 JOIN Inscription i ON o.IDOr = i.IDOr
 WHERE i.DateIns < '2025-01-20'
