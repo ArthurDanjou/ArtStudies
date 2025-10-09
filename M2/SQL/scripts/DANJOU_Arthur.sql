@@ -73,7 +73,7 @@ INSERT INTO Inscription(IDIns, IDConf, IDOr, DateIns) VALUES (15, 5, 6, '2025-01
 INSERT INTO Inscription(IDIns, IDConf, IDOr, DateIns) VALUES (16, 1, 6, '2025-01-10');
 
 -- Question 1.1
-SELECT Titre, MIN(Prix) AS 'Prix Minimum' FROM Conference GROUP BY Titre;
+SELECT Titre, MIN(Prix) AS 'Prix Minimum' FROM Conference;
 
 -- Question 1.2
 SELECT c.Titre FROM Conference c
