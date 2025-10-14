@@ -29,6 +29,7 @@ The projects are organized into two main sections:
   - `Statistical Learning`
 
 - `M2`
+  - `Data Visualisation`
   - `Linear Models`
   - `Machine Learning`
   - `Risks Management`
@@ -50,4 +51,5 @@ The projects are organized into two main sections:
 - [RMarkdown](https://rmarkdown.rstudio.com): A dynamic tool for combining code, results, and narrative into high-quality documents and presentations.
 - [FactoMineR](https://factominer.free.fr/): An R package focused on multivariate exploratory data analysis (e.g., PCA, MCA, CA).
 - [ggplot2](https://ggplot2.tidyverse.org): A grammar-based graphics package for creating complex and elegant visualizations in R.
+- [RShiny](https://shiny.rstudio.com): A web application framework for building interactive web apps directly from R.
 - and my 🧠.
