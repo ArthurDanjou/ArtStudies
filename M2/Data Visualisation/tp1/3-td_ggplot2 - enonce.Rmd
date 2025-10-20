@@ -1,0 +1,629 @@
+---
+title: "Prise en main de ggplot2"
+author: "Quentin Guibert"
+date: "Année 2025-2026"
+institute: "Université Paris-Dauphine | Master ISF"
+lang: fr
+link-citations: true
+output:
+  rmdformats::robobook:
+    highlight: kate
+    use_bookdown: true
+    css: style.css
+    lightbox : true
+    gallery: true
+    code_folding: show
+    theme: flatly
+    toc_float:
+      collapsed: no
+editor_options: 
+  markdown: 
+    wrap: 72
+# bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(
+  cache = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.retina = 2,
+  fig.height = 6,
+  fig.width = 12
+)
+options(encoding = 'UTF-8')
+```
+
+```{r, echo = FALSE, fig.keep= 'none'}
+# Chargement des librairies graphiques
+library(lattice)
+library(grid)
+library(ggplot2)
+require(gridExtra)
+library(locfit)
+library(scales)
+library(formattable)
+library(RColorBrewer)
+library(plotly)
+library(dplyr)
+library(tidyr)
+library(rmarkdown)
+library(ggthemes)
+library(cowplot)
+library(kableExtra)
+```
+
+# Objectifs du TP
+
+L'objectif de ce TP vise à se familiariser avec le package **ggplot2**
+de `R`. Il s'agit de faire des manipulations graphiques élémentaires et
+d'interpréter les résultats de ces visualisations.
+
+Dans un premier temps, vous pouvez suivre l'exemple introductif en
+répliquant le code fourni. Dans un deuxième temps, il convient de
+réaliser l'exercice point par point.
+
+# Prérequis
+
+-   Avoir installer `R` [ici](https://www.r-project.org/).
+-   Avoir installer un IDE, par exemple `RStudio`
+    [ici](https://posit.co/download/rstudio-desktop/).
+-   Créer un nouveau projet (`File`, puis `New Projet`) dans un dossier
+    sur votre ordinateur.
+-   Télécharger [ici](https://moodle.psl.eu/course/view.php?id=33799)
+    les fichiers nécessaires au TD.
+
+Vous pouvez ensuite écrire vos codes soit :
+
+-   En ouvrant un nouveau script `.R` ;
+-   En ouvrant le ouvrant le rapport Rmarkdown `3-td_ggplot2 - enonce`.
+    Certains codes sont partiels et sont à compléter (indication `???`).
+    N'oubliez pas de modifier l'option `eval = TRUE` pour que les
+    calculs puissent être réalisés.
+
+# Exemple introductif
+
+Pour illustrer cette première partie, nous reprenons l'exemple
+introductif fourni par @wickham2023 sur le jeu de données `penguins` du
+package **palmerpenguins**. Ce jeu de données s'intèresse des mesures
+réalisées sur des manchots sur 3 îles de l'archipelle Palmer.
+
+## Données
+
+Dans un premier temps, il faut installer le package et le charger.
+
+```{r}
+# install.packages("palmerpenguins")
+library(palmerpenguins)
+```
+
+Ce jeu de données contient 344 observations où chaque ligne correspond à
+un individu.
+
+```{r}
+paged_table(penguins, options = list(rows.print = 15))
+```
+
+On se concentre plus particulièrement sur les variables suivantes :
+
+-   `species` : l'espèce de manchot ;
+-   `flipper_length_mm` : la longueur de la nageoire en mm ;
+-   `body_mass_g` : la masse en gramme.
+
+Pour plus détails, voir l'aide `?penguins`.
+
+## But de la visualisation
+
+On s'intéresse au lien entre le masse et la taille des nageoires des
+manchots :
+
+-   ceux dont les nageoires sont les plus longues sont-ils plus lourds
+    que les manchots aux nageoires courtes ?
+-   si oui quelle est le type de relation (linéaire, croissante,
+    décroissante, ...) ?
+-   quels facteurs influencent également cette relation (lieu, l'espèce,
+    ... ) ?
+
+On cherche à recréer la figure suivante.
+
+![](images\manchot.png)
+
+## Création de la figure étape par étape
+
+### Etape 1 : Scatterplot {.unnumbered}
+
+On commence par créer un scatterplot pour examiner la relation entre la
+masse et la taille de la nageoire.
+
+```{r}
+ggplot(
+  data = penguins,
+  mapping = aes(x = flipper_length_mm, y = body_mass_g)
+) +
+  geom_point()
+```
+
+Cette figure fait clairement apparaître une relation croissante et a
+priori linéaire entre les deux variables.
+
+::: remark-box
+Un message d'erreur apparaît pour deux individus avec des données
+manquantes. Ils sont automatiquement exclus.
+:::
+
+### Etape 2 : Ajout d'élements esthétiques {.unnumbered}
+
+On cherche à présent exhiber le rôle de l’espèce à partir d'une couleur.
+Trois espèces sont présents, ainsi l'ajout de 3 couleurs à la figure ne
+devrait pas surcharger le graphique.
+
+```{r}
+ggplot(
+  data = penguins,
+  mapping = aes(x = flipper_length_mm, y = body_mass_g, color = species)
+) +
+  geom_point()
+```
+
+Compte tenu du nombre important de points, nous pouvons renforcer les
+différences par espèce en ajoutant une variation de forme aux points.
+
+```{r}
+ggplot(
+  data = penguins,
+  mapping = aes(x = flipper_length_mm, y = body_mass_g)
+) +
+  geom_point(
+    mapping = aes(
+      color = species,
+      shape = species
+    )
+  )
+```
+
+### Etape 3 : Ajout d'une géométrie {.unnumbered}
+
+Voyons à présent comment interpréter la nature de la relation entre
+masse et longueur de la nageoire. Pour ce faire, nous essayons d'ajout
+des courbes de tendance. Nous commençons par une tendance linéaire.
+
+```{r}
+ggplot(
+  data = penguins,
+  mapping = aes(x = flipper_length_mm, y = body_mass_g)
+) +
+  geom_point(
+    mapping = aes(
+      color = species,
+      shape = species
+    )
+  ) +
+  geom_smooth(method = "lm")
+```
+
+La même figure peut être générée par espèce en déplaçant l'argument
+`color = species`.
+
+```{r}
+ggplot(
+  data = penguins,
+  mapping = aes(x = flipper_length_mm, y = body_mass_g, color = species)
+) +
+  geom_point(
+    mapping = aes(
+      shape = species
+    )
+  ) +
+  geom_smooth(method = "lm")
+```
+
+Les pentes entre les espèces ne sont pas si éloignées. Nous décidons que
+conserver une relation commune pour toutes espèces. Pour tester si la
+nature linéaire de la relation est a priori une bonne hypothèse, nous
+considérons un lissage non-paramétrique.
+
+```{r}
+ggplot(
+  data = penguins,
+  mapping = aes(x = flipper_length_mm, y = body_mass_g)
+) +
+  geom_point(
+    mapping = aes(
+      color = species,
+      shape = species
+    )
+  ) +
+  geom_smooth(method = "loess")
+```
+
+L'ajout d'un lissage non-paramétrique permet d'affiner l’adéquation aux
+données, mais sans pour autant clairement remettre en cause la tendance
+linéaire qui sera donc conservée.
+
+### Etape 4 : Ajout des titres et changement de thème {.unnumbered}
+
+Afin de finaliser la figure, nous ajouter :
+
+-   un titre ;
+-   un sous-titre ;
+-   des titres aux axes ;
+-   un titre à la légende.
+
+Ces informations sont ajoutées avec `labs()`.
+
+De plus, nous modifions le thème avec la commande `theme_bw()`.
+
+```{r}
+ggplot(
+  data = penguins,
+  mapping = aes(x = flipper_length_mm, y = body_mass_g)
+) +
+  geom_point(aes(color = species, shape = species)) +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Masse et taille de la nageoire",
+    subtitle = "Manchots d'Adelie, a
+    jugulaire et de Gentoo",
+    x = "Longueur de la nageoire (mm)",
+    y = "Masse (g)",
+    color = "Espece",
+    shape = "Espece"
+  ) +
+  scale_color_colorblind() +
+  theme_bw()
+```
+
+------------------------------------------------------------------------
+
+# Exercice
+
+## Données
+
+Nous travaillons avec les jeux de données `FreMTPL2freq` et
+`FreMTPL2sev` du package **Casdatasets**. Ces données ont été
+préalablement pré-formatées et regroupées.
+
+Ce jeux de données regroupent les caractéristiques de 677 991 polices de
+responsabilité civile automobile, observées principalement sur une
+année. Dans les données regroupées, on dispose des numéros de sinistre
+par police, des montants de sinistre correspondants, des
+caractéristiques du risque et du nombre de sinistres.
+
+On présente ci-dessous un aperçu des données.
+
+```{r begin}
+# Folds
+fold <- getwd()
+
+# Load data
+# load(paste0(fold, "/data/datafreMPTL.RData"))
+load(paste0(fold, "/M2/Data Visualisation/tp1", "/data/datafreMPTL.RData"))
+paged_table(dat, options = list(rows.print = 15))
+```
+
+Le tableau suivant présente une définition des variables.
+
+```{r}
+kableExtra::kable(
+  data.frame(
+    Variable = c(
+      "IDpol",
+      "Exposure",
+      "VehPower",
+      "VehAge",
+      "DrivAge",
+      "BonusMalus",
+      "VehBrand",
+      "VehGas",
+      "Area",
+      "Density",
+      "Region",
+      "ClaimTotal",
+      "ClaimNb"
+    ),
+    Description = c(
+      "Identifiant de la police",
+      "Exposition au risque",
+      "Puissance du véhicule",
+      "Age du véhicule en année",
+      "Age du conducteur en année",
+      "Coefficient de bonus-malus",
+      "Marque du véhicule",
+      "Carburant du véhicule",
+      "Catégorie correspondant à la densité de la zone assurée",
+      "Densité de population",
+      "Region (selon la classication 1970-2015)",
+      "Montant total des sinistres",
+      "Nombre de sinistres sur la période"
+    ),
+    Type = c(
+      rep("Reel", 2),
+      rep("Entier", 4),
+      rep("Cat", 3),
+      "Entier",
+      "Cat",
+      rep("Reel", 2)
+    )
+  ),
+  booktabs = TRUE
+)
+# Short summary
+str(dat)
+```
+
+Pour plus de détails, consulter l'aide `?CASdatasets::freMTPL2freq`.
+
+------------------------------------------------------------------------
+
+## But de la visualisation
+
+Nous effectuons une première analyse descriptive de données et cherchons
+à étudier la relation entre :
+
+-   la fréquence, calculée avec les variables `ClaimNb` et `Exposure`
+    (période d'exposition en année).
+-   les variables `Area` et `DrivAge`.
+
+Le but de la visualisation est de fait ressortir les liens entre la
+fréquence et ces deux variables.
+
+### Etape 1 : Visualisation de la fréquence et de l'exposition {.unnumbered}
+
+::: exercise-box
+A partir des données `dat` :
+
+-   afficher les statistiques descriptives du nombre de sinistres
+    `ClaimNb` et de la variable `Exposure` ;
+-   afficher des histogrammes pour visualiser leur distribution ;
+-   afficher les figures côte a côte avec la fonction `plot_grid()`.
+
+Essayer de choisir un thème de couleur et un écartement des barres de
+l'histogramme facilitant sa lisibilité.
+:::
+
+::: indice-box
+On pourra développer une fonction qui utilise `geom_histogram()` sous la
+package **ggplot2**.
+:::
+
+```{r, fig.height = 6, fig.width = 12}
+# Descriptive statistics
+summary(dat$ClaimNb)
+summary(dat$Exposure)
+
+p1 <- ggplot(dat) +
+  geom_histogram(
+    aes(x = ClaimNb),
+    binwidth = 0.25,
+    fill = "lightblue",
+    color = "black"
+  ) +
+  labs(
+    title = "Distribution du nombre de sinistres",
+    x = "Nombre de sinistres",
+    y = "Effectif"
+  ) +
+  theme_bw()
+
+p2 <- ggplot(dat) +
+  geom_histogram(
+    aes(x = Exposure),
+    binwidth = 0.05,
+    fill = "lightblue",
+    color = "black"
+  ) +
+  labs(title = "Exposition", x = "Nombre de sinistres", y = "Effectif") +
+  theme_bw()
+
+plot_grid(p1, p2, ncol = 2)
+```
+
+### Etape 2 : Calculer la fréquence {.unnumbered}
+
+::: exercise-box
+Construire un tableau présentant l’exposition cumulée et le nombre
+d’observations avec 0 sinistre, 1 sinistre, …
+:::
+
+```{r}
+dat %>%
+  group_by(ClaimNb) %>%
+  summarise(n = n(), Exposure = round(sum(Exposure), 0)) %>%
+  kable(
+    col_names = c(
+      "Nombre de sinistres",
+      "Nombres d'observations",
+      "Exposition totale"
+    )
+  ) %>%
+  kable_styling(full_width = F)
+```
+
+```{r}
+pf_freq <- round(sum(dat$ClaimNb) / sum(dat$Exposure), 4)
+pf_freq
+``
+`
+Ce calcul de fréquence sera ensuite utile pour l'affichage des
+résultats.
+
+### Etape 3 : Calculer l'exposition et la fréquence par variable {.unnumbered}
+
+::: exercise-box
+Pour la variable `DrivAge`, présenter :
+
+1.  un histogramme de l'exposition en fonction de cette variable.
+2.  un histogramme de la fréquence moyenne de sinistres en fonction de
+    cette variable.
+
+Remplacer ensuite le second histogramme par un scatter plot avec une
+courbe de tendance. Est-ce plus clair ?
+
+**Indice**
+
+On pourra développer une fonction qui utilise `geom_bar()` sous la
+package **ggplot2**.
+:::
+
+```{r, eval = FALSE}
+# On regroupe selon les modalites de la DrivAge
+# l'exposition, le nombre de sinistres et la frequence
+df_plot <- dat %>%
+  group_by(DrivAge) %>%
+  summarize(exp = Exposure, nb_claims = ClaimNb, freq = nb_claims / exp)
+
+# Histogramme exposition
+ggplot(df_plot) +
+  geom_bar(
+    aes(x = DrivAge, y = exp),
+    stat = "identity",
+    fill = "lightblue",
+    color = "blue"
+  ) +
+  labs(
+    title = "Exposition par âge du conducteur",
+    x = "Âge du conducteur",
+    y = "Exposition"
+  ) +
+  theme_minimal()
+
+# Histogramme frequence
+ggplot(df_plot) +
+  geom_bar(
+    aes(x = DrivAge, y = freq),
+    stat = "identity",
+    fill = "lightblue",
+    color = "blue"
+  ) +
+  labs(
+    title = "Fréquence par âge du conducteur",
+    x = "Âge du conducteur",
+    y = "Fréquence"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+
+# Scatter plot frequence
+
+# A compléter
+
+```
+
+### Etape 4 : Examiner l'intéraction avec une autre variable {.unnumbered}
+
+::: exercise-box
+A partir du scatter plot réalisé à l'étape précédente, distinguer les
+évolutions de fréquence en fonction de `DrivAge` et de `BonusMalus`.
+
+Ce graphique vous paraît-il transmettre un message clair ? Proposez des
+améliorations en modifiant les variables `DrivAge` et `BonusMalus`.
+:::
+
+```{r}
+# On regroupe selon les modalites de la DrivAge et de Area
+# l'exposition, le nombre de sinistres et la frequence 
+
+# A compléter
+
+```
+
+On propose 4 ajustements :
+
+-   Exclure les âges extrêmes au-delà de 85 ans pour lesquels
+    l'exposition est très faible.
+-   Faire des classes d'âges.
+-   Limiter le Bonus-Malus à 125.
+-   Faire des classes de Bonus-Malus.
+
+```{r}
+# Classes d'âges pour Bonus-Malus
+lim_classes <- c(50, 75, 100, 125, Inf)
+
+# Exclusion des donnees "extremes" et faire les regroupement
+df_plot <- dat %>%
+  filter(DrivAge <= 85, BonusMalus <= 125) %>%
+  # regroupement en classes d'ages de 5 ans
+  mutate(DrivAge = ceiling(pmin(DrivAge, 85) / 5) * 5) %>%
+  mutate(BonusMalus = cut(BonusMalus, 
+                          breaks = lim_classes, include.lowest = TRUE))
+  
+# On regroupe selon les modalites de la DrivAge et de Area
+# l'exposition, le nombre de sinistres et la frequence 
+
+# A compléter
+
+```
+
+### Conclure {.unnumbered}
+
+::: exercise-box
+Comparer à présenter comment l'exposition se répartie entre âge et
+bonus-malus.
+:::
+
+```{r, fig.height = 6, fig.width = 12}
+
+# A compléter
+```
+
+### Bonus - Analyse des couples {.unnumbered}
+
+::: exercise-box
+En traitant toutes les variables comme des variables catégorielles,
+analyser graphiquement comment évolue la fréquence de sinistres selon
+les couples de variables.
+
+Compléter pour cela la fonction suivante et appliquer la à différents
+couples.
+
+```{r, eval = F}
+# Fonction d'analyse bivariée
+# df : nom du data.frame
+# var1 : nom de la variable explicative 1
+# var2 : nom de la variable explicative 2
+plot_pairwise_disc <- function(df, var1, var2)
+{
+ df <- rename(df, "varx" = all_of(var1), "vary" = all_of(var2))
+ 
+#  replace variable vname by the binning variable
+  if(is.numeric(df$varx))
+  {
+    df <- df %>%
+      mutate(varx = ntile(varx, 5))
+  }
+ 
+ if(is.numeric(df$vary))
+  {
+    df <- df %>%
+      mutate(vary = ntile(vary, 5),
+             vary = factor(vary))
+  }
+ 
+ df %>% 
+   group_by(??) %>%
+   summarize(exp = ??,
+             nb_claims = ??,
+             freq = ??,
+             .groups = "drop") %>%
+   ggplot(aes(x = ??, 
+              y = ??,
+              colour = ??,
+              group = vary),
+          alpha = 0.3) + 
+   geom_point() + geom_line() + theme_bw() +
+   labs(x = var1,  y = "Frequence", colour = var2)
+}
+`
+``
+:::
+
+# Informations de session {.unnumbered}
+
+```{r}
+sessionInfo()
+```
+
+# Références

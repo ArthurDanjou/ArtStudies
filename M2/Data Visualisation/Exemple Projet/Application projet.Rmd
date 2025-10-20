@@ -1,0 +1,1345 @@
+---
+title: "Projet de visualisation des données"
+author: "Victoire de Salaberry"
+date: "Années 2023-2024"
+institute: "Université Paris-Dauphine"
+departement: "Master 2 ISF"
+output:
+  rmdformats::robobook:
+    highlight: kate
+    use_bookdown: true
+    css: style.css
+    lightbox : true
+    gallery: true
+    code_folding: hide
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, include=FALSE, echo = FALSE}
+# Installation des librairies nécesssaires
+
+# Pour les graphiques
+library(ggplot2) # créer des graphiques 
+library(gridExtra) # organiser et agencer plusieurs graphiques 
+library(tidyr) # remodeler ou restructurer les données
+library(plotly) # créer des graphiques interactifs
+library(gmodels) # créer des graphiques spécifiques à la modélisation statistique
+
+# Pour les tableaux
+library(knitr)
+library(kableExtra) # créer des tableaux 
+
+# Pour les corrélations 
+library(GGally) # extension à ggplot2
+library(corrplot) # visualiser la matrice de corrélations
+library(magrittr) # pour les pipes (%>%)
+
+# Pour les modèles
+library(glm2) # créer des modèles linéaires généralisés
+library(caret) # ajuster des modèles et évaluer les performances
+library(broom) # convertir les résultats de modèles statistiques en cadres de données "tidy"
+library(randomForest) # créer des modèles Random Forest
+library(rpart) # créer des arbres de décisions 
+
+# pour les performances
+library(pROC) # pour la courbe ROC
+library(ROCR) # pour la courbe ROC
+library(plotROC) # pour la courbe ROC
+library(MLmetrics) # pour des mesures d'évaluation de la performance des modèles
+library(Metrics) # pour des mesures d'évaluation de la performance des modèles
+library(effects) # visualiser et interpréter les effets des variables dans des modèles statistiques
+library(broom.helpers) # manipuler des résultats de modèles statistique
+library(car) # effectuer des tests Anova
+```
+
+# Introduction
+
+Les maladies cardiovasculaires sont une cause majeure de mortalité dans le monde. La détection et l'intervention précoces sont essentielles pour prévenir celles-ci. Certains facteurs sont bien connus comme étant des symptômes de maladies cardiaques.  
+
+Nous allons analyser un jeu de données pour confirmer ces symptômes, c'est-à-dire vérifier s'ils ont un réel impact sur la santé cardiaque d'un individu. Puis, à partir de ce même jeu de données,  nous essaierons de prédire au mieux la variable cible grâce à des modèles statistiques dont nous étudierons les performances. 
+
+La variable cible est la variable nommée *target*. Elle représente l'état du patient. Cette variable vaut 0 si l'individu est en bonne santé et vaut 1 si l'individu souffre d'une maladie cardiaque.
+
+# Observation et préparation des données
+
+## Observation des données 
+
+Dans un premier temps, on importe les données et on affiche un aperçu de celles-ci pour les observer rapidement.
+```{r}
+# Téléchargement du jeu de données 
+df <- read.csv("heart.csv")
+
+# Affichage du jeu de données sous forme de tableau
+rmarkdown::paged_table(df)
+```
+
+
+On affiche aussi la dimension du jeu de données : 
+```{r}
+# Création d'un dataframe contenant les dimensions 
+dim <- data.frame(dim(df)) 
+rownames(dim) <- c("Nombre de lignes","Nombre de colonnes") # Nom des lignes du tableau
+colnames(dim) <- c("") # Nom de la colonne du tableau
+
+# Affichage des dimensions du jeu de données dans un tableau
+dim %>% 
+  kbl(caption = "Dimension du jeu de données") %>%
+  kable_styling() 
+```
+
+Le jeu de données comporte 303 lignes, c'est-à-dire 303 observations (individus) et 14 colonnes, c'est-à-dire 14 variables. 13 d'entre elles sont les variables explicatives et la dernière est la variable cible (la variable *target* comme vu en introduction). 
+
+On regarde ensuite le type des variables, pour savoir si elles sont quantitatives ou qualitatives ; numériques ou catégorielles, bien qu'on en ait déjà une idée grâce à l'affichage précédent.
+Le tableau suivant présente une description récapitulative des variables. On pourra trouver une description plus détaillée de celles-ci dans la notice du projet.
+
+```{r, include = FALSE}
+# Affichage des informations sur le type des données
+str(df)
+```
+
+```{r}
+# Affichage de la définition des variables dans un tableau 
+kable(caption = "Définition des variables", # Titre du tableau
+  # Création d'un dataframe avec les variables, leur description, leur type et leur support
+  data.frame( 
+        Variable = c(
+          "age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", 
+          "exang", "oldpeak", "slope", "ca", "thal"),
+        Description = c(
+          "Age de l'individu",
+          "Sexe de l'individu",
+          "Douleur thoracique",
+          "Pression artérielle au repos en mmHg",
+          "Niveau de cholestérol sérique du patient en mg/dL",
+          "Taux de glycémie à jeun",
+          "Résultats électrocardiographiques au repos",
+          "Fréquence cardiaque maximale atteinte",
+          "Angine de poitrine induite par l'exercice",
+          "Dépression du segment ST induite par l'exercice par rapport au repos",
+          "Pente du segment ST de pointe de l'exercice",
+          "Nombre de vaisseaux principaux colorés par la flourosopie",
+          "Flux sanguin vers le muscle cardiaque "), 
+        Type = c(
+          rep("Entier", 9),
+          "Réel",
+          rep("Entier", 3)),
+        Support = c(
+          "⟦29;77⟧", "{0, 1}", "{0, 1, 2, 3}", "⟦94;200⟧", "⟦126; 564⟧", "{0, 1}",
+          "{0, 1, 2}", "⟦71;202⟧", "{0, 1}", "[0, 6.2]", "{0, 1, 2}", "⟦0;4⟧", "{0, 1, 2, 3}")),
+    booktabs=TRUE) # Mise en page et style du tableau
+```
+Les variables sont toutes quantitatives et de type entier sauf *oldpeak* qui est un réel.  
+On a des variables  
+
+* catégorielles : *sex, cp, fbs, restecg, exang, slope, ca* et *thal* ; 
+* numériques : *age, trestbps, chol, thalach* et *oldpeak*.
+
+**Remarque** : les variables *sex, cp, fbs, restecg, exang, slope, ca* et *thal* sont des variables numériques qu'on a classifié de catégorielles. Ces variables sont en fait des variables catégorielles, dont les catégories ont été présentées dans la notice, qui ont été "transformées" en variables numériques  pour faciliter leur utilisation. 
+
+## Valeurs manquantes 
+
+On vérifie s'il y a des valeurs manquantes. Si c'est le cas, il faudra y remédier. 
+Le tableau ci-dessous affiche le nombre de valeur manquante par variable.
+```{r}
+# Vérification des valeurs manquantes dans le dataframe
+val_manquantes <- sapply(df, function(x) sum(is.na(x)))
+
+# Affichage du nombre de valeurs manquantes par variable dans un tableau
+val_manq <- data.frame(val_manquantes) # Création d'un dataframe avec le nombre de valeurs manquantes
+colnames(val_manq) <- c("Nombre de valeur manquante") # Nom de la colonne du tableau
+val_manq %>% 
+  kbl(caption = "Nombre de valeur manquante par variable") %>% # Titre
+  kable_styling() # Mise en page et style du tableau
+```
+Il n'y a donc pas de valeurs manquantes dans notre jeu de données.
+
+## Distribution des variables
+
+Après avoir bien observé le jeu de données, passons à l'étude graphique de la distribution des variables.
+
+### Distribution de la variable cible 
+
+On étudie dans un premier temps la distribution de la variable cible puis celle des variables explicatives.
+
+```{r}
+# Création d'un camembert avec les pourcentages 
+pie(table(df$target), #  Table des effectifs pour la variable target
+    main = "Distribution de la variable cible (target)", # Titre du graphique
+    labels = c("Individus en bonne santé", 
+               "Individus atteints \nd'une maladie cardiaque"), # Légende 
+    col = c("lightblue", "lightcoral"), # Couleur des secteurs
+    cex = 0.8, # Taille de la légende
+    cex.main = 1) # Taille du titre
+
+# Création d'une fonction qui ajoute les valeurs en tant qu'étiquettes au centre (fonction créée par chatgpt)
+text_pie = function(vector, labels = c(), cex = 0.8) {
+     vector = vector / sum(vector) * 2 * pi
+     temp = c()
+     j = 0
+     l = 0
+     for (i in 1:length(vector)) {
+          k = vector[i] / 2        
+          j =  j + l + k
+          l = k
+          text(cos(j) / 2, sin(j) / 2, labels[i], cex = cex)
+     }
+     vector = temp
+}
+
+# Ajout des étiquettes
+percent_values <- round(100 * prop.table(table(df$target)), 1) # Calcul des pourcentages arrondis
+percent <- paste(percent_values, "%") # Ajout du sigle %
+text_pie(percent_values,  
+         c(percent[1], percent[2]), 
+         cex = 0.8)  
+```
+Le jeu de données est à peu près équilibré : on a environ 50% (54.5%) d'individus malades et 50% (45.5%) d'individus sains dans le jeu de données. 
+
+### Distribution des variables explicatives 
+
+On affiche maintenant la distribution des variables catégorielles. Cela va nous permettre d'observer les catégories de variable qui prédominent par rapport aux autres catégories de cette même variable. 
+```{r}
+# Création d'un vecteur avec les variables catégorielles 
+categorical_var <- c("sex", "cp", "fbs", "restecg", "exang", "slope", "ca", "thal")
+
+# Organisation des graphiques en une grille 2x4
+par(mfrow = c(2, 4)) 
+
+# Boucle qui crée un histogramme en baton par chaque variable catégorielle 
+for (var in categorical_var) {
+  barplot(table(df[[var]]), 
+          col = "lightblue", # Couleur de l'histogramme
+          main = var, # Titre de l'histogramme
+          ylab = "Nombre d'individus") # Nom de l'axe des ordonnées 
+}
+```
+Les variables catégorielles ne sont pas équilibrées dans le jeu de données : 
+
+* *sex* : il y a deux fois plus d'hommes que de femmes.
+* *cp* : beaucoup d'individus ne souffrent pas de douleurs thoraciques (0). Moitié moins souffrent de douleurs modérées (2). Seuls une vingtaine d'individus sur 300 ont de fortes douleurs (3). 
+* *fbs* : il y a 6 fois moins d'individus ayant un taux de glycémie anormal (> 120 mg/dL) que de personnes ayant un taux de glycémie normal (< 120 mg/dL).
+* *restecg* : il y a presque autant d'individus dont les résultats électrocardiographiques sont normaux (0) que de personnes ayant des résultats avec des changements mineurs (1). Très peu (environ 5%) ont des résultats avec des anomalies importantes (2). 
+* *exang* : il y a 2 fois moins d'individus qui ont des angines de poitrine induites par l'exercice (1) que d'individus qui en n'ont pas (0).
+* *slope* : la plupart des individus ont une dépression du segment ST (environ 85%).
+* *ca* : plus de la moitié des individus n'ont pas de vaisseaux principaux colorés par la flourosopie. 
+* *thal* : la plupart des individus ont des défauts modérés (2) voir graves (3) de perfusion myocardique.
+
+On regarde maintenant la distribution des variables numériques. On trace un histogramme et le boxplot asssocié pour chaque variable. Le boxplot nous permet d'avoir la moyenne de chaque variable et d'observer les éventuelles valeurs aberrantes. 
+```{r}
+# Création d'un vecteur avec les variables numériques 
+numerical_var <- c("age", "trestbps", "chol", "thalach", "oldpeak")
+
+# Création de listes pour les histogrammes et les boxplots
+hist_plots <- list()
+box_plots <- list()
+
+# Boucle pour créer les histogrammes et les boxplots pour chaque variable numérique
+for (var in numerical_var) {
+  # Histogramme
+  histo <- ggplot(df, aes(x = .data[[var]])) + 
+    geom_histogram(fill = "lightblue", # Couleur de remplissage
+                   color = "black", # Couleur des contours 
+                   bins = 20, # Nombre de catégories
+                   alpha = 0.7, # Transparence de la couleur de remplissage
+                   linewidth = 0.2) + # Épaisseur des contours
+    labs(title = paste("Distribution de", var), # Titre des histogrammes 
+         x = var, # Nom de l'axe des abscisses 
+         y = "Nombre") + # Nom de l'axe des ordonnées 
+    theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 7, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
+        axis.title.y = element_text(size = 7))  # Taille du nom de l'axe des ordonnée 
+
+  # Boxplot
+  boxplot <- ggplot(df, aes(x = 1, y = .data[[var]])) +
+    geom_boxplot(linewidth = 0.3, # Épaisseur des contours
+                 outlier.size = 0.2) + # Taille des outliers 
+    labs(title = paste("Boxplot de", var)) + # Titre des boxplots
+    theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 7, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
+        axis.title.y = element_text(size = 7)) # Taille du nom de l'axe des ordonnée 
+
+  # Stockage des histogrammes et des boxplots dans les listes 
+  hist_plots[[var]] <- histo
+  box_plots[[var]] <- boxplot
+}
+
+# Organisation des graphiques dans une grille 5x2
+grid.arrange(grobs = c(hist_plots, box_plots), 
+             ncol = 5, 
+             top = "Histogrammes et boxplots de chaque variable numérique") # Titre 
+```
+Grâce à ces graphiques ont peut observer que : 
+
+* *age* : les individus ont entre 29 et 77 ans avec une moyenne d'âge de 54 ans.
+* *trestbps* : la pression artérielle au repos de la plupart des individus est supérieure à 120 mmHg, ce qui est un niveau élevé voir à risque.
+* *chol* : la plupart des individus ont un niveau de cholestérol sérique entre 200 et 300 mg/dL, ce qui est très élevé.
+* *thalach* : la fréquence cardiaque maximale atteinte est entre 100 et 200 bpm, ce qui semble tout à fait normal car celle-ci diminue avec l'âge et dans notre jeu de données, il y a toutes les catégories d'âge. 
+* *oldpeak* : environ 1/3 des individus ont une dépression ST proche de 0. Les autres individus ont des valeurs plus élevées de dépression ST. 
+
+On peut de plus observer certaines valeurs atypiques pour les variables *trestbps, chol, thalach* et *oldpeak*. Ce sont des valeurs extrêmes mais pas aberrantes (ce ne sont probablement pas des erreurs de saisie) donc on les garde. 
+
+## Corrélations entre les variables 
+
+### Corrélations entre les variables explicatives
+
+On étudie maintenant s'il y a des corrélations entre les variables explicatives.
+On affiche pour cela la matrice des corrélations sous forme de graphique corrplot.
+
+```{r}
+# Plot des corrélations entre les variables explicatives 
+corrplot(cor(df[, 1:13]), method = "color")
+```
+D'après ce graphique, les variables ne semblent pas très corrélées. Nous pouvons cependant porter notre attention sur les 5 couples de variables les plus corrélés. 
+
+Le premier couple de variables est celui composé des variables *oldpeak* et *slope*. Cette corrélation semble tout à fait intuitive car on rappelle que oldpeak représente la dépression ST induite par l'exercice par rapport au repos et que slope est la pente du segment ST de pointe de l'exercice.  
+
+De plus, les variables *age* et *thalach* semblent avoir un coefficient de corrélation plus élevé que les autres variables ; ce qui est cohérent car, comme vu dans la description détaillée des variables (dans la notice), la fréquence cardiaque maximale diminue avec l'âge (on le vérifie plus bas). 
+
+Les variables *exang* et *cp* ont aussi un coefficient de corrélation de couleur foncée. Là encore, cette corrélation n'est pas aberrante car ces variables concernent toutes les 2 des douleurs thoraciques.
+
+Le couple de variables *slope/thalach* est lui aussi un couple qui semble avoir un coefficient de corrélation plus élevé que la plupart des autres couples de variables.
+
+Enfin le couple *thalach* et *exang* est le dernier couple qui se détache des autres par la valeur, plutôt élevée, de son coefficient de corrélation.
+
+On affiche la matrice des corrélations pour voir plus précisément les coefficients de corrélations. 
+Les coefficients dont la valeur absolue est supérieure à 0.35 sont affichés en rouge. 
+
+```{r}
+# Calcul des corrélations entre les variables explicatives
+correlation_matrix <- cor(df[, 1:13])
+
+# Fonction pour formater les coefficients de corrélation (pour colorer les coefficients dont la valeur absolue est supérieure à 0.35 et arrondir les coefficients au centième près)
+format_correlation <- function(x) {
+  if (abs(x) > 0.35) {
+    paste0("<span style='color: red; font-weight: bold;'>", round(x, 2), "</span>")
+  } else {
+    round(x, 2)
+  }
+}
+
+# Application de la fonction de formatage à la matrice de corrélation
+formatted_correlation_matrix <- apply(correlation_matrix, 1, function(row) {
+  sapply(row, format_correlation)
+})
+
+# Affichage de la matrice de corrélation avec la mise en forme personnalisée
+kable(formatted_correlation_matrix, 
+      format = "html", 
+      escape = FALSE) %>%
+  kable_styling()
+
+```
+
+Naturellement, la matrice nous mène à la même conclusion que le graphique : il ne semble pas y avoir de corrélations significatives entre les variables.
+Les variables les plus corrélées sont 
+
+* *oldpeak* et *slope* avec un coefficient de corrélation de -0.58,  
+* *age* et *thalach* avec un coefficient de corrélation de -0.4, 
+* *exang* et *cp* avec un coefficient de corrélation de -0.39,
+* *slope* et *thalach*  avec un coefficient de corrélation de -0.39,
+* *thalach* et *exang* avec un coefficient de corrélation de -0.38.
+
+On étudie graphiquement la relation entre les variables des couples les plus corrélés, pour avoir un représentation plus visuelle de celle-ci. 
+
+
+On trace ci-dessous la distribution de la la dépression ST induite par l'exercice (*oldpeak*) pour chaque niveau de la variable *slope*.
+
+```{r}
+# Distribution de oldpeak en fonction de slope
+ggplot(df, aes(x = oldpeak, fill = factor(slope))) + 
+      geom_density(alpha = 0.5, # Transparence de la couleur de remplissage
+                   linewidth = 0.3) + # Épaissseur des contours 
+  
+      # Noms des axes et titre 
+      labs(title = "Graphique de la distribution de la la dépression ST induite par l'exercice (oldpeak) \n en fonction de la pente du segment ST de pointe de l'exercice (slope)", # Titre
+       x = "Changements dans l'électrocardiogramme (oldpeak)", # Nom de l'axe des abscisses 
+       y = "Nombre de patients", # Nom de l'axe des ordonnées 
+       fill = "Pente du segment \nST de pointe (slope)")  + # Titre de la légende
+  
+      # Couleur et texte de la légende
+      scale_fill_manual(values = c("0" = "#FFDB6D", 
+                                   "1" = "#4E84C4", 
+                                   "2" = "#C3D7A4")) +
+  
+      # Mise en forme du titre et de la légende 
+      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 10, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        legend.title = element_text(size = 9), # Taille du titre de la légende
+        legend.text = element_text(size = 8)) # Taille du texte de la légende
+```
+
+On remarque que lorsque la dépression ST induite par l'exercice (*oldpeak*) est proche de 0, la pente du segment ST de pointe de l'exercice (*slope*) a tendance à être de 2. Inversement, il n'y a pas de dépression du segment ST observée par rapport à la ligne de base lorsqu'il y a beaucoup de changements dans l'électrocardiogramme (ECG) qui se produisent en réponse à l'exercice physique.
+
+On confirme donc qu'à priori, il faut enlever une des 2 variables. Dans la suite, on va faire d'autres tests pour confirmer cette décision.
+
+On regarde ensuite plus précisement la relation entre les variables *age* et *thalach*.  
+```{r}
+# Diagramme de dispersion entre age et thalach
+ggplot(df, aes(x = age, y = thalach)) +
+  
+  # Ajout de la courbe de tendance
+  geom_smooth(method = "lm", 
+              formula = y ~ x, # Lien linéaire (polynôme de degré 1)
+              se = FALSE, # Ne pas afficher l'intervalle de confiance
+              colour="black", # Couleur de la droite
+              linewidth = 0.3) + # Épaisseur du trait
+  
+  # Ajout des points
+  geom_point(size = 1, # Taille des points
+             color = "#4E84C4") + # Couleur des points
+  
+  # Nom des axes et titre
+  labs(title = "Graphique de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de l'âge (age)", # Titre du graphique
+       x = "Âge (age)", # Nom de l'axe des abscisses 
+       y = "Fréquence cardiaque maximale atteinte (thalach)") + # Nom de l'axe des ordonnées
+  
+  # Mise en forme du titre et de la légende 
+  theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 12, # Taille du titre
+                                  face = "bold")) # Titre en gras
+```
+Cette figure fait clairement apparaître une relation décroissante et linéaire entre les deux variables. On en déduit que la fréquence cardiaque maximale diminue avec l'âge.
+
+On étudie maintenant graphiquement le lien entre la douleur thoracique (*cp*) et la présence / l'absence d'angine de poitrine induite par l'exercice (*exang*).
+```{r}
+# Histogramme entre cp et exang
+ggplot(df, aes(x = cp, fill = factor(exang))) + 
+      geom_bar(color = "black", # Couleur des contours
+               linewidth = 0.3, # Épaisseur des contours
+               alpha = 0.5) + # Transparence de la couleur de remplissage
+  
+      # Nom des axes et titre
+      labs(title = "Graphique de la distribution de la douleur thoracique (cp) en fonction de \n la présence / l'absence d'angine de poitrine induite par l'exercice (exang)", # Titre du graphique 
+           x = "Douleur thoracique (cp)", # Nom de l'axe des abscisses 
+           y = "Nombre d'individus", # Nom de l'axe des ordonnées
+           fill = "Angine thoracique \ninduite par l'exercice") + # Titre de la légende
+  
+      # Texte de la légende et couleur
+      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
+                        labels = c("Non", "Oui")) +
+  
+      # Mise en forme du titre et de la légende 
+      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 10, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        legend.title = element_text(size = 9), # Taille du titre de la légende
+        legend.text = element_text(size = 8)) # Taille du texte de la légende
+```
+On remarque que les individus n'ayant pas de douleur thoracique ont des angines thoraciques induites par l'exercice et inversement : les individus ayant des douleurs thoraciques n'ont pas d'angine thoracique induite par l'exercice.
+
+La relation entre la fréquence cardiaque maximale atteinte (*thalach*) et la pente du segment ST de pointe de l'exercice (*slope*) est représentée dans le graphique ci-dessous. 
+```{r}
+# Distribution de thalach en fonction de slope
+ggplot(df, aes(x = thalach, fill = factor(slope))) + 
+      geom_histogram(color = "black", # Couleur des contours 
+                     linewidth = 0.3, # Épaisseur des contours
+                     bins = 25, # Nombre de catégories
+                     alpha = 0.5) + # Transparence de la couleur de remplsisage 
+  
+      # Nom des axes et titre
+      labs(title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la pente du segment ST de pointe de l'exercice (slope)", # Titre du graphique
+           x ="Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses
+           y = "Nombre d'individus", # Nom de l'axe des ordonnées
+           fill = "Pente du segment \nST (slope)") + # Titre de la légende
+  
+      # Couleur de la légende 
+      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4", "2" = "#C3D7A4")) +
+  
+      # Mise en forme du titre et de la légende 
+      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 10, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        legend.title = element_text(size = 9), # Taille du titre de la légende
+        legend.text = element_text(size = 8)) # Taille du texte de la légende
+```
+Ce graphique montre que plus la fréquence cardiaque maximale atteinte est élevée (entre 160 et 200), plus la pente du segment ST est importante (niveau 2).
+
+Enfin, on trace la distribution de la fréquence cardiaque maximale atteinte (*thalach*) en fonction de la présence / l'absence d'angine de poitrine induite par l'exercice (*exang*) .
+```{r}
+# Distribution de thalach en fonction de exang
+ggplot(df, aes(x = thalach, fill = factor(exang))) + 
+      geom_histogram(color = "black", # Couleur des contours 
+                     linewidth = 0.3, # Épaisseur des contours
+                     bins = 30, # Nombre de catégories
+                     alpha = 0.5) + # Transparence de la couleur de remplsisage 
+  
+      # Noms des axes et titre 
+      labs(title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la présence / l'absence d'angine de poitrine induite par l'exercice (exang) ", # Titre du graphique
+           x = "Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses
+           y = "Nombre d'individus", # Nom de l'axe des orodnnées
+           fill = "Angine thoracique induite \npar l'exercice (exang)") + # Titre de la légende
+  
+      # Couleur et texte de la légende
+      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
+                      labels = c("Non", "Oui")) +
+  
+      # Mise en forme du titre et de la légende 
+      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 10, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        legend.title = element_text(size = 9), # Taille du titre de la légende
+        legend.text = element_text(size = 8)) # Taille du texte de la légende
+```
+On observe que les individus ayant une fréquence cardiaque maximale atteinte plus faible (entre 50 et 150) ont, en général, des angines induites par l'exercice et inversement.
+
+On décide pour l'instant de garder les variables de chaque couple. On fera une étude plus approfondie par la suite. 
+
+### Relation entre les variables explicatives et la variable cible 
+
+#### Aperçu global 
+
+Pour avoir un aperçu global et visuel des variables qui ont un impact sur la variable cible, on affiche un graphe des coefficients de corrélation entre la variable cible et chacune des autres variables. 
+
+```{r}
+# Matrice des corrélations de toutes les variables 
+cor_matrix <- cor(df[, 1:14])
+
+# Récupérer les coefficients de corrélation entre la variable cible et les autres variables
+target_correlations <- cor_matrix[, 14] # La 14ème colonne correspond à la variable cible
+
+# Création d'un dataframe avec les noms des variables et leurs corrélations avec la variable cible
+correlation_data <- data.frame(variable = names(target_correlations)[-14], 
+                               correlation = unlist(target_correlations[-14]))
+
+# Création d'un graphique (barplot) des coefficients de corrélation
+ggplot(correlation_data, aes(x = variable, y = correlation)) +
+  geom_bar(stat = "identity", # Hauteur des barres = coefficient de corrélation
+           fill = "#4E84C4", # Couleur de remplissage 
+           alpha = 0.7, # Transparence de la couleur de remplissage
+           color = "black", # Couleur des contours 
+           linewidth = 0.3) + # Épaisseur des contours
+  labs(title = 'Corrélations entre la variable cible et les autres variables', # Titre du graphique
+       x = 'Variables', # Nom de l'axe des abscisses
+       y = 'Coefficient de corrélation') + # Nom de l'axe des ordonnées
+  
+  theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 12, # Taille du titre
+                                  face = "bold")) # Titre en gras
+```
+Les variables qui semblent avoir un impact (un coefficient de corrélation proche de 1 en valeur absolue) sur la target sont : *ca, cp, exang, oldpeak, sex, slope, thal* et *thalach*. 
+
+#### Relation entre les variables catégorielles et la variable cible 
+
+On va maintenant regarder plus précisemment les relations entre les variables explicatives et la target. On commence par étudier les variables catégorielles puis on étudiera les variables numériques.
+
+Grâce à l'aperçu global, on a vu que seules les variables catégorielles *sex, cp, exang, slope, ca* et *thal* avaient potentiellement une relation avec la variable cible. On affiche alors un histogramme de chacune de ces variables en fonction de la target pour voir graphiquement cette relation. 
+
+```{r}
+# Création d'un vecteur avec les variables catégorielles qui semblent avoir un impact sur la variable cible
+categorical_var_impact <- c("sex", "cp", "exang", "slope", "ca", "thal")
+
+# Création d'une liste pour stocker les graphiques
+hist <- list()
+
+# Boucle qui crée un histogramme pour chaque variable du vecteur categorical_var_impactet et qui l'affiche
+for (var in categorical_var_impact) {
+    h <- ggplot(df, aes(x = .data[[var]], fill = factor(target))) + 
+      geom_bar(color = "black", # Couleur des contours 
+               linewidth = 0.3, # Épaisseur des contours
+               position = "fill", # Représenter des proportions
+               alpha = 0.7) + # Transparence de la couleur de remplissage
+      
+      # Noms des axes et titre
+      labs(title = paste("Distribution de", var, "\nen fonction de la variable cible"), # Titre des graphiques 
+           x = var, # Nom de l'axe des abscisses 
+           y = "Nombre d'individus", # Nom de l'axe des ordonnées 
+           fill = "Légende") + # Titre de la légende
+      
+      # Couleur et texte de la légende 
+      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
+                      labels = c("Sain", "Malade")) +
+      
+      # Mise en forme du titre et de la légende 
+      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 8, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        legend.title = element_text(size = 7), # Taille du titre de la légende
+        legend.text = element_text(size = 7), # Taille du texte de la légende
+        legend.key.size = unit(0.3, "cm"), # Taille des carrés de couleur de la légende
+        axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
+        axis.title.y = element_text(size = 7))  # Taille du nom de l'axe des ordonnée 
+    
+    hist[[var]] <- h
+}
+
+# Organisation des graphiques dans une grille à 3 colonnes
+grid.arrange(grobs = hist, ncol = 3)
+```
+
+On peut observer sur ces graphiques que les variables catégorielles selectionnées semblent effectivement avoir un impact sur la variable cible. En effet, les individus qui semblent plus enclin à avoir une maladie cardiaque sont : 
+
+* les femmes,
+* les individus ayant des douleurs thoraciques (de niveau 1, 2 ou 3),
+* les individus ayant des anomalies mineures dans l’ECG (étonnant),
+* les individus n'ayant pas d'angine de poitrine induite par l'exercice (là encore c'est étonnant), 
+* les individus ayant des changements dans le segment ST graves (de niveau 2),
+* les individus n'ayant pas de vaisseaux principaux colorés par la flourosopie,
+* les individus ayant des défauts modérés de perfusion myocardique (niveau 2).
+
+**Remarque** : des précisions sur les observations et conclusions étonnantes seront apportées dans la conclusion.
+
+#### Relation entre les variables numériques et la variable cible 
+
+Enfin, grâce à l'aperçu global, on a vu que seules les variables numériques *thalach* et *oldpeak* avaient potentiellement une relation avec la variable cible. On affiche alors la densité de chacune de ces variables en fonction de la target pour voir graphiquement cette relation. 
+```{r}
+# Graphique de target en fonction de thalach
+
+ggplot(df, aes(x = thalach, fill = factor(target))) + 
+      geom_histogram(color = "black", # Couleur des contours 
+                     linewidth = 0.3, # Épaisseur des contours
+                     bins = 20, # 20 classes pour plus de lisibilité
+                     alpha = 0.5) + # Transparence de la couleur de remplissage 
+  
+      # Noms des axes et titre
+      labs(title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la variable cible (target)", # Titre du grahique 
+           x = "Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses 
+           y = "Nombre d'individus", # Nom de l'axe des ordonnées 
+           fill = "Légende") + # Nom du titre de la légende 
+  
+      # Couleur et texte de la légende 
+      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
+                        labels = c("Sain", "Malade")) +
+  
+      # Mise en forme du titre et de la légende 
+      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 12, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        legend.title = element_text(size = 10), # Taille du titre de la légende
+        legend.text = element_text(size = 10), # Taille du texte de la légende
+        legend.key.size = unit(0.3, "cm"), # Taille des carrés de couleur de la légende
+        axis.title.x = element_text(size = 10), # Taille du nom de l'axe des abscisses
+        axis.title.y = element_text(size = 10))  # Taille du nom de l'axe des ordonnée   
+```
+
+On peut observer sur ce graphique que la variable *thalach* semble effectivement avoir un impact sur la variable cible. En effet, les individus qui semblent plus enclin à avoir une maladie cardiaque sont les individus ayant une fréquence cardiaque maximale entre 150 et 200 bpm. 
+
+Enfin, on trace ci-dessous la distribution de la la dépression ST induite par l'exercice (oldpeak) en fonction de la variable cible.
+
+```{r}
+# Distribution de oldpeak en fonction de target
+ggplot(df, aes(x = oldpeak, fill = factor(target))) + 
+      geom_density(alpha = 0.5, # Transparence de la couleur de remplissage 
+                   linewidth = 0.3) + # Épaisseur des contours 
+  
+      # Noms des axes et titre 
+      labs(title = "Graphique de la distribution de la la dépression ST induite par l'exercice (oldpeak) \n en fonction de la variable cible (target)", # Titre du graphique
+       x = "Changements dans l'électrocardiogramme (oldpeak)", # Nom de l'axe des abscisses 
+       y = "Nombre d'individus", # Nom de l'axe des ordonnées 
+       fill = "Légende")  + # Nom du titre de la légende 
+  
+      # Couleur et texte de la légende
+      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
+                      labels = c("Sain", "Malade")) +
+  
+      # Mise en forme du titre et de la légende 
+      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
+                                  size = 12, # Taille du titre
+                                  face = "bold"), # Titre en gras
+        legend.title = element_text(size = 9), # Taille du titre de la légende
+        legend.text = element_text(size = 8)) # Taille du texte de la légende
+```
+On conclut que les individus n'ayant pas de changement dans l'electrocardiogramme ont plus tendance à avoir une maladie cardiaque et inversement. 
+
+## Sampling : division du jeu de données 
+
+On divise le jeu de données en 2 ensembles :  
+
+* un ensemble d'entrainement qui va permettre de construire le modèle, 
+* un ensemble de test pour évaluer les performances du modèle.
+
+On choisit une porportion souvent utilisée pour un jeu de données de petite taille : 80% des données sont utilisées pour former l'ensemble d'entrainement et 20% pour celui de test.
+On affiche ci-dessous les dimensions des deux ensembles et celles du jeu de données de base.
+```{r}
+# Division des données en ensembles d'entraînement et de test
+set.seed(123) # pour la reproductibilité
+split <- rsample::initial_split(df, prop = 0.8)
+train <- rsample::training(split)
+test <- rsample::testing(split)
+
+# Création d'un dataframe avec les dimensions des différents ensembles
+dimensions <- data.frame(dim(df), dim(train), dim(test))
+rownames(dimensions) <- row_names <- c("Nombre de lignes",
+                                       "Nombre de colonnes") # nom des lignes 
+colnames(dimensions) <- c("Dimension du jeu de données initial", 
+                          "Dimensions de l'ensemble d'entrainement", 
+                          "Dimensions de l'ensemble de test") # nom des colonnes 
+
+# Affichage des dimensions des ensembles d'entraînement et de test
+dimensions %>% 
+  kbl() %>%
+  kable_styling()
+```
+On regarde la distribution de la variable cible dans les 2 ensembles pour s'assurer que la répartition des classes dans l'ensemble de test et d'entrainement est représentative de l'ensemble complet.
+
+```{r}
+# Organisation des graphiques en une grille 1x2
+par(mfrow = c(1, 2)) 
+
+# Création du camembert pour l'ensemble train avec les pourcentages et légendes
+pie(table(train$target), #  Table des effectifs pour la variable target
+    main = "Distribution de la variable cible (target) \nsur l'ensemble d'entrainement", # Titre
+    labels = c("Individus en bonne santé", 
+               "Individus atteints \nd'une maladie cardiaque"), # Légende 
+    col = c("lightblue", "lightcoral"), # Définition de la couleur des secteurs
+    cex = 0.8, # Ajustement de la taille de la légende
+    cex.main = 1) # Ajustement de la taille du titre
+
+# Ajout des étiquettes
+percent_values_train <- round(100 * prop.table(table(train$target)), 1) # Calcul des pourcentages arrondis
+percent_train <- paste(percent_values_train, "%") # Ajout su sigle "%"
+text_pie(percent_values_train,  c(percent_train[1], percent_train[2]), cex=0.8) # Utilisation de la fonction text_pie définie plus haut 
+
+
+# Création du camembert pour l'ensemble test avec les pourcentages et légendes
+pie(table(test$target), #  Table des effectifs pour la variable target
+    main = "Distribution de la variable cible (target) \nsur l'ensemble de test", # Titre
+    labels = c("Individus en bonne santé", 
+               "Individus atteints \nd'une maladie cardiaque"), # Légende 
+    col = c("lightblue", "lightcoral"), # Définition de la couleur des secteurs
+    cex = 0.8, # Ajustement de la taille de la légende
+    cex.main = 1) # Ajustement de la taille du titre
+
+# Ajout des étiquettes
+percent_values_test <- round(100 * prop.table(table(test$target)), 1) # Calcul des pourcentages arrondis
+percent_test <- paste(percent_values_test, "%") # Ajout su sigle "%"
+text_pie(percent_values_test,  c(percent_test[1], percent_test[2]), cex=0.8) # Utilisation de la fonction text_pie définie plus haut 
+
+```
+
+# Fitting : création et entraînement du modèle
+
+## Déclaration du modèle 
+
+On implémente maintenant une régression logistique à l'aide de la fonction "glm". On pourra trouver une explication du choix du modèle dans la notice. 
+On déclare aussi le modèle réduit à l'intercept car il sera utile dans la suite, pour des comparaisons de perfromance par exemple. 
+
+```{r}
+# Déclaration du modèle de regression logistique
+mod <- glm(target ~ ., data = train, family = binomial)
+
+# Déclaration du modèle réduit à l'intercept (utile dans la suite)
+mod_int <- glm(target~1, data = train, family = "binomial")
+```
+
+On affiche les statistqiues récapitulatives du modèle de regression logistique construit dans la sous-section section précédente. Les p-valeurs inférieures à 0.05 sont affichées en rouge car cela signifie que la variable associée à probablement de l'importance dans le modèle. 
+ 
+```{r}
+# Création d'un tableau qui contient les coefficients du modèle 
+tab_stat <- tidy(mod, conf.int = TRUE)
+
+# Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
+tab_stat <- tab_stat %>%
+  mutate(p.value = ifelse(p.value < 0.05, 
+                                    cell_spec(round(p.value, 3), "html", color = "red"), 
+                                    cell_spec(round(p.value, 3), "html")))
+
+# Affichage du tableau avec mise en forme
+tab_stat %>%
+  kbl(digits = c(0, 2, 2, 2, 5, 3, 3), # Arrondis
+      escape = FALSE, 
+      caption = "Statistiques récapitulatives du modèle de regression logistique") %>%
+  kable_styling()
+```
+
+D'après cet affichage, les variables qui ont une importance sont : *sex, cp, exang, oldpeak, ca* et *thal*.
+
+On peut noter que la déviance du modèle est inférieure à celle du modèle réduit à l'intercept :
+
+```{r}
+# Création d'un dataframe avec les déviances
+deviance <- data.frame(mod$null.deviance, mod$deviance)
+colnames(deviance) <- c("Déviance du modèle réduit à l'intercept", 
+                          "Déviance du modèle créé") # Nom des colonnes 
+
+# Affichage des dimensions des ensembles d'entraînement et de test
+deviance %>% 
+  kbl(digits = c(2, 2), # Arrondis
+      caption = "Déviance des modèles") %>% 
+  kable_styling()
+```
+Le modèle est donc meilleur que le modèle réduit à l'inetrcept.
+
+## Sélection de modèles : tests et méthodes pas à pas  
+
+On utilise le test Anova pour enlever les variables qui n'apportent pas d'informations complémentaires sur la variable à prédire. On affiche le résultat du test. Les p-valeurs inférieurs à 0.05 sont affichées en rouge. 
+```{r}
+# Test Anova 
+Ano <- Anova(mod, 
+             type = 3, #  type III de l'Anova 
+             test.statistic = "LR") # test de rapport de vraisemblance
+
+# Création d'un tableau qui contient les coefficients du modèle 
+tab_stat <- tidy(Ano, conf.int = TRUE)
+
+# Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
+tab_stat <- tab_stat %>%
+  mutate(p.value = ifelse(p.value < 0.05, 
+                                    cell_spec(round(p.value, 3), "html", color = "red"), 
+                                    cell_spec(round(p.value, 3), "html")))
+
+# Affichage du tableau avec mise en forme
+tab_stat %>%
+  kbl(digits = c(0, 3, 5), 
+      escape = FALSE, 
+      caption = "Résultats du test Anva") %>%
+  kable_styling()
+```
+Seules les variables *sex, cp, exang, oldpeak, ca* et *thal* semblent avoir un impact sur la variable cible, ce qu'on avait déjà observé dans la partie "graphiques". On avait aussi remarqué que les variables *exang, slope* et *age* avaient une importance. On va continuer notre étude pour savoir si on les supprime ou non.  
+
+On effectue maintenent des méthodes pas à pas pour sélectionner un modèle à l'aide d'une procédure  basée sur la minimisation du critère AIC (Akaike Information Criterion).
+
+On réalise d'abord une méthode *backward* et on affiche les statistqiues descriptives du modèle obtenu. Les p_valeurs inférieures à 0.05 sont affichées en rouge. 
+```{r}
+# Méthode backward
+mod_back <- step(mod, direction = "backward", trace = FALSE)
+
+# Création d'un tableau qui contient les coefficients du modèle 
+tab_stat <- tidy(mod_back, conf.int = TRUE)
+
+# Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
+tab_stat <- tab_stat %>%
+  mutate(p.value = ifelse(p.value < 0.05, 
+                                    cell_spec(round(p.value, 3), "html", color = "red"), 
+                                    cell_spec(round(p.value, 3), "html")))
+
+# Affichage du tableau avec mise en forme
+tab_stat %>%
+  kbl(digits = c(0, 3, 3, 3, 4), # Arrondis
+      escape = FALSE, 
+      caption = "Statistiques récapitulatives du modèle construit par la méthode backward") %>%
+  kable_styling()
+```
+Les variables importantes sont celles du test Anova ainsi que *restecg* et *thalach*.
+
+On refait alors un test Anova sur le modèle obtenu par la méthode *backward* pour vérifier si les variables *restecg* et *thalach* sont réellement importantes.
+```{r, include = FALSE}
+# Test Anova 
+Ano_back <- Anova(mod_back, type = 3,test.statistic = "LR")
+
+# Création d'un tableau qui contient les coefficients du modèle 
+tab_stat <- tidy(Ano_back, conf.int = TRUE)
+
+# Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
+tab_stat <- tab_stat %>%
+  mutate(p.value = ifelse(p.value < 0.05, 
+                                    cell_spec(round(p.value, 3), "html", color = "red"), 
+                                    cell_spec(round(p.value, 3), "html")))
+
+# Affichage du tableau avec mise en forme
+tab_stat %>%
+  kbl(digits = c(0, 3, 3, 3, 4), # Arrondis
+      escape = FALSE,  
+      caption = "Résultats du test Anova effectué sur le modèle construit à partir de la méthode backward") %>%
+  kable_styling()
+```
+Le test donne le même résultat que la méthode *backward*. 
+
+On réalise maintenant une méthode *forward* de sélection de modèle et on affiche là encore, les statistqiues descriptives du modèle obtenu. Les p_valeurs inférieures à 0.05 sont affichées en rouge. 
+```{r}
+# Méthode forward
+mod_for <- step(mod_int, 
+                target ~ age + sex + trestbps + chol + fbs + restecg + thalach
+                 + exang + oldpeak + slope + ca + thal, 
+                data = train,
+                trace = FALSE, 
+                direction = c("forward"))
+
+# Création d'un tableau qui contient les coefficients du modèle 
+tab_stat <- tidy(mod_for, conf.int = TRUE)
+
+# Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
+tab_stat <- tab_stat %>%
+  mutate(p.value = ifelse(p.value < 0.05, 
+                                    cell_spec(round(p.value, 3), "html", color = "red"), 
+                                    cell_spec(round(p.value, 3), "html")))
+
+# Affichage du tableau avec mise en forme
+tab_stat %>%
+  kbl(digits = c(0, 3, 3, 3, 4), # Arrondis
+      escape = FALSE,  
+      caption = "Statistiques récapitulatives du modèle construit par la méthode forward") %>%
+  kable_styling()
+```
+
+Les variables importantes sont celles du test Anova sans la variable *cp*.
+
+On réalise une dernière méthode : la méthode *both* en affichant toujours les statistqiues descriptives du modèle obtenu. Les p_valeurs inférieures à 0.05 sont affichées en rouge.
+
+```{r}
+# Méthode both
+mod_both <- step(mod_int, 
+                 target ~ age + sex + trestbps + chol + fbs + restecg + thalach
+                 + exang + oldpeak + slope + ca + thal, 
+                 data = train, 
+                 trace = F, 
+                 direction = c("both"))
+
+# Création d'un tableau qui contient les coefficients du modèle 
+tab_stat <- tidy(mod_both, conf.int = TRUE)
+
+# Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
+tab_stat <- tab_stat %>%
+  mutate(p.value = ifelse(p.value < 0.05, 
+                                    cell_spec(round(p.value, 3), "html", color = "red"), 
+                                    cell_spec(round(p.value, 3), "html")))
+
+# Affichage du tableau avec mise en forme
+tab_stat %>%
+  kbl(digits = c(0, 3, 3, 3, 4), # Arrondis
+      escape = FALSE,  
+      caption = "Statistiques récapitulatives du modèle construit par la méthode both") %>%
+  kable_styling()
+
+```
+Le modèle garde les mêmes variables que celles obtenues avec la méthode *forward*. 
+
+Enfin, on compare l'AIC des modèles obtenus par les 3 méthodes. 
+
+```{r}
+# Création d'un dataframe avec les AIC
+deviance <- data.frame(AIC(mod_back), AIC(mod_for), AIC(mod_both))
+colnames(deviance) <- c("Méthode backward",
+                        "Méthode forward",
+                        "Méthode both") # Nom des colonnes 
+
+# Affichage des AIC des modèles
+deviance %>% 
+  kbl(digits = c(1, 1, 1), # pour les arrondis
+      caption = "AIC des modèles") %>% # Titre du tableau
+  kable_styling()
+```
+
+## Construction du modèle final 
+
+La méthode backward est la meilleure car elle a le plus petit AIC. On garde donc les variables du modèle construit à partir de cette méthode. 
+On définit alors notre modèle final avec les variables *restecg, cp, sex, exang, oldpeak, ca, thal* et *thalach*. On retire les variables *age, trestbps, chol, fbs* et *slope*.
+
+```{r}
+# Construction du modèle final
+mod_final <- glm(target ~ sex + exang + oldpeak + ca + thal + restecg + thalach + cp,
+                 data = train, 
+                 family = "binomial")
+```
+
+# Validation du modèle
+
+Après avoir obtenu un modèle, il faut diagnostiquer la régression afin de valider ou non le modèle.
+On passe alors à la validation de notre modèle ainsi construit. On regarde dans un premier temps la déviance du modèle puis on étudie les résidus et les *outliers*.
+
+## Déviance
+
+```{r}
+# Création d'un dataframe avec les déviances
+deviance <- data.frame(mod$null.deviance, mod_final$deviance)
+colnames(deviance) <- c("Déviance du modèle réduit à l'intercept", 
+                        "Déviance du modèle final") # nom des colonnes 
+
+# Affichage des dimensions des ensembles d'entraînement et de test
+deviance %>% 
+  kbl(digits = c(2, 2), caption = "Déviance des modèles") %>% # pour les arrondis
+  kable_styling()
+```
+
+La déviance de notre modèle étant plus petite que celle du modèle réduit à l'intercept, on le privilegie.
+
+## Résidus studentisés
+
+On affiche ci-dessous un nuage de points montrant les résidus studentisés du modèle final pour chaque observation.
+On a aussi tracé sur ce même graphe des lignes de seuil pour repérer les observations ayant des résidus considérés comme atypiques en dehors de ces bornes.
+
+```{r}
+par(mfrow = c(1, 1))
+plot(rstudent(mod_final), type = "p", cex = 0.5, ylab = "Résidus studentisés ", 
+    col = "#0066CC", ylim = c(-3, 3))
+abline(h = c(-2, 2), col = "#CC3333")
+```
+On remarque que les résidus suivent un schéma aléatoire, ce qui valide le modèle. 
+Les quelques points au-delà des lignes rouges sont les valeurs atypiques que nous avions déjà remarqué dans les boxplots. Nous avions décidé de garder ces valeurs.
+
+## Outliers 
+
+Enfin, on affiche le graphe des *outliers*.
+```{r}
+# Plot des outliers
+plot(mod_final,5)
+```
+Il ne semble pas y avoir d'outliers car aucun point n'a une distance de Cook supérieure à 1.
+
+# Optimisation du seuil de décision
+
+On va maintenant optimsier le seuil à partir duquel on considère qu'un individu à une maladie cardiaque. Dans notre cas, on préfère naturellemnt avoir un petit nombre de faux négatifs (FN) c'est-à-dire un petit nombre de personnes qui n'ont pas été diagnostiquées comme positives alors qu'elles ont une maladie cardiaque.
+
+Pour optimiser le seuil, on va donc maximsier l'indice de Youden qui est un critère couramment utilisé pour minimiser le nombre de faux négatif. 
+
+On affiche ici un graphe qui montre l'évolution de l'indice de Youden en fonction des seuils. On affiche sur ce même graphe le seuil optimal qui maximise cet indice. 
+
+```{r, include = FALSE}
+# Prédire les probabilités sur l'ensemble d'entraînement
+predicted_probs_train <- predict(mod_final, newdata = train, type = "response")
+```
+
+```{r}
+# Calcul des valeurs de seuil
+val_seuil <- seq(0, 1, length.out = 100)
+
+# Calcul de l'indice de Youden pour chaque seuil
+youden_index <- sapply(val_seuil, function(threshold) {
+  pred_pos <- predicted_probs_train > threshold
+  sens <- sum(pred_pos & (train$target == 1)) / sum(train$target == 1)
+  spec <- sum(!pred_pos & (train$target == 0)) / sum(train$target == 0)
+  return(sens + spec - 1)
+})
+
+# Trouver le seuil optimal
+optimal <- val_seuil[which.max(youden_index)]
+
+# Créer le graphique de l'indice de Youden en fonction des seuils
+plot(val_seuil, 
+     youden_index, 
+     type = "l", 
+     col = "#0066CC", # Couleur de la courbe
+     xlab = "Seuils", # Nom de l'axe des abscisses 
+     ylab = "Indice de Youden",# Nom de l'axe des ordonnées 
+     main = "Graphique de l'évolution de l'ndice de Youden en fonction des seuils") # Titre du graphique 
+
+# Afficher le seuil optimal
+abline(v = optimal, 
+       col = "#CC3333", # Couleur de la droite
+       lty = 2) # Épaisseur de la droite 
+
+# Afficher la légende 
+text(optimal, 
+     max(youden_index), 
+     paste("Seuil optimal =", round(optimal, 3)), 
+     pos = 4, 
+     col = "#CC3333")
+```
+Le seuil qui maximise l'indice de Youden vaut 0.556. On va donc garder ce seuil et prédire à patir de celui-ci. 
+On affiche ci-dessous l'évolution de la sensibilité et de la spécificité en fonction de la valeur du seuil. On affiche sur ce même-graphique la valeur du seuil optimal. 
+
+```{r}
+# Initialisation des vecteurs de sensibilité et spécificité
+sensitivities <- c()
+specificities <- c()
+
+for (threshold in val_seuil) {
+  pred_pos <- predicted_probs_train > threshold
+  sens <- sum(pred_pos & (train$target == 1)) / sum(train$target == 1)
+  spec <- sum(!pred_pos & (train$target == 0)) / sum(train$target == 0)
+  
+  sensitivities <- c(sensitivities, sens)
+  specificities <- c(specificities, spec)
+}
+
+# Création du graphique avec la courbe de l'évolution de la sensibilité
+plot(val_seuil, 
+     sensitivities, 
+     type = "l", 
+     col = "#0066CC", # Couleur de la courbe 
+     xlab = "Seuil", # Nom de l'axe des abscisses 
+     ylab = "Valeur des paramètres", # Nom de l'axe des ordonnées
+     main = "Évolution de la sensibilité et de la spécificité en fonction des seuils") # Titre du graphique
+
+# Ajout de la courbe de l'évolution de la spécificité
+lines(val_seuil, 
+      specificities, 
+      type = "l", 
+      col = "#339966") # Couleur de la droite 
+
+# Ajout de la légende 
+legend("bottomright", 
+       legend = c("Sensibilité", "Spécificité"), 
+       col = c("#0066CC", "#339966"), 
+       lty = 1)
+
+# Ajout de la valeur du seuil optimal
+abline(v = optimal, 
+       col = "#CC3333", 
+       lty = 2)
+
+# Ajout de texte
+text(optimal, 
+     max(youden_index),
+     paste("Seuil optimal =", round(optimal, 3)), 
+     pos = 4, 
+     col = "#CC3333")
+```
+On remarque donc que la valeur optimale pour l'indice de Youden ne l'est pas pour la sensibilité ni la spécificité. Cela est du au fait qu'on a du faire un choix en selectionnant un indicateur à optimiser parmi plusieurs autres, ici, le nombre de faux négatifs. Cependant, au seuil optimal, la spécificité et la sensibilité sont satisfaisantes. On garde donc ce seuil.
+
+# Prédiction et performances 
+
+## Prédiction 
+
+On passe maintenant à la prédiction. On prédit de telle manière que si la probabilité prédite dépasse le seuil optimal, l'individu est considéré comme étant susceptible de développer une maladie cardiaque.
+```{r, include = FALSE}
+# Prédire les probabilités sur l'ensemble d'entraînement
+predicted_probs_test <- predict(mod_final, newdata = test, type = "response")
+
+# Prédiction des valeurs sur l'ensemble de test
+predicted <- ifelse(predicted_probs_test > optimal, 1, 0)
+summary(predicted_probs_test)
+```
+
+On affiche ci-dessous les prédictions à côté des valeurs réelles dans un tableau.
+```{r}
+# Création d'un dataframe avec les observations et les prédictions
+df_pred <- data.frame(Observed = test$target, Predicted = predicted)
+rmarkdown::paged_table(df_pred)
+```
+
+
+## Matrice de confusion
+
+Pour étudier les performances de prédiction, on affiche la matrice de confusion qui permet d'observer le nombre de vrais positifs, de faux positifs, de vrais négatifs et de faux négatifs.
+ 
+```{r}
+# Création de la matrice de confusion
+confusion_matrix <- table(factor(predicted), factor(test$target))
+# Affichage de la matrice de confusion
+par(mfrow=c(1, 1))
+ctable <- as.table(confusion_matrix, 
+                   nrow = 2,
+                   byrow = TRUE)
+# Définir les étiquettes "malade" et "sain" pour les lignes et colonnes
+rownames(ctable) <- colnames(ctable) <- c("malade (1)", "sain (0)")
+
+# Définir les étiquettes "Réel" et "Prédit"
+dimnames(ctable) <- list(Réel = rownames(ctable), Prédit = colnames(ctable))
+
+fourfoldplot(ctable, 
+             color = c("#CC6666", "#CCCCCC"),
+             conf.level = 0, 
+             margin = 1, 
+             main = "Matrice de confusion \ndu modèle de regression logistique")
+
+```
+On obtient qu’on a prédit 3 faux négatifs, 7 faux positifs, 21 vrais positifs et 30 vrais négatifs. Ce résultat est tout à fait satisfaisait car le nombre de faux négatifs est assez faible, ce qui était notre objectif.
+
+## Indicateurs et métriques de performance
+
+La sensibilité, le F1 Score et la valeur prédictive négative sont des indicateurs importants pour évaluer la capacité du modèle à minimiser les faux négatifs, chacun apportant une compréhension particulière sur cette problématique. On s'intéresse donc ici plus particulièrement à ces indicateurs ainsi que l'accuracy (la précision globale). 
+```{r}
+# Créer des facteurs avec des niveaux correspondants
+predicted_factor <- factor(as.numeric(predicted), levels = c(0, 1))
+test_target_factor <- factor(as.numeric(test$target), levels = c(0, 1))
+
+# Simulation de la sortie confusionMatrix
+results <- confusionMatrix(predicted_factor, test_target_factor, mode = "everything", positive = "1")
+
+# Extraction de l'accuracy
+acc <- data.frame(Valeur = results$overall["Accuracy"])
+
+# Extraction des valeurs spécifiques
+specific_metrics <- c("Sensitivity", "Neg Pred Value", "F1")
+specific_values <- unlist(results$byClass[specific_metrics])
+
+# Création du tableau avec les valeurs spécifiques
+results_df_spe <- data.frame(Valeur = specific_values)
+
+# Affichage du tableau 
+rbind(acc, results_df_spe) %>% # Fusion des deux dataframe
+  kable(digits = 3, # Arrondi
+        caption = "Indicateurs et métriques de performance.") %>% # Titre
+  kable_styling()
+```
+
+Grâce au tableau, on observe que la valeur des indicateurs est plutôt élevée et que donc notre modèle n'est pas trop mauvais !
+
+## Courbe ROC et AUC 
+
+On trace enfin la courbe ROC de notre modèle afin de déterminer l'AUC de notre modèle. 
+```{r}
+# Courbe ROC
+pred <- prediction(predicted_probs_test, test$target)
+roc <- performance(pred, measure = "tpr", x.measure = "fpr")
+
+# Calcul de l'AUC
+auc <- performance(pred, measure = "auc")
+auc_value <- round(unlist(slot(auc, "y.values")), 3)
+
+# Plot de la courbe ROC
+plot(roc, xlab = "Taux de faux positifs", ylab = "Taux de vrais positifs", col = "#CC3333", main = "Courbe ROC de l'ensemble de test")
+abline(a = 0, b = 1)
+
+# Ajout de l'AUC au graphique
+text(0.5, 0.8, labels = paste("AUC =", auc_value), cex = 1.2, col = "black")
+```
+Dans notre cas, l'AUC est proche de 1 (environ 0.9) donc la prédiction semble être bonne. 
+
+# Comparaison avec d'autres modèles  
+
+Pour terminer le projet, on compare le modèle de régression logistique à 2 autres modèles : un modèle de RadomForest et un modèle d’arbre de décision. 
+
+## Déclaration des modèles
+
+On construit d'abord un modèle de forêt aléatoire (*Random Forest*) qui est populaire en raison de sa capacité à produire des prédictions précises, à gérer des ensembles de données complexes et bruités, et à éviter le surajustement.
+
+```{r, include = FALSE}
+
+# Créer un modèle de Random Forest
+mod_rf <- randomForest(target ~., data = train, ntree = 500)
+
+# Prédire les probabilités sur l'ensemble d'entraînement
+predicted_probs_train_rf <- predict(mod_rf, newdata = train, type = "response")
+
+# Calcul des valeurs de seuil
+val_seuil <- seq(0, 1, length.out = 100)
+
+# Calcul de l'indice de Youden pour chaque seuil
+youden_index <- sapply(val_seuil, function(threshold) {
+  pred_pos <- predicted_probs_train_rf > threshold
+  sens <- sum(pred_pos & (train$target == 1)) / sum(train$target == 1)
+  spec <- sum(!pred_pos & (train$target == 0)) / sum(train$target == 0)
+  return(sens + spec - 1)
+})
+
+# Trouver le seuil optimal
+optimal_rf <- val_seuil[which.max(youden_index)]
+
+# Prédire les probabilités sur l'ensemble d'entraînement
+predicted_probs_test_rf <- predict(mod_rf, newdata = test, type = "response")
+
+# Prédiction des valeurs sur l'ensemble de test
+predicted_rf <- ifelse(predicted_probs_test_rf > optimal_rf, 1, 0)
+summary(predicted_probs_test_rf)
+
+# Créer des facteurs avec des niveaux correspondants
+predicted_factor_rf <- factor(as.numeric(predicted_rf), levels = c(0, 1))
+test_target_factor_rf <- factor(as.numeric(test$target), levels = c(0, 1))
+
+# Simulation de la sortie confusionMatrix
+results_rf <- confusionMatrix(predicted_factor_rf, test_target_factor_rf, mode = "everything", positive = "1")
+```
+
+
+On construit ensuite un modèle d'arbre de décision, qui est plus approprié pour capturer des relations non linéaires entre les variables explicatives et la variable cible et des interactions complexes.
+```{r, include = FALSE}
+# Créer un modèle d'arbre de décision
+mod_tree <- rpart(target ~ ., data = train, method = "class")
+
+# Prédire les probabilités sur l'ensemble d'entraînement
+predicted_probs_train_tree <- predict(mod_tree, newdata = train)[, "1"]
+
+# Calcul des valeurs de seuil
+val_seuil <- seq(0, 1, length.out = 100)
+
+# Calcul de l'indice de Youden pour chaque seuil
+youden_index <- sapply(val_seuil, function(threshold) {
+  pred_pos <- predicted_probs_train_tree > threshold
+  sens <- sum(pred_pos & (train$target == 1)) / sum(train$target == 1)
+  spec <- sum(!pred_pos & (train$target == 0)) / sum(train$target == 0)
+  return(sens + spec - 1)
+})
+
+# Trouver le seuil optimal
+optimal_tree <- val_seuil[which.max(youden_index)]
+
+# Prédire les probabilités sur l'ensemble d'entraînement
+predicted_probs_test_tree <- predict(mod_tree, newdata = test)[, "1"]
+
+# Prédiction des valeurs sur l'ensemble de test
+predicted_tree <- ifelse(predicted_probs_test_tree > optimal_tree, 1, 0)
+summary(predicted_probs_test_tree)
+
+# Créer des facteurs avec des niveaux correspondants
+predicted_factor_tree <- factor(as.numeric(predicted_tree), levels = c(0, 1))
+test_target_factor_tree <- factor(as.numeric(test$target), levels = c(0, 1))
+
+# Simulation de la sortie confusionMatrix
+results_tree <- confusionMatrix(predicted_factor_tree, test_target_factor_tree, mode = "everything", positive = "1")
+```
+
+On peut afficher les matrices de confusions des modèles construits.
+
+```{r}
+par(mfrow=c(1, 2))
+# Affichage de la matrice de confusion de la forêt aléatoire
+ctable <- as.table(results_rf, 
+                   nrow = 2,
+                   byrow = TRUE)
+# Définir les étiquettes "malade" et "sain" pour les lignes et colonnes
+rownames(ctable) <- colnames(ctable) <- c("malade (1)", "sain (0)")
+
+# Définir les étiquettes "Réel" et "Prédit"
+dimnames(ctable) <- list(Réel = rownames(ctable), Prédit = colnames(ctable))
+
+fourfoldplot(ctable, 
+             color = c("#CC6666", "#CCCCCC"),
+             conf.level = 0, 
+             margin = 1, 
+             main = "Matrice de confusion \ndu modèle de forêt aléatoire")
+
+# Affichage de la matrice de confusion de l'arbre de décision
+ctable <- as.table(results_tree, 
+                   nrow = 2,
+                   byrow = TRUE)
+# Définir les étiquettes "malade" et "sain" pour les lignes et colonnes
+rownames(ctable) <- colnames(ctable) <- c("malade (1)", "sain (0)")
+
+# Définir les étiquettes "Réel" et "Prédit"
+dimnames(ctable) <- list(Réel = rownames(ctable), Prédit = colnames(ctable))
+
+fourfoldplot(ctable, 
+             color = c("#CC6666", "#CCCCCC"),
+             conf.level = 0, 
+             margin = 1, 
+             main = "Matrice de confusion \ndu modèle d'arbre de décision")
+
+```
+
+## Comparaison des performances
+
+On va comparer la sensibilité, le F1 Score et la valeur prédictive négative car, comme vu précédemment, ce sont des indicateurs importants pour évaluer la capacité du modèle à minimiser les faux négatifs. On affiche aussi le nombre de faux négatifs. Enfin, on compare l'accuracy et l'AUC des différents modèles car c'est un indicateur souvent comparé. 
+
+```{r}
+# Calcul de l'AUC RF
+pred_rf <- prediction(predicted_probs_test_rf, test$target)
+auc_rf <- performance(pred_rf, measure = "auc")
+auc_value_rf <- round(unlist(slot(auc_rf, "y.values")), 3)
+
+# Calcul de l'AUC Tree
+pred_tree <- prediction(predicted_probs_test_tree, test$target)
+# Calcul de l'AUC
+auc_tree <- performance(pred_tree, measure = "auc")
+auc_value_tree <- round(unlist(slot(auc_tree, "y.values")), 3)
+
+# Extraction des valeurs spécifiques
+specific_metrics <- c("Sensitivity", "Neg Pred Value", "Precision")
+
+# Création d'un dataframe avec les valeurs spécifiques
+metrics <- c("Sensibilité", "F1 Score", "Valeur prédictive négative", "Accuracy", "Nombre de faux négatifs", "AUC")
+models <- c("Regression logistique", "Random Forest", "Arbre de décision")
+data <- matrix(NA, nrow = length(models), ncol = length(metrics))
+colnames(data) <- metrics 
+rownames(data) <- models
+
+# Insertion des valeurs spécifiques dans le dataframe
+data["Regression logistique", ] <- c(unlist(results$byClass[specific_metrics ]), results$overall['Accuracy'], results$table[1, 2], auc_value)
+data["Random Forest",] <- c(unlist(results_rf$byClass[specific_metrics]), results_rf$overall['Accuracy'], results_rf$table[1, 2], auc_value_rf)
+data["Arbre de décision",] <- c(unlist(results_tree$byClass[specific_metrics]), results_tree$overall['Accuracy'], results_tree$table[1, 2], auc_value_tree)
+
+# Affichage du tableau
+data %>%
+  kbl(digits = c(3, 3, 3, 3, 1, 2), caption = "Comparaison des performances des différents modèles ") %>% # pour les arrondis et titres  
+  kable_styling()
+```
+
+On obtient des modèles qui ont des performances assez similaires.
+
+# Conclusion
+
+Dans le cadre de ce projet, axé sur l’explication et la prédiction des maladies cardiaques, nous avons développé et évalué un modèle de régression logistique, qui est un modèle facilement interprétable. Les performances de ce modèle se sont avérées prometteuses, démontrant une bonne capacité à expliquer et prédire la présence de maladies cardiaques. Ce modèle a été comparé à des approches alternatives telles que la forêt aléatoire et l'arbre de décision, qui ont montré des performances similaires.
+
+D'autres modèles, comme le SVM, la classification naïve bayésienne, le KNN, ou le Gradient Boosting, pourraient être explorés pour améliorer la prédiction.
+
+Des observations paradoxales ont été constatées dans l'application. 
+Ces résultats inattendus pourraient s'expliquer par des interactions complexes entre les caractéristiques. Introduire des interactions entre les variables pourrait améliorer la capacité prédictive des modèles. 
+De plus, des biais statistiques dus à la taille limitée de l'échantillon pourraient impacter certaines catégories sous-représentées.
+Enfin, certains facteurs externes importants, tels que les comportements, les facteurs environnementaux ou les conditions médicales spécifiques, n'ont pas été inclus dans l'étude. Prendre en compte ces éléments dans de futures recherches pourrait affiner les prédictions des maladies cardiaques.
