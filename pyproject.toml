@@ -5,6 +5,7 @@ description = "A curated collection of mathematics and data science projects dev
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "catboost>=1.2.8",
     "imblearn>=0.0",
     "ipykernel>=6.29.5",
     "keras>=3.11.3",
