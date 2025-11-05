@@ -30,6 +30,7 @@ The projects are organized into two main sections:
 
 - `M2`
   - `Data Visualisation`
+  - `Deep Learning`
   - `Linear Models`
   - `Machine Learning`
   - `Risks Management`
@@ -45,6 +46,7 @@ The projects are organized into two main sections:
 - [SciPy](https://www.scipy.org): A library for advanced scientific computations including optimization, integration, and signal processing.
 - [Scikit-learn](https://scikit-learn.org): A robust library offering simple and efficient tools for machine learning and statistical modeling, including classification, regression, and clustering.
 - [TensorFlow](https://www.tensorflow.org): A comprehensive open-source framework for building and deploying machine learning and deep learning models.
+- [Keras](https://keras.io): A high-level neural networks API, running on top of TensorFlow, designed for fast experimentation.
 - [Matplotlib](https://matplotlib.org): A versatile plotting library for creating high-quality static, animated, and interactive visualizations in Python.
 - [Plotly](https://plotly.com): An interactive graphing library for creating dynamic visualizations in Python and R.
 - [Seaborn](https://seaborn.pydata.org): A statistical data visualization library built on top of Matplotlib, providing a high-level interface for drawing attractive and informative graphics.
