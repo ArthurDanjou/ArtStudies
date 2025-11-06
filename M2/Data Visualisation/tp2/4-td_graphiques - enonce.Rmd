@@ -189,7 +189,7 @@ world_df <- world |>
   left_join(world_df, by = c("NAME_ENGL" = "country"))
 
 ggplot(world_df) +
-  geom_sf(color = "black", fill = "grey") +
+  geom_sf(color = "black", fill = "lightgreen") +
   theme_void()
 ```
 
