@@ -1,0 +1,243 @@
+{
+  "fields": [
+    {
+      "name": "Num_Acc",
+      "title": "Identifiant accident ",
+      "type": "integer",
+      "description": "Numéro d'identification de l'accident"
+    },
+    {
+      "name": "date",
+      "title": "Date de l'accident ",
+      "type": "string",
+      "description": "Date de l'accident",
+      "rdfType": "http://schema.org/Date"
+    },
+    {
+      "name": "an",
+      "title": "Année de l'accident",
+      "type": "integer",
+      "description": "Année de l'accident"
+    },
+    {
+      "name": "mois",
+      "title": "Mois de l'accident",
+      "type": "string",
+      "description": "Mois de l'accident"
+    },
+    {
+      "name": "jour",
+      "title": "Jour de l'accident",
+      "type": "string",
+      "description": "Jour de l'accident"
+    },
+    {
+      "name": "hrmn",
+      "title": "Heure de l'accident ",
+      "type": "string",
+      "description": "Heure de l'accident"
+    },
+    {
+      "name": "dep",
+      "title": "Département ",
+      "type": "string",
+      "description": "Département de l'accident",
+      "rdfType": "http://rdf.insee.fr/def/geo#codeDepartement"
+    },
+    {
+      "name": "com",
+      "title": "Code commune ",
+      "type": "string",
+      "description": "code commune de l'accident",
+      "rdfType": "http://rdf.insee.fr/def/geo#codeCommune"
+    },
+    {
+      "name": "lat",
+      "title": "Latitude ",
+      "type": "number",
+      "description": "Latitude de l'accident",
+      "rdfType": "http://schema.org/latitude"
+    },
+    {
+      "name": "long",
+      "title": "Longitude ",
+      "type": "number",
+      "description": "Longitude de l'accident",
+      "rdfType": "http://schema.org/longitude"
+    },
+    {
+      "name": "agg",
+      "title": "agglomération",
+      "type": "integer",
+      "description": "Accident en agglomération ou hors agglomération"
+    },
+    {
+      "name": "int",
+      "title": "Type d'intersection ",
+      "type": "integer",
+      "description": "Type d'intersection de l'accident"
+    },
+    {
+      "name": "col",
+      "title": "Type de collision ",
+      "type": "integer",
+      "description": "Type de collision de l'accident"
+    },
+    {
+      "name": "lum",
+      "title": "Luminosité ",
+      "type": "integer",
+      "description": "Luminosité durant l'accident"
+    },
+    {
+      "name": "atm",
+      "title": "Conditions atmosphériques ",
+      "type": "integer",
+      "description": "Conditions atmosphériques durant l'accident"
+    },
+    {
+      "name": "catr",
+      "title": "Catégorie route ",
+      "type": "integer",
+      "description": "Catégorie de route de l'accident"
+    },
+    {
+      "name": "circ",
+      "title": "Circulation ",
+      "type": "integer",
+      "description": "Circulation durant l'accident"
+    },
+    {
+      "name": "nbv",
+      "title": "Nombre de voies ",
+      "type": "integer",
+      "description": "Nombre de voies de circulation de l'accident"
+    },
+    {
+      "name": "prof",
+      "title": "Profil en long ",
+      "type": "integer",
+      "description": "Profil en long de la route de l'accident"
+    },
+    {
+      "name": "plan",
+      "title": "Tracé en plan ",
+      "type": "integer",
+      "description": "Tracé en plan de la route de l'accident"
+    },
+    {
+      "name": "lartpc",
+      "title": "Largeur du TPC ",
+      "type": "number",
+      "description": "Largeur du terre-plein central (TPC) s'il existe (en m)"
+    },
+    {
+      "name": "larrout",
+      "title": "Largeur de la chaussée ",
+      "type": "number",
+      "description": "Largeur de la chaussée affectée à la circulation du sens de l'accident (en m)"
+    },
+    {
+      "name": "surf",
+      "title": "Etat de la surface ",
+      "type": "integer",
+      "description": "Etat de la surface de la route de l'accident"
+    },
+    {
+      "name": "infra",
+      "title": "Aménagement - Infrastructure ",
+      "type": "integer",
+      "description": "Infrastructure de la route de l'accident"
+    },
+    {
+      "name": "situ",
+      "title": "Situation ",
+      "type": "integer",
+      "description": "Situation de l'accident"
+    },
+    {
+      "name": "grav",
+      "title": "Gravité ",
+      "type": "string",
+      "description": "Gravité de l'accident"
+    },
+    {
+      "name": "sexe",
+      "title": "Sexe ",
+      "type": "integer",
+      "description": "Sexe de la victime"
+    },
+    {
+      "name": "age",
+      "title": "Age ",
+      "type": "integer",
+      "description": "Age de la victime"
+    },
+    {
+      "name": "trajet",
+      "title": "Motif de déplacement ",
+      "type": "integer",
+      "description": "Trajet de la victime"
+    },
+    {
+      "name": "secuexist",
+      "title": "Usage de sécurité",
+      "type": "integer",
+      "description": "Critère indiquant si la visctime utilisait un équipement de sécurité"
+    },
+    {
+      "name": "equipement",
+      "title": "Equipement ",
+      "type": "string",
+      "description": "Equipement de la victime"
+    },
+    {
+      "name": "obs",
+      "title": "Obstacle fixe heurté",
+      "type": "integer",
+      "description": "Obstacle fixe heurté durant l'accident (si obstacle fixe heurté)"
+    },
+    {
+      "name": "obsm",
+      "title": "Obstacle mobile heurté",
+      "type": "integer",
+      "description": "Obstacle mobile heurté durant l'accident (si obstacle mobile heurté)"
+    },
+    {
+      "name": "choc",
+      "title": "Choc subi",
+      "type": "integer",
+      "description": "Description du choc subi (si choc)"
+    },
+    {
+      "name": "manv",
+      "title": "Manoeuvre avant l'accident",
+      "type": "integer",
+      "description": "Manoeuvre du véhicule avant l'accident (si manoeuvre)"
+    },
+    {
+      "name": "vehiculeid",
+      "title": "Identifiant du véhicule",
+      "type": "string",
+      "description": "Identifiant du véhicule lié à l'accident, (format : id accident + id véhicule)"
+    },
+    {
+      "name": "typevehicules",
+      "title": "Type des autres véhicules",
+      "type": "string",
+      "description": "Type des véhicules liés à l'accident"
+    },
+    {
+      "name": "manoeuvehicules",
+      "title": "Manoeuvre du véhicule lié à l'accident",
+      "type": "string",
+      "description": "Manoeuvre des véhicules lié à l'accident (si manoeuvre)"
+    },
+    {
+      "name": "numVehicules",
+      "title": "Nombre d'autres véhicules",
+      "type": "integer",
+      "description": "Nombre d'autres véhicules lié à l'accident"
+    }
+  ]
+}

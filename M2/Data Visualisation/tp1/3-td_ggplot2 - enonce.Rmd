@@ -297,8 +297,8 @@ On présente ci-dessous un aperçu des données.
 fold <- getwd()
 
 # Load data
-# load(paste0(fold, "/data/datafreMPTL.RData"))
-load(paste0(fold, "/M2/Data Visualisation/tp1", "/data/datafreMPTL.RData"))
+load(paste0(fold, "/data/datafreMPTL.RData"))
+# load(paste0(fold, "/M2/Data Visualisation/tp1", "/data/datafreMPTL.RData"))
 paged_table(dat, options = list(rows.print = 15))
 ```
 
@@ -427,24 +427,24 @@ d’observations avec 0 sinistre, 1 sinistre, …
 :::
 
 ```{r}
-dat %>%
-  group_by(ClaimNb) %>%
-  summarise(n = n(), Exposure = round(sum(Exposure), 0)) %>%
+dat |>
+  group_by(ClaimNb) |>
+  summarise(n = n(), Exposure = round(sum(Exposure), 0)) |>
   kable(
     col_names = c(
       "Nombre de sinistres",
       "Nombres d'observations",
       "Exposition totale"
     )
-  ) %>%
-  kable_styling(full_width = F)
+  ) |>
+  kable_styling(full_width = FALSE)
 ```
 
 ```{r}
 pf_freq <- round(sum(dat$ClaimNb) / sum(dat$Exposure), 4)
 pf_freq
-``
-`
+```
+
 Ce calcul de fréquence sera ensuite utile pour l'affichage des
 résultats.
 
@@ -469,47 +469,45 @@ package **ggplot2**.
 ```{r, eval = FALSE}
 # On regroupe selon les modalites de la DrivAge
 # l'exposition, le nombre de sinistres et la frequence
-df_plot <- dat %>%
-  group_by(DrivAge) %>%
-  summarize(exp = Exposure, nb_claims = ClaimNb, freq = nb_claims / exp)
+df_plot <- dat |>
+  group_by(DrivAge) |> 
+  summarize(
+    exp = sum(Exposure),
+    nb_claims = sum(ClaimNb),
+    freq = sum(ClaimNb) / sum(Exposure)
+  )
 
 # Histogramme exposition
-ggplot(df_plot) +
-  geom_bar(
-    aes(x = DrivAge, y = exp),
-    stat = "identity",
-    fill = "lightblue",
-    color = "blue"
-  ) +
-  labs(
-    title = "Exposition par âge du conducteur",
-    x = "Âge du conducteur",
-    y = "Exposition"
-  ) +
-  theme_minimal()
+p1 <- ggplot(df_plot, aes(x = DrivAge, y = exp)) + 
+  geom_bar(stat = "identity", fill = "grey", color = "black", alpha = 0.5) +
+  labs(x = "Age du conducteur", y = "Exposition en années") +
+  theme_bw()
 
-# Histogramme frequence
-ggplot(df_plot) +
-  geom_bar(
-    aes(x = DrivAge, y = freq),
-    stat = "identity",
-    fill = "lightblue",
-    color = "blue"
-  ) +
-  labs(
-    title = "Fréquence par âge du conducteur",
-    x = "Âge du conducteur",
-    y = "Fréquence"
-  ) +
-  theme_minimal()
+  # Histogramme frequence
+  p2 <- ggplot(df_plot, aes(x = DrivAge, y = freq)) +
+    geom_bar(stat = "identity", fill = "grey", color = "black", alpha = 0.5) +
+    labs(x = "Age du conducteur", y = "Frequence") + 
+    theme_bw()
+  
+plot_grid(p1, p2, labels = c('A', 'B'), label_size = 12)
 ```
 
 ```{r}
+df_plot <- dat |>
+  group_by(DrivAge) |> 
+  summarize(
+    exp = sum(Exposure),
+    nb_claims = sum(ClaimNb),
+    freq = sum(ClaimNb) / sum(Exposure)
+  )
 
 # Scatter plot frequence
-
-# A compléter
-
+p3 <- ggplot(df_plot, aes(x = DrivAge, y = freq)) +
+  geom_point() + 
+  geom_smooth() +
+  labs(x = "Age du conducteur", y = "Frequence")  + 
+  theme_bw()
+p3
 ```
 
 ### Etape 4 : Examiner l'intéraction avec une autre variable {.unnumbered}
@@ -525,9 +523,20 @@ améliorations en modifiant les variables `DrivAge` et `BonusMalus`.
 ```{r}
 # On regroupe selon les modalites de la DrivAge et de Area
 # l'exposition, le nombre de sinistres et la frequence 
+df_plot <- dat |>
+  group_by(DrivAge, BonusMalus) |> 
+  summarize(
+    exp = sum(Exposure),
+    nb_claims = sum(ClaimNb),
+    freq = sum(ClaimNb) / sum(Exposure)
+  )
 
-# A compléter
-
+p4 <- ggplot(df_plot, aes(x = DrivAge, y = freq, color = BonusMalus)) +
+  geom_point() + 
+  geom_smooth() +
+  labs(x = "Age du conducteur", y = "Frequence", color = "Bonus-Malus") +
+  theme_bw()
+p4
 ```
 
 On propose 4 ajustements :
@@ -543,18 +552,29 @@ On propose 4 ajustements :
 lim_classes <- c(50, 75, 100, 125, Inf)
 
 # Exclusion des donnees "extremes" et faire les regroupement
-df_plot <- dat %>%
-  filter(DrivAge <= 85, BonusMalus <= 125) %>%
+df_plot <- dat |>
+  filter(DrivAge <= 85, BonusMalus <= 125) |>
   # regroupement en classes d'ages de 5 ans
-  mutate(DrivAge = ceiling(pmin(DrivAge, 85) / 5) * 5) %>%
-  mutate(BonusMalus = cut(BonusMalus, 
-                          breaks = lim_classes, include.lowest = TRUE))
+  mutate(DrivAge = ceiling(pmin(DrivAge, 85) / 5) * 5) |>
+  mutate(BonusMalus = cut(BonusMalus, breaks = lim_classes, include.lowest = TRUE))
   
 # On regroupe selon les modalites de la DrivAge et de Area
 # l'exposition, le nombre de sinistres et la frequence 
+df_plot <- df_plot |>
+  group_by(DrivAge, BonusMalus) |> 
+  summarize(
+    exp = sum(Exposure),
+    nb_claims = sum(ClaimNb),
+    freq = sum(ClaimNb) / sum(Exposure)
+  )
 
-# A compléter
-
+# Scatter plot frequence
+p5 <- ggplot(df_plot, aes(x = DrivAge, y = freq, color = BonusMalus)) +
+  geom_point() + 
+  geom_smooth() +
+  labs(x = "Age du conducteur", y = "Frequence", color = "Bonus-Malus") +
+  theme_bw()
+p5
 ```
 
 ### Conclure {.unnumbered}
@@ -565,8 +585,28 @@ bonus-malus.
 :::
 
 ```{r, fig.height = 6, fig.width = 12}
+# Histogramme plot frequence
+p6 <- ggplot(df_plot, aes(x = DrivAge, y = exp, fill = BonusMalus)) +
+  geom_bar(stat = "identity", color = "black", alpha = 0.5) +
+  scale_x_continuous(breaks = seq(20, 85, 20), limits = c(20, 85)) +
+  labs(x = "Age du conducteur", y = "Exposition en années") +
+  theme_bw()
 
-# A compléter
+
+# Ajustement des legendes pour faire un graphique multiple
+p5 <- p5 +
+  theme(
+    legend.position = "bottom"
+  ) +
+  labs(color = "BonusMalus")
+p6 <- p6 +
+  theme(
+    legend.position = "bottom"
+  ) +
+  labs(fill = "BonusMalus")
+
+# Creation d'un graphique avec deux figures et une légende commune
+plot_grid(p6, p5, ncol = 2)
 ```
 
 ### Bonus - Analyse des couples {.unnumbered}
@@ -579,7 +619,7 @@ les couples de variables.
 Compléter pour cela la fonction suivante et appliquer la à différents
 couples.
 
-```{r, eval = F}
+```{r}
 # Fonction d'analyse bivariée
 # df : nom du data.frame
 # var1 : nom de la variable explicative 1
@@ -591,39 +631,48 @@ plot_pairwise_disc <- function(df, var1, var2)
 #  replace variable vname by the binning variable
   if(is.numeric(df$varx))
   {
-    df <- df %>%
+    df <- df |>
       mutate(varx = ntile(varx, 5))
   }
  
  if(is.numeric(df$vary))
   {
-    df <- df %>%
+    df <- df |>
       mutate(vary = ntile(vary, 5),
              vary = factor(vary))
   }
  
- df %>% 
-   group_by(??) %>%
-   summarize(exp = ??,
-             nb_claims = ??,
-             freq = ??,
-             .groups = "drop") %>%
-   ggplot(aes(x = ??, 
-              y = ??,
-              colour = ??,
-              group = vary),
-          alpha = 0.3) + 
+ df |> 
+   group_by(varx, vary) |>
+   summarize(exp = sum(Exposure),
+             nb_claims = sum(ClaimNb),
+             freq = sum(ClaimNb) / sum(Exposure), .groups = "drop") |>
+   ggplot(aes(x = varx, 
+              y = freq,
+              colour = vary,
+              group = vary), alpha = 0.3) + 
    geom_point() + geom_line() + theme_bw() +
    labs(x = var1,  y = "Frequence", colour = var2)
 }
-`
-``
+```
+
+```{r}
+p1 <- plot_pairwise_disc(dat, "DrivAge", "BonusMalus")
+p2 <- plot_pairwise_disc(dat, "VehAge", "BonusMalus")
+p3 <- plot_pairwise_disc(dat, "BonusMalus", "VehBrand")
+p4 <- plot_pairwise_disc(dat, "VehBrand", "Area")
+p5 <- plot_pairwise_disc(dat, "BonusMalus", "VehGas")
+p6 <- plot_pairwise_disc(dat, "BonusMalus", "Area")
+p7 <- plot_pairwise_disc(dat, "DrivAge", "Area")
+p8 <- plot_pairwise_disc(dat, "VehPower", "VehGas")
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, ncol = 2)
+```
 :::
 
 # Informations de session {.unnumbered}
 
-```{r}
 sessionInfo()
 ```
 
 # Références
+:::
