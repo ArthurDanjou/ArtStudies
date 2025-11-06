@@ -333,7 +333,7 @@ Voici un premier code à trou pour vous aider. Pour alléger les temps de
 production afficher uniquement quelques points. Vous pourrez ajouter
 l'ensemble du jeu de données quand votre code sera finalisé.
 
-```{r, eval=F}
+```{r}
 library(mapview)
 library(sf)
 
@@ -343,7 +343,7 @@ df_map_dyn <- accidents |>
   na.omit()
 
 # Make map and print it
-mymap <- st_as_sf()
+mymap <- st_as_sf(df_map_dyn, coords=c("long", "lat"), crs=4326)
 mapview(mymap, cex = 2, layer.name = "Gravité",
         zcol = "grav",legend = TRUE )
 ```
