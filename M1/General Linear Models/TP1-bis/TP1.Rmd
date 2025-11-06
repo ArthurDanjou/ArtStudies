@@ -1,5 +1,5 @@
 ```{r}
-setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP1-bis')
+setwd("/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP1-bis")
 
 library(tidyverse)
 options(scipen = 999, digits = 5)
@@ -56,8 +56,8 @@ summary(model)
 coef(model)
 ```
 ```{r}
-data <- data %>%
-  mutate(yhat = beta0 + beta1 * poids) %>%
+data <- data |>
+  mutate(yhat = beta0 + beta1 * poids) |>
   mutate(residuals = cholesterol - yhat)
 
 data
@@ -71,8 +71,8 @@ ggplot(data, aes(x = poids, y = cholesterol)) +
 ```{r}
 mean(data[, "cholesterol"])
 mean(data[, "yhat"])
-mean(data[, "residuals"]) %>% round(10)
-cov(data[, "residuals"], data[, "poids"]) %>% round(10)
+mean(data[, "residuals"]) |> round(10)
+cov(data[, "residuals"], data[, "poids"]) |> round(10)
 (RSS <- sum((data[, "residuals"])^2))
 (TSS <- sum((y - mean(y))^2))
 TSS - beta1 * Sxy
@@ -117,10 +117,10 @@ t <- qt(0.975, dof)
 sigma_hat <- sigma(model)
 n <- nrow(data)
 
-data <- data %>%
+data <- data |>
   mutate(error = t *
     sigma_hat *
-    sqrt(1 / n + (poids - mean(poids))^2 / RSS)) %>%
+    sqrt(1 / n + (poids - mean(poids))^2 / RSS)) |>
   mutate(conf.low = yhat - error, conf.high = yhat + error, error = NULL)
 
 ggplot(data, aes(x = poids, y = cholesterol)) +

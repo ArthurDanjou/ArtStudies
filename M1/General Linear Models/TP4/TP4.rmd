@@ -1,5 +1,5 @@
 ```{r}
-setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP4')
+setwd("/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP4")
 
 set.seed(0911)
 library(ggplot2)
@@ -22,19 +22,19 @@ library(lmtest) # LRtest
 library(survey) # Wald test
 library(vcdExtra) # deviance test
 
-library(rsample)   # for data splitting
+library(rsample) # for data splitting
 library(glmnet)
 library(nnet) # multinom, glm
 library(caret)
 library(ROCR)
-#library(PRROC) autre package pour courbe roc et courbe pr
+# library(PRROC) autre package pour courbe roc et courbe pr
 library(ISLR) # dataset for statistical learning
 
-ggplot2::theme_set(ggplot2::theme_light())# Set the graphical theme
+ggplot2::theme_set(ggplot2::theme_light()) # Set the graphical theme
 ```
 ```{r}
-car <- read.table('car_income.txt', header = TRUE, sep = ';')
-car %>% rmarkdown::paged_table()
+car <- read.table("car_income.txt", header = TRUE, sep = ";")
+car |> rmarkdown::paged_table()
 summary(car)
 ```
 
@@ -44,7 +44,7 @@ summary(model_purchase)
 ```
 
 ```{r}
-p1 <- car %>%
+p1 <- car |>
   ggplot(aes(y = purchase, x = income + age)) +
   geom_point(alpha = .15) +
   geom_smooth(method = "lm") +
@@ -53,7 +53,7 @@ p1 <- car %>%
   ylab("Probability of Purchase")
 
 
-p2 <- car %>%
+p2 <- car |>
   ggplot(aes(y = purchase, x = income + age)) +
   geom_point(alpha = .15) +
   geom_smooth(method = "glm", method.args = list(family = "binomial")) +
@@ -66,9 +66,9 @@ ggplotly(p2)
 ```
 
 ```{r}
-car <- car %>%
+car <- car |>
   mutate(old = ifelse(car$age > 3, 1, 0))
-car <- car %>%
+car <- car |>
   mutate(rich = ifelse(car$income > 40, 1, 0))
 model_old <- glm(purchase ~ age + income + rich + old, data = car, family = "binomial")
 summary(model_old)
@@ -90,5 +90,5 @@ pima.te$pred <- as.factor(pima.te$pred)
 pima.te$type <- as.factor(pima.te$type)
 
 # Confusion matrix
-confusionMatrix(data = pima.te$type, reference = pima.te$pred, positive = 'Yes')
+confusionMatrix(data = pima.te$type, reference = pima.te$pred, positive = "Yes")
 ```

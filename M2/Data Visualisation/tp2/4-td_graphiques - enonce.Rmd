@@ -23,8 +23,13 @@ editor_options:
 
 ```{r setup, include=FALSE}
 ## Global options
-knitr::opts_chunk$set(cache = FALSE, warning = FALSE, message = FALSE, fig.retina = 2)
-options(encoding = 'UTF-8')
+knitr::opts_chunk$set(
+  cache = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.retina = 2
+)
+options(encoding = "UTF-8")
 ```
 
 
@@ -33,11 +38,11 @@ options(encoding = 'UTF-8')
 library(lattice)
 library(grid)
 library(ggplot2)
-require(gridExtra)
+require(gridExtra) 
 library(locfit)
 library(scales)
 library(formattable)
-library(RColorBrewer)
+library(RColorBrewer) 
 library(plotly)
 library(dplyr)
 library(tidyr)
@@ -88,7 +93,7 @@ de vie par pays sur la période 1952-1990. Les observations ont lieu tous les 5 
 Dans un premier temps, il faut installer le package et le charger. 
 
 ```{r}
-# install.packages("gapminder")
+# install.packages("gapminder") #nolint
 library(gapminder)
 ```
 
@@ -140,7 +145,7 @@ pouvez observer entre `gdpPercap` et `lifeExp`.
 :::
 
 ```{r}
-ggplot(data = gapminder, aes(x = gdpPercap, y = lifeExp)) +
+ggplot(data = gapminder, aes(x = gdpPercap, y = lifeExp)) + 
   geom_point()
 ```
 
@@ -158,7 +163,7 @@ visualisations permettant de comparer des distributions.
 
 ```{r}
 ggplot(data = gapminder, aes(x = lifeExp)) + 
-    geom_density()
+  geom_density()
 ```
 
 
@@ -171,16 +176,16 @@ Il faut au préalable récupérer un fond de carte (ici de l'année 2016). Nous 
 les données `gapminder` de 2007.
 
 ```{r}
-library(giscoR)
+library(giscoR) 
 library(sf)
 
 world <- gisco_countries
 world <- subset(world, NAME_ENGL != "Antarctica") # Remove Antartica
 
 # Merge data
-world_df <- gapminder %>%
+world_df <- gapminder |>
   filter(year == "2007")
-world_df <- world %>%
+world_df <- world |>
   left_join(world_df, by = c("NAME_ENGL" = "country"))
 
 ggplot(world_df) +
@@ -231,7 +236,7 @@ accidents <- read_csv("data/accidentsVelo.csv",
                                        date = col_date(format = "%Y-%m-%d")))
 
 # few ajustements 
-accidents <- accidents %>%
+accidents <- accidents |>
   mutate(mois = factor(mois),
          jour = factor(jour),
          dep = factor(dep),
@@ -247,8 +252,8 @@ correct <- paste0("0", str_sub(correct, 1, 1), ":",
 accidents$hrmn[issue] <- correct
 
 # Extract hour
-accidents <- accidents %>%
-  mutate(hour = paste(date, hrmn, sep = " ")) %>%
+accidents <- accidents |>
+  mutate(hour = paste(date, hrmn, sep = " ")) |>
   mutate(hour = strptime(hour, "%Y-%m-%d %H:%M")$hour)
 
 # mapping table for french departments
@@ -327,8 +332,8 @@ library(mapview)
 library(sf)
 
 ## Remove NA
-df_map_dyn <- accidents %>%
-  filter(???) %>%
+df_map_dyn <- accidents |>
+  filter(???) |>
   na.omit()
 
 # Make map and print it
@@ -354,27 +359,27 @@ Voici un premier code à trou pour vous aider.
 
 ```{r, eval = F}
 # get french map - level nuts2
-fr <- gisco_get_nuts(resolution = "20", country = ???, nuts_level = ???) %>%
+fr <- gisco_get_nuts(resolution = "20", country = ???, nuts_level = ???) |>
   mutate(res = "20M")
 
 # Remove white-space to avoid errors.
 library(stringr)
-departements_francais <- departements_francais %>%
+departements_francais <- departements_francais |>
   mutate(dep_name = str_trim(dep_name))
 
-fr <- fr %>%
+fr <- fr |>
   mutate(NUTS_NAME = str_trim(NUTS_NAME))
 
 # Merge and remove departements outside metropolitan France
-fr_map <- fr %>%
-  left_join(???) %>%
+fr_map <- fr |>
+  left_join(???) |>
   filter(! dep %in% c("971", ???) )
 
 # count the number of accidents
 df_acc <-  ???
 
 # merge statistics with the map
-map_acc <- fr_map %>%
+map_acc <- fr_map |>
   left_join(df_acc, by = c("dep" =  "dep"))
 
 # map with all accidents

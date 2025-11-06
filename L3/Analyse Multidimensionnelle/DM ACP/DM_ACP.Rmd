@@ -44,11 +44,10 @@ notes_MAN <- read.table("notes_MAN.csv", sep = ";", dec = ",", row.names = 1, he
 # qui est une variable catégorielle
 notes_MAN_prep <- notes_MAN[, -1]
 
-X <- notes_MAN[1:6,] %>% select(c("Probas", "Analyse", "Anglais", "MAN.Stats", "Stats.Inférentielles"))
+X <- notes_MAN[1:6, ] |> select(c("Probas", "Analyse", "Anglais", "MAN.Stats", "Stats.Inférentielles"))
 # on prépare le jeu de données en retirant la colonne des Mentions
 # qui est une variable catégorielle
 # View(X)
-
 ```
 
 ```{r}
@@ -101,7 +100,7 @@ C[, 1:2]
 deux premières composantes principales (1 point)
 
 ```{r}
-colors <- c('blue', 'red', 'green', 'yellow', 'purple', 'orange')
+colors <- c("blue", "red", "green", "yellow", "purple", "orange")
 plot(
   C[, 1], C[, 2],
   main = "Coordonnées des individus par rapport \n aux deux premières composantes principales",
@@ -111,7 +110,7 @@ plot(
   col = colors,
   pch = 15
 )
-legend(x = 'topleft', legend = rownames(X), col = colors, pch = 15)
+legend(x = "topleft", legend = rownames(X), col = colors, pch = 15)
 ```
 
 ------------------------------------------------------------------------
@@ -130,7 +129,7 @@ ncol(notes_MAN_prep) # Nombre de variables
 ```
 
 ```{r}
-dim(notes_MAN_prep) # On peut également utiliser 'dim' qui renvoit la dimension 
+dim(notes_MAN_prep) # On peut également utiliser 'dim' qui renvoit la dimension
 ```
 
 Il y a donc **42** individus et **14** variables. A noter que la
@@ -146,7 +145,7 @@ library(FactoMineR)
 ```{r}
 # Ne pas oublier de charger la librairie FactoMineR
 
-# Indication : pour afficher les résultats de l'ACP pour tous les individus, utiliser la 
+# Indication : pour afficher les résultats de l'ACP pour tous les individus, utiliser la
 # fonction summary en précisant dedans nbind=Inf et nbelements=Inf
 res.notes <- PCA(notes_MAN_prep, scale.unit = TRUE)
 ```
@@ -190,7 +189,7 @@ avec:
 Depuis notre ACP, on peut donc récupérer les coordonnées:
 
 ```{r}
-coords_man_stats <- res.notes$var$coord["MAN.Stats",]
+coords_man_stats <- res.notes$var$coord["MAN.Stats", ]
 coords_man_stats[1:2]
 ```
 

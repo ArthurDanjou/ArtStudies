@@ -1,5 +1,5 @@
 ```{r}
-setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP2-bis')
+setwd("/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP2-bis")
 
 library(tidyverse)
 library(GGally)
@@ -10,9 +10,9 @@ library(qqplotr)
 options(scipen = 999, digits = 5)
 ```
 ```{r}
-data <- read.csv('data02.csv', sep = ',', header = TRUE, dec = ".")
-data %>%
-  mutate(type = factor(type, levels = c("maths", "english", "final"), labels = c("maths", "english", "final"))) %>%
+data <- read.csv("data02.csv", sep = ",", header = TRUE, dec = ".")
+data |>
+  mutate(type = factor(type, levels = c("maths", "english", "final"), labels = c("maths", "english", "final"))) |>
   ggplot(aes(x = note)) +
   facet_wrap(vars(type), scales = "free_x") +
   geom_histogram(binwidth = 4, color = "black", fill = "grey80") +
@@ -21,8 +21,8 @@ data %>%
 ```
 ```{r}
 data_wide <- pivot_wider(data, names_from = type, values_from = note)
-data_wide %>%
-  select(-id) %>%
+data_wide |>
+  select(-id) |>
   ggpairs() + theme_bw(14)
 ```
 ```{r}
@@ -67,12 +67,12 @@ linearHypothesis(model, "maths - english = 0")
 
 # Submodel testing
 ```{r}
-data_predict <- predict(model, newdata = expand.grid(maths = seq(70, 90, 2), english = c(75, 85)), interval = "confidence") %>%
-  as_tibble() %>%
+data_predict <- predict(model, newdata = expand.grid(maths = seq(70, 90, 2), english = c(75, 85)), interval = "confidence") |>
+  as_tibble() |>
   bind_cols(expand.grid(maths = seq(70, 90, 2), english = c(75, 85)))
 
-data_predict %>%
-  mutate(english = as.factor(english)) %>%
+data_predict |>
+  mutate(english = as.factor(english)) |>
   ggplot(aes(x = maths, y = fit, color = english, fill = english, label = round(fit, 1))) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2, show.legend = FALSE) +
   geom_point(size = 2) +

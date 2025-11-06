@@ -1,5 +1,5 @@
 ```{r}
-setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP3')
+setwd("/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP3")
 ```
 
 # Question 1 : Import dataset and check variables
@@ -9,8 +9,8 @@ library(dplyr)
 ozone <- read.table("ozone.txt", header = TRUE, sep = " ", dec = ".")
 ozone$vent <- as.factor(ozone$vent)
 ozone$temps <- as.factor(ozone$temps)
-ozone <- ozone %>% mutate(across(where(is.character), as.numeric))
-ozone <- ozone %>% mutate(across(where(is.integer), as.numeric))
+ozone <- ozone |> mutate(across(where(is.character), as.numeric))
+ozone <- ozone |> mutate(across(where(is.integer), as.numeric))
 paged_table(ozone)
 ```
 
@@ -25,8 +25,8 @@ summary(model_T12)
 library(ggplot2)
 
 ggplot(ozone, aes(x = T12, y = maxO3)) +
-  geom_smooth(method = 'lm', se = T) +
-  geom_point(col = 'red', size = 0.5) +
+  geom_smooth(method = "lm", se = T) +
+  geom_point(col = "red", size = 0.5) +
   labs(title = "maxO3 ~ T12") +
   theme_minimal()
 ```
@@ -130,5 +130,4 @@ new_obs <- list(
   maxO3v = 85
 )
 predict(model_backward, new_obs, interval = "confidence")
-
 ```

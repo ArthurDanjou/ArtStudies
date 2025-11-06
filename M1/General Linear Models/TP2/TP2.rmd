@@ -1,5 +1,5 @@
 ```{r}
-setwd('/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP2')
+setwd("/Users/arthurdanjou/Workspace/studies/M1/General Linear Models/TP2")
 ```
 
 # Question 1 : Import dataset and check variables
@@ -9,8 +9,8 @@ library(dplyr)
 cepages <- read.csv("Cepages B TP2.csv", header = TRUE, sep = ";", dec = ",")
 cepages$Couleur <- as.factor(cepages$Couleur)
 cepages$Origine <- as.factor(cepages$Origine)
-cepages <- cepages %>% mutate(across(where(is.character), as.numeric))
-cepages <- cepages %>% mutate(across(where(is.integer), as.numeric))
+cepages <- cepages |> mutate(across(where(is.character), as.numeric))
+cepages <- cepages |> mutate(across(where(is.integer), as.numeric))
 paged_table(cepages)
 ```
 
@@ -39,7 +39,7 @@ tapply(cepages$pH, list(cepages$Couleur, cepages$Origine), mean)
 library(ggplot2)
 
 ggplot(cepages, aes(x = AcTot, y = pH, color = Couleur)) +
-  geom_point(col = 'red', size = 0.5) +
+  geom_point(col = "red", size = 0.5) +
   geom_smooth(method = "lm", se = F)
 
 ggplot(cepages, aes(y = pH, x = AcTot, colour = Couleur, fill = Couleur)) +
@@ -50,8 +50,8 @@ ggplot(cepages, aes(y = pH, x = AcTot, colour = Couleur, fill = Couleur)) +
 
 ```{r}
 ggplot(cepages, aes(x = AcTot, y = pH, color = Origine)) +
-  geom_smooth(method = 'lm', se = F) +
-  geom_point(col = 'red', size = 0.5)
+  geom_smooth(method = "lm", se = F) +
+  geom_point(col = "red", size = 0.5)
 
 ggplot(cepages, aes(y = pH, x = AcTot, colour = Origine, fill = Origine)) +
   geom_boxplot(alpha = 0.5, outlier.alpha = 0)

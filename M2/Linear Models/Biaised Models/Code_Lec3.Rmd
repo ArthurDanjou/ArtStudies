@@ -194,11 +194,11 @@ linear.mod$results
 ```{r}
 Ytrain <- cookie.train$sugars
 dfc_train <- data.frame(ytrain = Ytrain, linear.mod = fitted(linear.mod))
-dfc_train %>% rmarkdown::paged_table()
+dfc_train |> rmarkdown::paged_table()
 ```
 
 ```{r}
-dfc_train %>%
+dfc_train |>
   ggplot(aes(x = ytrain, y = linear.mod)) +
   geom_point(size = 2, color = "#983399") +
   geom_smooth(method = "lm", color = "#389900") +
@@ -211,9 +211,9 @@ dfc_train %>%
 Ytest <- cookie.test$sugars
 dfc_test <- data.frame(ytest = Ytest)
 dfc_test$linear.mod <- predict(linear.mod, newdata = cookie.test)
-# dfc_test%>%rmarkdown::paged_table()
+# dfc_test|>rmarkdown::paged_table()
 
-dfc_test %>%
+dfc_test |>
   ggplot(aes(x = ytest, y = linear.mod)) +
   geom_point(size = 2, color = "#983399") +
   geom_smooth(method = "lm", color = "#389900") +
@@ -244,7 +244,7 @@ ggplotly(ggplot(Lasso))
 ```
 
 ```{r}
-Lasso$results %>% rmarkdown::paged_table()
+Lasso$results |> rmarkdown::paged_table()
 ```
 
 ```{r}
@@ -271,8 +271,8 @@ coef_lasso <- data.frame(
   Variable = rownames(as.matrix(coef(Lasso$finalModel, Lasso$bestTune$lambda))),
   Coefficient = as.matrix(coef(Lasso$finalModel, Lasso$bestTune$lambda))[, 1]
 )
-coef_lasso %>%
-  subset(Coefficient != 0) %>%
+coef_lasso |>
+  subset(Coefficient != 0) |>
   rmarkdown::paged_table()
 ```
 
@@ -298,7 +298,7 @@ ggplotly(ggplot(ridge))
 ```
 
 ```{r}
-ridge$results %>% rmarkdown::paged_table()
+ridge$results |> rmarkdown::paged_table()
 ```
 
 ```{r}
@@ -320,7 +320,7 @@ vip(ridge, num_features = 15)
 ```
 
 ```{r}
-data.frame(as.matrix(coef(ridge$finalModel, ridge$bestTune$lambda))) %>%
+data.frame(as.matrix(coef(ridge$finalModel, ridge$bestTune$lambda))) |>
   rmarkdown::paged_table()
 ```
 
@@ -346,7 +346,7 @@ ggplotly(ggplot(ElNet))
 ```
 
 ```{r}
-ElNet$results %>% rmarkdown::paged_table()
+ElNet$results |> rmarkdown::paged_table()
 ```
 
 ```{r}
@@ -372,8 +372,8 @@ coef_elnet <- data.frame(
   Variable = rownames(as.matrix(coef(ElNet$finalModel, ElNet$bestTune$lambda))),
   Coefficient = as.matrix(coef(ElNet$finalModel, ElNet$bestTune$lambda))[, 1]
 )
-coef_elnet %>%
-  subset(Coefficient != 0) %>%
+coef_elnet |>
+  subset(Coefficient != 0) |>
   rmarkdown::paged_table()
 ```
 
@@ -396,7 +396,7 @@ ggplotly(ggplot(pls_mod))
 ```
 
 ```{r}
-pls_mod$results %>% rmarkdown::paged_table()
+pls_mod$results |> rmarkdown::paged_table()
 ```
 
 ```{r}
@@ -412,7 +412,7 @@ vip(pls_mod, num_features = 20)
 ```
 
 ```{r}
-data.frame(Coefficients = as.matrix(coef(pls_mod$finalModel))) %>%
+data.frame(Coefficients = as.matrix(coef(pls_mod$finalModel))) |>
   rmarkdown::paged_table()
 ```
 
@@ -435,7 +435,7 @@ dTrain$ridge <- fitted(ridge)
 dTrain$ElNet <- fitted(ElNet)
 dTrain$pls <- fitted(pls_mod)
 melt.dTrain <- melt(dTrain, id = "yTrain", variable.name = "model")
-melt.dTrain %>% ggplot() +
+melt.dTrain |> ggplot() +
   aes(x = yTrain, y = value) +
   geom_smooth(method = "lm") +
   geom_point(size = 1, colour = "#983399") +
@@ -446,11 +446,11 @@ melt.dTrain %>% ggplot() +
 ```
 
 ```{r}
-dTrain %>% rmarkdown::paged_table()
+dTrain |> rmarkdown::paged_table()
 ```
 
 ```{r}
-melt.dTrain %>% rmarkdown::paged_table()
+melt.dTrain |> rmarkdown::paged_table()
 ```
 
 ### On the test set
@@ -463,10 +463,10 @@ dTest$Lasso <- predict(Lasso, newdata = cookie.test)
 dTest$ridge <- predict(ridge, newdata = cookie.test)
 dTest$ElNet <- predict(ElNet, newdata = cookie.test)
 dTest$pls <- predict(pls_mod, newdata = cookie.test)
-# dTest%>% rmarkdown::paged_table()
+# dTest|> rmarkdown::paged_table()
 melt.dTest <- melt(dTest, id = "yTest", variable.name = "model")
-# melt.dTest%>% rmarkdown::paged_table()
-melt.dTest %>% ggplot() +
+# melt.dTest|> rmarkdown::paged_table()
+melt.dTest |> ggplot() +
   aes(x = yTest, y = value) +
   geom_smooth(method = "lm") +
   geom_point(size = 1, colour = "#983399") +
@@ -491,8 +491,8 @@ RMSE <- rbind.data.frame(
 )
 names(RMSE) <- c("Train", "Test")
 row.names(RMSE) <- c("Linear", "Lasso", "Ridge", "ElNet", "PLS")
-RMSE %>%
-  kableExtra::kbl() %>%
+RMSE |>
+  kableExtra::kbl() |>
   kableExtra::kable_styling()
 ```
 

@@ -21,27 +21,27 @@ editor_options:
 # Installation des librairies nécesssaires
 
 # Pour les graphiques
-library(ggplot2) # créer des graphiques 
-library(gridExtra) # organiser et agencer plusieurs graphiques 
+library(ggplot2) # créer des graphiques
+library(gridExtra) # organiser et agencer plusieurs graphiques
 library(tidyr) # remodeler ou restructurer les données
 library(plotly) # créer des graphiques interactifs
 library(gmodels) # créer des graphiques spécifiques à la modélisation statistique
 
 # Pour les tableaux
 library(knitr)
-library(kableExtra) # créer des tableaux 
+library(kableExtra) # créer des tableaux
 
-# Pour les corrélations 
+# Pour les corrélations
 library(GGally) # extension à ggplot2
 library(corrplot) # visualiser la matrice de corrélations
-library(magrittr) # pour les pipes (%>%)
+library(magrittr) # pour les pipes (|>)
 
 # Pour les modèles
 library(glm2) # créer des modèles linéaires généralisés
 library(caret) # ajuster des modèles et évaluer les performances
 library(broom) # convertir les résultats de modèles statistiques en cadres de données "tidy"
 library(randomForest) # créer des modèles Random Forest
-library(rpart) # créer des arbres de décisions 
+library(rpart) # créer des arbres de décisions
 
 # pour les performances
 library(pROC) # pour la courbe ROC
@@ -68,7 +68,7 @@ La variable cible est la variable nommée *target*. Elle représente l'état du 
 
 Dans un premier temps, on importe les données et on affiche un aperçu de celles-ci pour les observer rapidement.
 ```{r}
-# Téléchargement du jeu de données 
+# Téléchargement du jeu de données
 df <- read.csv("heart.csv")
 
 # Affichage du jeu de données sous forme de tableau
@@ -78,15 +78,15 @@ rmarkdown::paged_table(df)
 
 On affiche aussi la dimension du jeu de données : 
 ```{r}
-# Création d'un dataframe contenant les dimensions 
-dim <- data.frame(dim(df)) 
-rownames(dim) <- c("Nombre de lignes","Nombre de colonnes") # Nom des lignes du tableau
+# Création d'un dataframe contenant les dimensions
+dim <- data.frame(dim(df))
+rownames(dim) <- c("Nombre de lignes", "Nombre de colonnes") # Nom des lignes du tableau
 colnames(dim) <- c("") # Nom de la colonne du tableau
 
 # Affichage des dimensions du jeu de données dans un tableau
-dim %>% 
-  kbl(caption = "Dimension du jeu de données") %>%
-  kable_styling() 
+dim |>
+  kbl(caption = "Dimension du jeu de données") |>
+  kable_styling()
 ```
 
 Le jeu de données comporte 303 lignes, c'est-à-dire 303 observations (individus) et 14 colonnes, c'est-à-dire 14 variables. 13 d'entre elles sont les variables explicatives et la dernière est la variable cible (la variable *target* comme vu en introduction). 
@@ -100,35 +100,42 @@ str(df)
 ```
 
 ```{r}
-# Affichage de la définition des variables dans un tableau 
-kable(caption = "Définition des variables", # Titre du tableau
+# Affichage de la définition des variables dans un tableau
+kable(
+  caption = "Définition des variables", # Titre du tableau
   # Création d'un dataframe avec les variables, leur description, leur type et leur support
-  data.frame( 
-        Variable = c(
-          "age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", 
-          "exang", "oldpeak", "slope", "ca", "thal"),
-        Description = c(
-          "Age de l'individu",
-          "Sexe de l'individu",
-          "Douleur thoracique",
-          "Pression artérielle au repos en mmHg",
-          "Niveau de cholestérol sérique du patient en mg/dL",
-          "Taux de glycémie à jeun",
-          "Résultats électrocardiographiques au repos",
-          "Fréquence cardiaque maximale atteinte",
-          "Angine de poitrine induite par l'exercice",
-          "Dépression du segment ST induite par l'exercice par rapport au repos",
-          "Pente du segment ST de pointe de l'exercice",
-          "Nombre de vaisseaux principaux colorés par la flourosopie",
-          "Flux sanguin vers le muscle cardiaque "), 
-        Type = c(
-          rep("Entier", 9),
-          "Réel",
-          rep("Entier", 3)),
-        Support = c(
-          "⟦29;77⟧", "{0, 1}", "{0, 1, 2, 3}", "⟦94;200⟧", "⟦126; 564⟧", "{0, 1}",
-          "{0, 1, 2}", "⟦71;202⟧", "{0, 1}", "[0, 6.2]", "{0, 1, 2}", "⟦0;4⟧", "{0, 1, 2, 3}")),
-    booktabs=TRUE) # Mise en page et style du tableau
+  data.frame(
+    Variable = c(
+      "age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach",
+      "exang", "oldpeak", "slope", "ca", "thal"
+    ),
+    Description = c(
+      "Age de l'individu",
+      "Sexe de l'individu",
+      "Douleur thoracique",
+      "Pression artérielle au repos en mmHg",
+      "Niveau de cholestérol sérique du patient en mg/dL",
+      "Taux de glycémie à jeun",
+      "Résultats électrocardiographiques au repos",
+      "Fréquence cardiaque maximale atteinte",
+      "Angine de poitrine induite par l'exercice",
+      "Dépression du segment ST induite par l'exercice par rapport au repos",
+      "Pente du segment ST de pointe de l'exercice",
+      "Nombre de vaisseaux principaux colorés par la flourosopie",
+      "Flux sanguin vers le muscle cardiaque "
+    ),
+    Type = c(
+      rep("Entier", 9),
+      "Réel",
+      rep("Entier", 3)
+    ),
+    Support = c(
+      "⟦29;77⟧", "{0, 1}", "{0, 1, 2, 3}", "⟦94;200⟧", "⟦126; 564⟧", "{0, 1}",
+      "{0, 1, 2}", "⟦71;202⟧", "{0, 1}", "[0, 6.2]", "{0, 1, 2}", "⟦0;4⟧", "{0, 1, 2, 3}"
+    )
+  ),
+  booktabs = TRUE
+) # Mise en page et style du tableau
 ```
 Les variables sont toutes quantitatives et de type entier sauf *oldpeak* qui est un réel.  
 On a des variables  
@@ -149,8 +156,8 @@ val_manquantes <- sapply(df, function(x) sum(is.na(x)))
 # Affichage du nombre de valeurs manquantes par variable dans un tableau
 val_manq <- data.frame(val_manquantes) # Création d'un dataframe avec le nombre de valeurs manquantes
 colnames(val_manq) <- c("Nombre de valeur manquante") # Nom de la colonne du tableau
-val_manq %>% 
-  kbl(caption = "Nombre de valeur manquante par variable") %>% # Titre
+val_manq |>
+  kbl(caption = "Nombre de valeur manquante par variable") |> # Titre
   kable_styling() # Mise en page et style du tableau
 ```
 Il n'y a donc pas de valeurs manquantes dans notre jeu de données.
@@ -164,36 +171,40 @@ Après avoir bien observé le jeu de données, passons à l'étude graphique de 
 On étudie dans un premier temps la distribution de la variable cible puis celle des variables explicatives.
 
 ```{r}
-# Création d'un camembert avec les pourcentages 
+# Création d'un camembert avec les pourcentages
 pie(table(df$target), #  Table des effectifs pour la variable target
-    main = "Distribution de la variable cible (target)", # Titre du graphique
-    labels = c("Individus en bonne santé", 
-               "Individus atteints \nd'une maladie cardiaque"), # Légende 
-    col = c("lightblue", "lightcoral"), # Couleur des secteurs
-    cex = 0.8, # Taille de la légende
-    cex.main = 1) # Taille du titre
+  main = "Distribution de la variable cible (target)", # Titre du graphique
+  labels = c(
+    "Individus en bonne santé",
+    "Individus atteints \nd'une maladie cardiaque"
+  ), # Légende
+  col = c("lightblue", "lightcoral"), # Couleur des secteurs
+  cex = 0.8, # Taille de la légende
+  cex.main = 1
+) # Taille du titre
 
 # Création d'une fonction qui ajoute les valeurs en tant qu'étiquettes au centre (fonction créée par chatgpt)
-text_pie = function(vector, labels = c(), cex = 0.8) {
-     vector = vector / sum(vector) * 2 * pi
-     temp = c()
-     j = 0
-     l = 0
-     for (i in 1:length(vector)) {
-          k = vector[i] / 2        
-          j =  j + l + k
-          l = k
-          text(cos(j) / 2, sin(j) / 2, labels[i], cex = cex)
-     }
-     vector = temp
+text_pie <- function(vector, labels = c(), cex = 0.8) {
+  vector <- vector / sum(vector) * 2 * pi
+  temp <- c()
+  j <- 0
+  l <- 0
+  for (i in 1:length(vector)) {
+    k <- vector[i] / 2
+    j <- j + l + k
+    l <- k
+    text(cos(j) / 2, sin(j) / 2, labels[i], cex = cex)
+  }
+  vector <- temp
 }
 
 # Ajout des étiquettes
 percent_values <- round(100 * prop.table(table(df$target)), 1) # Calcul des pourcentages arrondis
 percent <- paste(percent_values, "%") # Ajout du sigle %
-text_pie(percent_values,  
-         c(percent[1], percent[2]), 
-         cex = 0.8)  
+text_pie(percent_values,
+  c(percent[1], percent[2]),
+  cex = 0.8
+)
 ```
 Le jeu de données est à peu près équilibré : on a environ 50% (54.5%) d'individus malades et 50% (45.5%) d'individus sains dans le jeu de données. 
 
@@ -201,18 +212,19 @@ Le jeu de données est à peu près équilibré : on a environ 50% (54.5%) d'ind
 
 On affiche maintenant la distribution des variables catégorielles. Cela va nous permettre d'observer les catégories de variable qui prédominent par rapport aux autres catégories de cette même variable. 
 ```{r}
-# Création d'un vecteur avec les variables catégorielles 
+# Création d'un vecteur avec les variables catégorielles
 categorical_var <- c("sex", "cp", "fbs", "restecg", "exang", "slope", "ca", "thal")
 
 # Organisation des graphiques en une grille 2x4
-par(mfrow = c(2, 4)) 
+par(mfrow = c(2, 4))
 
-# Boucle qui crée un histogramme en baton par chaque variable catégorielle 
+# Boucle qui crée un histogramme en baton par chaque variable catégorielle
 for (var in categorical_var) {
-  barplot(table(df[[var]]), 
-          col = "lightblue", # Couleur de l'histogramme
-          main = var, # Titre de l'histogramme
-          ylab = "Nombre d'individus") # Nom de l'axe des ordonnées 
+  barplot(table(df[[var]]),
+    col = "lightblue", # Couleur de l'histogramme
+    main = var, # Titre de l'histogramme
+    ylab = "Nombre d'individus"
+  ) # Nom de l'axe des ordonnées
 }
 ```
 Les variables catégorielles ne sont pas équilibrées dans le jeu de données : 
@@ -228,7 +240,7 @@ Les variables catégorielles ne sont pas équilibrées dans le jeu de données :
 
 On regarde maintenant la distribution des variables numériques. On trace un histogramme et le boxplot asssocié pour chaque variable. Le boxplot nous permet d'avoir la moyenne de chaque variable et d'observer les éventuelles valeurs aberrantes. 
 ```{r}
-# Création d'un vecteur avec les variables numériques 
+# Création d'un vecteur avec les variables numériques
 numerical_var <- c("age", "trestbps", "chol", "thalach", "oldpeak")
 
 # Création de listes pour les histogrammes et les boxplots
@@ -238,41 +250,57 @@ box_plots <- list()
 # Boucle pour créer les histogrammes et les boxplots pour chaque variable numérique
 for (var in numerical_var) {
   # Histogramme
-  histo <- ggplot(df, aes(x = .data[[var]])) + 
-    geom_histogram(fill = "lightblue", # Couleur de remplissage
-                   color = "black", # Couleur des contours 
-                   bins = 20, # Nombre de catégories
-                   alpha = 0.7, # Transparence de la couleur de remplissage
-                   linewidth = 0.2) + # Épaisseur des contours
-    labs(title = paste("Distribution de", var), # Titre des histogrammes 
-         x = var, # Nom de l'axe des abscisses 
-         y = "Nombre") + # Nom de l'axe des ordonnées 
-    theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 7, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
-        axis.title.y = element_text(size = 7))  # Taille du nom de l'axe des ordonnée 
+  histo <- ggplot(df, aes(x = .data[[var]])) +
+    geom_histogram(
+      fill = "lightblue", # Couleur de remplissage
+      color = "black", # Couleur des contours
+      bins = 20, # Nombre de catégories
+      alpha = 0.7, # Transparence de la couleur de remplissage
+      linewidth = 0.2
+    ) + # Épaisseur des contours
+    labs(
+      title = paste("Distribution de", var), # Titre des histogrammes
+      x = var, # Nom de l'axe des abscisses
+      y = "Nombre"
+    ) + # Nom de l'axe des ordonnées
+    theme(
+      plot.title = element_text(
+        hjust = 0.5, # Position du titre
+        size = 7, # Taille du titre
+        face = "bold"
+      ), # Titre en gras
+      axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
+      axis.title.y = element_text(size = 7)
+    ) # Taille du nom de l'axe des ordonnée
 
   # Boxplot
   boxplot <- ggplot(df, aes(x = 1, y = .data[[var]])) +
-    geom_boxplot(linewidth = 0.3, # Épaisseur des contours
-                 outlier.size = 0.2) + # Taille des outliers 
+    geom_boxplot(
+      linewidth = 0.3, # Épaisseur des contours
+      outlier.size = 0.2
+    ) + # Taille des outliers
     labs(title = paste("Boxplot de", var)) + # Titre des boxplots
-    theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 7, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
-        axis.title.y = element_text(size = 7)) # Taille du nom de l'axe des ordonnée 
+    theme(
+      plot.title = element_text(
+        hjust = 0.5, # Position du titre
+        size = 7, # Taille du titre
+        face = "bold"
+      ), # Titre en gras
+      axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
+      axis.title.y = element_text(size = 7)
+    ) # Taille du nom de l'axe des ordonnée
 
-  # Stockage des histogrammes et des boxplots dans les listes 
+  # Stockage des histogrammes et des boxplots dans les listes
   hist_plots[[var]] <- histo
   box_plots[[var]] <- boxplot
 }
 
 # Organisation des graphiques dans une grille 5x2
-grid.arrange(grobs = c(hist_plots, box_plots), 
-             ncol = 5, 
-             top = "Histogrammes et boxplots de chaque variable numérique") # Titre 
+grid.arrange(
+  grobs = c(hist_plots, box_plots),
+  ncol = 5,
+  top = "Histogrammes et boxplots de chaque variable numérique"
+) # Titre
 ```
 Grâce à ces graphiques ont peut observer que : 
 
@@ -292,7 +320,7 @@ On étudie maintenant s'il y a des corrélations entre les variables explicative
 On affiche pour cela la matrice des corrélations sous forme de graphique corrplot.
 
 ```{r}
-# Plot des corrélations entre les variables explicatives 
+# Plot des corrélations entre les variables explicatives
 corrplot(cor(df[, 1:13]), method = "color")
 ```
 D'après ce graphique, les variables ne semblent pas très corrélées. Nous pouvons cependant porter notre attention sur les 5 couples de variables les plus corrélés. 
@@ -329,11 +357,11 @@ formatted_correlation_matrix <- apply(correlation_matrix, 1, function(row) {
 })
 
 # Affichage de la matrice de corrélation avec la mise en forme personnalisée
-kable(formatted_correlation_matrix, 
-      format = "html", 
-      escape = FALSE) %>%
+kable(formatted_correlation_matrix,
+  format = "html",
+  escape = FALSE
+) |>
   kable_styling()
-
 ```
 
 Naturellement, la matrice nous mène à la même conclusion que le graphique : il ne semble pas y avoir de corrélations significatives entre les variables.
@@ -352,27 +380,37 @@ On trace ci-dessous la distribution de la la dépression ST induite par l'exerci
 
 ```{r}
 # Distribution de oldpeak en fonction de slope
-ggplot(df, aes(x = oldpeak, fill = factor(slope))) + 
-      geom_density(alpha = 0.5, # Transparence de la couleur de remplissage
-                   linewidth = 0.3) + # Épaissseur des contours 
-  
-      # Noms des axes et titre 
-      labs(title = "Graphique de la distribution de la la dépression ST induite par l'exercice (oldpeak) \n en fonction de la pente du segment ST de pointe de l'exercice (slope)", # Titre
-       x = "Changements dans l'électrocardiogramme (oldpeak)", # Nom de l'axe des abscisses 
-       y = "Nombre de patients", # Nom de l'axe des ordonnées 
-       fill = "Pente du segment \nST de pointe (slope)")  + # Titre de la légende
-  
-      # Couleur et texte de la légende
-      scale_fill_manual(values = c("0" = "#FFDB6D", 
-                                   "1" = "#4E84C4", 
-                                   "2" = "#C3D7A4")) +
-  
-      # Mise en forme du titre et de la légende 
-      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 10, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        legend.title = element_text(size = 9), # Taille du titre de la légende
-        legend.text = element_text(size = 8)) # Taille du texte de la légende
+ggplot(df, aes(x = oldpeak, fill = factor(slope))) +
+  geom_density(
+    alpha = 0.5, # Transparence de la couleur de remplissage
+    linewidth = 0.3
+  ) + # Épaissseur des contours
+
+  # Noms des axes et titre
+  labs(
+    title = "Graphique de la distribution de la la dépression ST induite par l'exercice (oldpeak) \n en fonction de la pente du segment ST de pointe de l'exercice (slope)", # Titre
+    x = "Changements dans l'électrocardiogramme (oldpeak)", # Nom de l'axe des abscisses
+    y = "Nombre de patients", # Nom de l'axe des ordonnées
+    fill = "Pente du segment \nST de pointe (slope)"
+  ) + # Titre de la légende
+
+  # Couleur et texte de la légende
+  scale_fill_manual(values = c(
+    "0" = "#FFDB6D",
+    "1" = "#4E84C4",
+    "2" = "#C3D7A4"
+  )) +
+
+  # Mise en forme du titre et de la légende
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, # Position du titre
+      size = 10, # Taille du titre
+      face = "bold"
+    ), # Titre en gras
+    legend.title = element_text(size = 9), # Taille du titre de la légende
+    legend.text = element_text(size = 8)
+  ) # Taille du texte de la légende
 ```
 
 On remarque que lorsque la dépression ST induite par l'exercice (*oldpeak*) est proche de 0, la pente du segment ST de pointe de l'exercice (*slope*) a tendance à être de 2. Inversement, il n'y a pas de dépression du segment ST observée par rapport à la ligne de base lorsqu'il y a beaucoup de changements dans l'électrocardiogramme (ECG) qui se produisent en réponse à l'exercice physique.
@@ -383,109 +421,145 @@ On regarde ensuite plus précisement la relation entre les variables *age* et *t
 ```{r}
 # Diagramme de dispersion entre age et thalach
 ggplot(df, aes(x = age, y = thalach)) +
-  
+
   # Ajout de la courbe de tendance
-  geom_smooth(method = "lm", 
-              formula = y ~ x, # Lien linéaire (polynôme de degré 1)
-              se = FALSE, # Ne pas afficher l'intervalle de confiance
-              colour="black", # Couleur de la droite
-              linewidth = 0.3) + # Épaisseur du trait
-  
+  geom_smooth(
+    method = "lm",
+    formula = y ~ x, # Lien linéaire (polynôme de degré 1)
+    se = FALSE, # Ne pas afficher l'intervalle de confiance
+    colour = "black", # Couleur de la droite
+    linewidth = 0.3
+  ) + # Épaisseur du trait
+
   # Ajout des points
-  geom_point(size = 1, # Taille des points
-             color = "#4E84C4") + # Couleur des points
-  
+  geom_point(
+    size = 1, # Taille des points
+    color = "#4E84C4"
+  ) + # Couleur des points
+
   # Nom des axes et titre
-  labs(title = "Graphique de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de l'âge (age)", # Titre du graphique
-       x = "Âge (age)", # Nom de l'axe des abscisses 
-       y = "Fréquence cardiaque maximale atteinte (thalach)") + # Nom de l'axe des ordonnées
-  
-  # Mise en forme du titre et de la légende 
-  theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 12, # Taille du titre
-                                  face = "bold")) # Titre en gras
+  labs(
+    title = "Graphique de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de l'âge (age)", # Titre du graphique
+    x = "Âge (age)", # Nom de l'axe des abscisses
+    y = "Fréquence cardiaque maximale atteinte (thalach)"
+  ) + # Nom de l'axe des ordonnées
+
+  # Mise en forme du titre et de la légende
+  theme(plot.title = element_text(
+    hjust = 0.5, # Position du titre
+    size = 12, # Taille du titre
+    face = "bold"
+  )) # Titre en gras
 ```
 Cette figure fait clairement apparaître une relation décroissante et linéaire entre les deux variables. On en déduit que la fréquence cardiaque maximale diminue avec l'âge.
 
 On étudie maintenant graphiquement le lien entre la douleur thoracique (*cp*) et la présence / l'absence d'angine de poitrine induite par l'exercice (*exang*).
 ```{r}
 # Histogramme entre cp et exang
-ggplot(df, aes(x = cp, fill = factor(exang))) + 
-      geom_bar(color = "black", # Couleur des contours
-               linewidth = 0.3, # Épaisseur des contours
-               alpha = 0.5) + # Transparence de la couleur de remplissage
-  
-      # Nom des axes et titre
-      labs(title = "Graphique de la distribution de la douleur thoracique (cp) en fonction de \n la présence / l'absence d'angine de poitrine induite par l'exercice (exang)", # Titre du graphique 
-           x = "Douleur thoracique (cp)", # Nom de l'axe des abscisses 
-           y = "Nombre d'individus", # Nom de l'axe des ordonnées
-           fill = "Angine thoracique \ninduite par l'exercice") + # Titre de la légende
-  
-      # Texte de la légende et couleur
-      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
-                        labels = c("Non", "Oui")) +
-  
-      # Mise en forme du titre et de la légende 
-      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 10, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        legend.title = element_text(size = 9), # Taille du titre de la légende
-        legend.text = element_text(size = 8)) # Taille du texte de la légende
+ggplot(df, aes(x = cp, fill = factor(exang))) +
+  geom_bar(
+    color = "black", # Couleur des contours
+    linewidth = 0.3, # Épaisseur des contours
+    alpha = 0.5
+  ) + # Transparence de la couleur de remplissage
+
+  # Nom des axes et titre
+  labs(
+    title = "Graphique de la distribution de la douleur thoracique (cp) en fonction de \n la présence / l'absence d'angine de poitrine induite par l'exercice (exang)", # Titre du graphique
+    x = "Douleur thoracique (cp)", # Nom de l'axe des abscisses
+    y = "Nombre d'individus", # Nom de l'axe des ordonnées
+    fill = "Angine thoracique \ninduite par l'exercice"
+  ) + # Titre de la légende
+
+  # Texte de la légende et couleur
+  scale_fill_manual(
+    values = c("0" = "#FFDB6D", "1" = "#4E84C4"),
+    labels = c("Non", "Oui")
+  ) +
+
+  # Mise en forme du titre et de la légende
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, # Position du titre
+      size = 10, # Taille du titre
+      face = "bold"
+    ), # Titre en gras
+    legend.title = element_text(size = 9), # Taille du titre de la légende
+    legend.text = element_text(size = 8)
+  ) # Taille du texte de la légende
 ```
 On remarque que les individus n'ayant pas de douleur thoracique ont des angines thoraciques induites par l'exercice et inversement : les individus ayant des douleurs thoraciques n'ont pas d'angine thoracique induite par l'exercice.
 
 La relation entre la fréquence cardiaque maximale atteinte (*thalach*) et la pente du segment ST de pointe de l'exercice (*slope*) est représentée dans le graphique ci-dessous. 
 ```{r}
 # Distribution de thalach en fonction de slope
-ggplot(df, aes(x = thalach, fill = factor(slope))) + 
-      geom_histogram(color = "black", # Couleur des contours 
-                     linewidth = 0.3, # Épaisseur des contours
-                     bins = 25, # Nombre de catégories
-                     alpha = 0.5) + # Transparence de la couleur de remplsisage 
-  
-      # Nom des axes et titre
-      labs(title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la pente du segment ST de pointe de l'exercice (slope)", # Titre du graphique
-           x ="Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses
-           y = "Nombre d'individus", # Nom de l'axe des ordonnées
-           fill = "Pente du segment \nST (slope)") + # Titre de la légende
-  
-      # Couleur de la légende 
-      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4", "2" = "#C3D7A4")) +
-  
-      # Mise en forme du titre et de la légende 
-      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 10, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        legend.title = element_text(size = 9), # Taille du titre de la légende
-        legend.text = element_text(size = 8)) # Taille du texte de la légende
+ggplot(df, aes(x = thalach, fill = factor(slope))) +
+  geom_histogram(
+    color = "black", # Couleur des contours
+    linewidth = 0.3, # Épaisseur des contours
+    bins = 25, # Nombre de catégories
+    alpha = 0.5
+  ) + # Transparence de la couleur de remplsisage
+
+  # Nom des axes et titre
+  labs(
+    title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la pente du segment ST de pointe de l'exercice (slope)", # Titre du graphique
+    x = "Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses
+    y = "Nombre d'individus", # Nom de l'axe des ordonnées
+    fill = "Pente du segment \nST (slope)"
+  ) + # Titre de la légende
+
+  # Couleur de la légende
+  scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4", "2" = "#C3D7A4")) +
+
+  # Mise en forme du titre et de la légende
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, # Position du titre
+      size = 10, # Taille du titre
+      face = "bold"
+    ), # Titre en gras
+    legend.title = element_text(size = 9), # Taille du titre de la légende
+    legend.text = element_text(size = 8)
+  ) # Taille du texte de la légende
 ```
 Ce graphique montre que plus la fréquence cardiaque maximale atteinte est élevée (entre 160 et 200), plus la pente du segment ST est importante (niveau 2).
 
 Enfin, on trace la distribution de la fréquence cardiaque maximale atteinte (*thalach*) en fonction de la présence / l'absence d'angine de poitrine induite par l'exercice (*exang*) .
 ```{r}
 # Distribution de thalach en fonction de exang
-ggplot(df, aes(x = thalach, fill = factor(exang))) + 
-      geom_histogram(color = "black", # Couleur des contours 
-                     linewidth = 0.3, # Épaisseur des contours
-                     bins = 30, # Nombre de catégories
-                     alpha = 0.5) + # Transparence de la couleur de remplsisage 
-  
-      # Noms des axes et titre 
-      labs(title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la présence / l'absence d'angine de poitrine induite par l'exercice (exang) ", # Titre du graphique
-           x = "Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses
-           y = "Nombre d'individus", # Nom de l'axe des orodnnées
-           fill = "Angine thoracique induite \npar l'exercice (exang)") + # Titre de la légende
-  
-      # Couleur et texte de la légende
-      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
-                      labels = c("Non", "Oui")) +
-  
-      # Mise en forme du titre et de la légende 
-      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 10, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        legend.title = element_text(size = 9), # Taille du titre de la légende
-        legend.text = element_text(size = 8)) # Taille du texte de la légende
+ggplot(df, aes(x = thalach, fill = factor(exang))) +
+  geom_histogram(
+    color = "black", # Couleur des contours
+    linewidth = 0.3, # Épaisseur des contours
+    bins = 30, # Nombre de catégories
+    alpha = 0.5
+  ) + # Transparence de la couleur de remplsisage
+
+  # Noms des axes et titre
+  labs(
+    title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la présence / l'absence d'angine de poitrine induite par l'exercice (exang) ", # Titre du graphique
+    x = "Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses
+    y = "Nombre d'individus", # Nom de l'axe des orodnnées
+    fill = "Angine thoracique induite \npar l'exercice (exang)"
+  ) + # Titre de la légende
+
+  # Couleur et texte de la légende
+  scale_fill_manual(
+    values = c("0" = "#FFDB6D", "1" = "#4E84C4"),
+    labels = c("Non", "Oui")
+  ) +
+
+  # Mise en forme du titre et de la légende
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, # Position du titre
+      size = 10, # Taille du titre
+      face = "bold"
+    ), # Titre en gras
+    legend.title = element_text(size = 9), # Taille du titre de la légende
+    legend.text = element_text(size = 8)
+  ) # Taille du texte de la légende
 ```
 On observe que les individus ayant une fréquence cardiaque maximale atteinte plus faible (entre 50 et 150) ont, en général, des angines induites par l'exercice et inversement.
 
@@ -498,30 +572,38 @@ On décide pour l'instant de garder les variables de chaque couple. On fera une 
 Pour avoir un aperçu global et visuel des variables qui ont un impact sur la variable cible, on affiche un graphe des coefficients de corrélation entre la variable cible et chacune des autres variables. 
 
 ```{r}
-# Matrice des corrélations de toutes les variables 
+# Matrice des corrélations de toutes les variables
 cor_matrix <- cor(df[, 1:14])
 
 # Récupérer les coefficients de corrélation entre la variable cible et les autres variables
 target_correlations <- cor_matrix[, 14] # La 14ème colonne correspond à la variable cible
 
 # Création d'un dataframe avec les noms des variables et leurs corrélations avec la variable cible
-correlation_data <- data.frame(variable = names(target_correlations)[-14], 
-                               correlation = unlist(target_correlations[-14]))
+correlation_data <- data.frame(
+  variable = names(target_correlations)[-14],
+  correlation = unlist(target_correlations[-14])
+)
 
 # Création d'un graphique (barplot) des coefficients de corrélation
 ggplot(correlation_data, aes(x = variable, y = correlation)) +
-  geom_bar(stat = "identity", # Hauteur des barres = coefficient de corrélation
-           fill = "#4E84C4", # Couleur de remplissage 
-           alpha = 0.7, # Transparence de la couleur de remplissage
-           color = "black", # Couleur des contours 
-           linewidth = 0.3) + # Épaisseur des contours
-  labs(title = 'Corrélations entre la variable cible et les autres variables', # Titre du graphique
-       x = 'Variables', # Nom de l'axe des abscisses
-       y = 'Coefficient de corrélation') + # Nom de l'axe des ordonnées
-  
-  theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 12, # Taille du titre
-                                  face = "bold")) # Titre en gras
+  geom_bar(
+    stat = "identity", # Hauteur des barres = coefficient de corrélation
+    fill = "#4E84C4", # Couleur de remplissage
+    alpha = 0.7, # Transparence de la couleur de remplissage
+    color = "black", # Couleur des contours
+    linewidth = 0.3
+  ) + # Épaisseur des contours
+  labs(
+    title = "Corrélations entre la variable cible et les autres variables", # Titre du graphique
+    x = "Variables", # Nom de l'axe des abscisses
+    y = "Coefficient de corrélation"
+  ) + # Nom de l'axe des ordonnées
+
+  theme(plot.title = element_text(
+    hjust = 0.5, # Position du titre
+    size = 12, # Taille du titre
+    face = "bold"
+  )) # Titre en gras
 ```
 Les variables qui semblent avoir un impact (un coefficient de corrélation proche de 1 en valeur absolue) sur la target sont : *ca, cp, exang, oldpeak, sex, slope, thal* et *thalach*. 
 
@@ -540,33 +622,43 @@ hist <- list()
 
 # Boucle qui crée un histogramme pour chaque variable du vecteur categorical_var_impactet et qui l'affiche
 for (var in categorical_var_impact) {
-    h <- ggplot(df, aes(x = .data[[var]], fill = factor(target))) + 
-      geom_bar(color = "black", # Couleur des contours 
-               linewidth = 0.3, # Épaisseur des contours
-               position = "fill", # Représenter des proportions
-               alpha = 0.7) + # Transparence de la couleur de remplissage
-      
-      # Noms des axes et titre
-      labs(title = paste("Distribution de", var, "\nen fonction de la variable cible"), # Titre des graphiques 
-           x = var, # Nom de l'axe des abscisses 
-           y = "Nombre d'individus", # Nom de l'axe des ordonnées 
-           fill = "Légende") + # Titre de la légende
-      
-      # Couleur et texte de la légende 
-      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
-                      labels = c("Sain", "Malade")) +
-      
-      # Mise en forme du titre et de la légende 
-      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 8, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        legend.title = element_text(size = 7), # Taille du titre de la légende
-        legend.text = element_text(size = 7), # Taille du texte de la légende
-        legend.key.size = unit(0.3, "cm"), # Taille des carrés de couleur de la légende
-        axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
-        axis.title.y = element_text(size = 7))  # Taille du nom de l'axe des ordonnée 
-    
-    hist[[var]] <- h
+  h <- ggplot(df, aes(x = .data[[var]], fill = factor(target))) +
+    geom_bar(
+      color = "black", # Couleur des contours
+      linewidth = 0.3, # Épaisseur des contours
+      position = "fill", # Représenter des proportions
+      alpha = 0.7
+    ) + # Transparence de la couleur de remplissage
+
+    # Noms des axes et titre
+    labs(
+      title = paste("Distribution de", var, "\nen fonction de la variable cible"), # Titre des graphiques
+      x = var, # Nom de l'axe des abscisses
+      y = "Nombre d'individus", # Nom de l'axe des ordonnées
+      fill = "Légende"
+    ) + # Titre de la légende
+
+    # Couleur et texte de la légende
+    scale_fill_manual(
+      values = c("0" = "#FFDB6D", "1" = "#4E84C4"),
+      labels = c("Sain", "Malade")
+    ) +
+
+    # Mise en forme du titre et de la légende
+    theme(
+      plot.title = element_text(
+        hjust = 0.5, # Position du titre
+        size = 8, # Taille du titre
+        face = "bold"
+      ), # Titre en gras
+      legend.title = element_text(size = 7), # Taille du titre de la légende
+      legend.text = element_text(size = 7), # Taille du texte de la légende
+      legend.key.size = unit(0.3, "cm"), # Taille des carrés de couleur de la légende
+      axis.title.x = element_text(size = 7), # Taille du nom de l'axe des abscisses
+      axis.title.y = element_text(size = 7)
+    ) # Taille du nom de l'axe des ordonnée
+
+  hist[[var]] <- h
 }
 
 # Organisation des graphiques dans une grille à 3 colonnes
@@ -591,31 +683,41 @@ Enfin, grâce à l'aperçu global, on a vu que seules les variables numériques 
 ```{r}
 # Graphique de target en fonction de thalach
 
-ggplot(df, aes(x = thalach, fill = factor(target))) + 
-      geom_histogram(color = "black", # Couleur des contours 
-                     linewidth = 0.3, # Épaisseur des contours
-                     bins = 20, # 20 classes pour plus de lisibilité
-                     alpha = 0.5) + # Transparence de la couleur de remplissage 
-  
-      # Noms des axes et titre
-      labs(title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la variable cible (target)", # Titre du grahique 
-           x = "Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses 
-           y = "Nombre d'individus", # Nom de l'axe des ordonnées 
-           fill = "Légende") + # Nom du titre de la légende 
-  
-      # Couleur et texte de la légende 
-      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
-                        labels = c("Sain", "Malade")) +
-  
-      # Mise en forme du titre et de la légende 
-      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 12, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        legend.title = element_text(size = 10), # Taille du titre de la légende
-        legend.text = element_text(size = 10), # Taille du texte de la légende
-        legend.key.size = unit(0.3, "cm"), # Taille des carrés de couleur de la légende
-        axis.title.x = element_text(size = 10), # Taille du nom de l'axe des abscisses
-        axis.title.y = element_text(size = 10))  # Taille du nom de l'axe des ordonnée   
+ggplot(df, aes(x = thalach, fill = factor(target))) +
+  geom_histogram(
+    color = "black", # Couleur des contours
+    linewidth = 0.3, # Épaisseur des contours
+    bins = 20, # 20 classes pour plus de lisibilité
+    alpha = 0.5
+  ) + # Transparence de la couleur de remplissage
+
+  # Noms des axes et titre
+  labs(
+    title = "Graphique de la distribution de la fréquence cardiaque maximale atteinte (thalach) \n en fonction de la variable cible (target)", # Titre du grahique
+    x = "Fréquence cardiaque maximale atteinte (thalach)", # Nom de l'axe des abscisses
+    y = "Nombre d'individus", # Nom de l'axe des ordonnées
+    fill = "Légende"
+  ) + # Nom du titre de la légende
+
+  # Couleur et texte de la légende
+  scale_fill_manual(
+    values = c("0" = "#FFDB6D", "1" = "#4E84C4"),
+    labels = c("Sain", "Malade")
+  ) +
+
+  # Mise en forme du titre et de la légende
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, # Position du titre
+      size = 12, # Taille du titre
+      face = "bold"
+    ), # Titre en gras
+    legend.title = element_text(size = 10), # Taille du titre de la légende
+    legend.text = element_text(size = 10), # Taille du texte de la légende
+    legend.key.size = unit(0.3, "cm"), # Taille des carrés de couleur de la légende
+    axis.title.x = element_text(size = 10), # Taille du nom de l'axe des abscisses
+    axis.title.y = element_text(size = 10)
+  ) # Taille du nom de l'axe des ordonnée
 ```
 
 On peut observer sur ce graphique que la variable *thalach* semble effectivement avoir un impact sur la variable cible. En effet, les individus qui semblent plus enclin à avoir une maladie cardiaque sont les individus ayant une fréquence cardiaque maximale entre 150 et 200 bpm. 
@@ -624,26 +726,36 @@ Enfin, on trace ci-dessous la distribution de la la dépression ST induite par l
 
 ```{r}
 # Distribution de oldpeak en fonction de target
-ggplot(df, aes(x = oldpeak, fill = factor(target))) + 
-      geom_density(alpha = 0.5, # Transparence de la couleur de remplissage 
-                   linewidth = 0.3) + # Épaisseur des contours 
-  
-      # Noms des axes et titre 
-      labs(title = "Graphique de la distribution de la la dépression ST induite par l'exercice (oldpeak) \n en fonction de la variable cible (target)", # Titre du graphique
-       x = "Changements dans l'électrocardiogramme (oldpeak)", # Nom de l'axe des abscisses 
-       y = "Nombre d'individus", # Nom de l'axe des ordonnées 
-       fill = "Légende")  + # Nom du titre de la légende 
-  
-      # Couleur et texte de la légende
-      scale_fill_manual(values = c("0" = "#FFDB6D", "1" = "#4E84C4"), 
-                      labels = c("Sain", "Malade")) +
-  
-      # Mise en forme du titre et de la légende 
-      theme(plot.title = element_text(hjust = 0.5, # Position du titre 
-                                  size = 12, # Taille du titre
-                                  face = "bold"), # Titre en gras
-        legend.title = element_text(size = 9), # Taille du titre de la légende
-        legend.text = element_text(size = 8)) # Taille du texte de la légende
+ggplot(df, aes(x = oldpeak, fill = factor(target))) +
+  geom_density(
+    alpha = 0.5, # Transparence de la couleur de remplissage
+    linewidth = 0.3
+  ) + # Épaisseur des contours
+
+  # Noms des axes et titre
+  labs(
+    title = "Graphique de la distribution de la la dépression ST induite par l'exercice (oldpeak) \n en fonction de la variable cible (target)", # Titre du graphique
+    x = "Changements dans l'électrocardiogramme (oldpeak)", # Nom de l'axe des abscisses
+    y = "Nombre d'individus", # Nom de l'axe des ordonnées
+    fill = "Légende"
+  ) + # Nom du titre de la légende
+
+  # Couleur et texte de la légende
+  scale_fill_manual(
+    values = c("0" = "#FFDB6D", "1" = "#4E84C4"),
+    labels = c("Sain", "Malade")
+  ) +
+
+  # Mise en forme du titre et de la légende
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, # Position du titre
+      size = 12, # Taille du titre
+      face = "bold"
+    ), # Titre en gras
+    legend.title = element_text(size = 9), # Taille du titre de la légende
+    legend.text = element_text(size = 8)
+  ) # Taille du texte de la légende
 ```
 On conclut que les individus n'ayant pas de changement dans l'electrocardiogramme ont plus tendance à avoir une maladie cardiaque et inversement. 
 
@@ -665,52 +777,61 @@ test <- rsample::testing(split)
 
 # Création d'un dataframe avec les dimensions des différents ensembles
 dimensions <- data.frame(dim(df), dim(train), dim(test))
-rownames(dimensions) <- row_names <- c("Nombre de lignes",
-                                       "Nombre de colonnes") # nom des lignes 
-colnames(dimensions) <- c("Dimension du jeu de données initial", 
-                          "Dimensions de l'ensemble d'entrainement", 
-                          "Dimensions de l'ensemble de test") # nom des colonnes 
+rownames(dimensions) <- row_names <- c(
+  "Nombre de lignes",
+  "Nombre de colonnes"
+) # nom des lignes
+colnames(dimensions) <- c(
+  "Dimension du jeu de données initial",
+  "Dimensions de l'ensemble d'entrainement",
+  "Dimensions de l'ensemble de test"
+) # nom des colonnes
 
 # Affichage des dimensions des ensembles d'entraînement et de test
-dimensions %>% 
-  kbl() %>%
+dimensions |>
+  kbl() |>
   kable_styling()
 ```
 On regarde la distribution de la variable cible dans les 2 ensembles pour s'assurer que la répartition des classes dans l'ensemble de test et d'entrainement est représentative de l'ensemble complet.
 
 ```{r}
 # Organisation des graphiques en une grille 1x2
-par(mfrow = c(1, 2)) 
+par(mfrow = c(1, 2))
 
 # Création du camembert pour l'ensemble train avec les pourcentages et légendes
 pie(table(train$target), #  Table des effectifs pour la variable target
-    main = "Distribution de la variable cible (target) \nsur l'ensemble d'entrainement", # Titre
-    labels = c("Individus en bonne santé", 
-               "Individus atteints \nd'une maladie cardiaque"), # Légende 
-    col = c("lightblue", "lightcoral"), # Définition de la couleur des secteurs
-    cex = 0.8, # Ajustement de la taille de la légende
-    cex.main = 1) # Ajustement de la taille du titre
+  main = "Distribution de la variable cible (target) \nsur l'ensemble d'entrainement", # Titre
+  labels = c(
+    "Individus en bonne santé",
+    "Individus atteints \nd'une maladie cardiaque"
+  ), # Légende
+  col = c("lightblue", "lightcoral"), # Définition de la couleur des secteurs
+  cex = 0.8, # Ajustement de la taille de la légende
+  cex.main = 1
+) # Ajustement de la taille du titre
 
 # Ajout des étiquettes
 percent_values_train <- round(100 * prop.table(table(train$target)), 1) # Calcul des pourcentages arrondis
 percent_train <- paste(percent_values_train, "%") # Ajout su sigle "%"
-text_pie(percent_values_train,  c(percent_train[1], percent_train[2]), cex=0.8) # Utilisation de la fonction text_pie définie plus haut 
+text_pie(percent_values_train, c(percent_train[1], percent_train[2]), cex = 0.8) # Utilisation de la fonction text_pie définie plus haut
 
 
 # Création du camembert pour l'ensemble test avec les pourcentages et légendes
 pie(table(test$target), #  Table des effectifs pour la variable target
-    main = "Distribution de la variable cible (target) \nsur l'ensemble de test", # Titre
-    labels = c("Individus en bonne santé", 
-               "Individus atteints \nd'une maladie cardiaque"), # Légende 
-    col = c("lightblue", "lightcoral"), # Définition de la couleur des secteurs
-    cex = 0.8, # Ajustement de la taille de la légende
-    cex.main = 1) # Ajustement de la taille du titre
+  main = "Distribution de la variable cible (target) \nsur l'ensemble de test", # Titre
+  labels = c(
+    "Individus en bonne santé",
+    "Individus atteints \nd'une maladie cardiaque"
+  ), # Légende
+  col = c("lightblue", "lightcoral"), # Définition de la couleur des secteurs
+  cex = 0.8, # Ajustement de la taille de la légende
+  cex.main = 1
+) # Ajustement de la taille du titre
 
 # Ajout des étiquettes
 percent_values_test <- round(100 * prop.table(table(test$target)), 1) # Calcul des pourcentages arrondis
 percent_test <- paste(percent_values_test, "%") # Ajout su sigle "%"
-text_pie(percent_values_test,  c(percent_test[1], percent_test[2]), cex=0.8) # Utilisation de la fonction text_pie définie plus haut 
-
+text_pie(percent_values_test, c(percent_test[1], percent_test[2]), cex = 0.8) # Utilisation de la fonction text_pie définie plus haut
 ```
 
 # Fitting : création et entraînement du modèle
@@ -725,26 +846,29 @@ On déclare aussi le modèle réduit à l'intercept car il sera utile dans la su
 mod <- glm(target ~ ., data = train, family = binomial)
 
 # Déclaration du modèle réduit à l'intercept (utile dans la suite)
-mod_int <- glm(target~1, data = train, family = "binomial")
+mod_int <- glm(target ~ 1, data = train, family = "binomial")
 ```
 
 On affiche les statistqiues récapitulatives du modèle de regression logistique construit dans la sous-section section précédente. Les p-valeurs inférieures à 0.05 sont affichées en rouge car cela signifie que la variable associée à probablement de l'importance dans le modèle. 
  
 ```{r}
-# Création d'un tableau qui contient les coefficients du modèle 
+# Création d'un tableau qui contient les coefficients du modèle
 tab_stat <- tidy(mod, conf.int = TRUE)
 
 # Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
-tab_stat <- tab_stat %>%
-  mutate(p.value = ifelse(p.value < 0.05, 
-                                    cell_spec(round(p.value, 3), "html", color = "red"), 
-                                    cell_spec(round(p.value, 3), "html")))
+tab_stat <- tab_stat |>
+  mutate(p.value = ifelse(p.value < 0.05,
+    cell_spec(round(p.value, 3), "html", color = "red"),
+    cell_spec(round(p.value, 3), "html")
+  ))
 
 # Affichage du tableau avec mise en forme
-tab_stat %>%
-  kbl(digits = c(0, 2, 2, 2, 5, 3, 3), # Arrondis
-      escape = FALSE, 
-      caption = "Statistiques récapitulatives du modèle de regression logistique") %>%
+tab_stat |>
+  kbl(
+    digits = c(0, 2, 2, 2, 5, 3, 3), # Arrondis
+    escape = FALSE,
+    caption = "Statistiques récapitulatives du modèle de regression logistique"
+  ) |>
   kable_styling()
 ```
 
@@ -755,13 +879,17 @@ On peut noter que la déviance du modèle est inférieure à celle du modèle r�
 ```{r}
 # Création d'un dataframe avec les déviances
 deviance <- data.frame(mod$null.deviance, mod$deviance)
-colnames(deviance) <- c("Déviance du modèle réduit à l'intercept", 
-                          "Déviance du modèle créé") # Nom des colonnes 
+colnames(deviance) <- c(
+  "Déviance du modèle réduit à l'intercept",
+  "Déviance du modèle créé"
+) # Nom des colonnes
 
 # Affichage des dimensions des ensembles d'entraînement et de test
-deviance %>% 
-  kbl(digits = c(2, 2), # Arrondis
-      caption = "Déviance des modèles") %>% 
+deviance |>
+  kbl(
+    digits = c(2, 2), # Arrondis
+    caption = "Déviance des modèles"
+  ) |>
   kable_styling()
 ```
 Le modèle est donc meilleur que le modèle réduit à l'inetrcept.
@@ -770,25 +898,29 @@ Le modèle est donc meilleur que le modèle réduit à l'inetrcept.
 
 On utilise le test Anova pour enlever les variables qui n'apportent pas d'informations complémentaires sur la variable à prédire. On affiche le résultat du test. Les p-valeurs inférieurs à 0.05 sont affichées en rouge. 
 ```{r}
-# Test Anova 
-Ano <- Anova(mod, 
-             type = 3, #  type III de l'Anova 
-             test.statistic = "LR") # test de rapport de vraisemblance
+# Test Anova
+Ano <- Anova(mod,
+  type = 3, #  type III de l'Anova
+  test.statistic = "LR"
+) # test de rapport de vraisemblance
 
-# Création d'un tableau qui contient les coefficients du modèle 
+# Création d'un tableau qui contient les coefficients du modèle
 tab_stat <- tidy(Ano, conf.int = TRUE)
 
 # Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
-tab_stat <- tab_stat %>%
-  mutate(p.value = ifelse(p.value < 0.05, 
-                                    cell_spec(round(p.value, 3), "html", color = "red"), 
-                                    cell_spec(round(p.value, 3), "html")))
+tab_stat <- tab_stat |>
+  mutate(p.value = ifelse(p.value < 0.05,
+    cell_spec(round(p.value, 3), "html", color = "red"),
+    cell_spec(round(p.value, 3), "html")
+  ))
 
 # Affichage du tableau avec mise en forme
-tab_stat %>%
-  kbl(digits = c(0, 3, 5), 
-      escape = FALSE, 
-      caption = "Résultats du test Anva") %>%
+tab_stat |>
+  kbl(
+    digits = c(0, 3, 5),
+    escape = FALSE,
+    caption = "Résultats du test Anva"
+  ) |>
   kable_styling()
 ```
 Seules les variables *sex, cp, exang, oldpeak, ca* et *thal* semblent avoir un impact sur la variable cible, ce qu'on avait déjà observé dans la partie "graphiques". On avait aussi remarqué que les variables *exang, slope* et *age* avaient une importance. On va continuer notre étude pour savoir si on les supprime ou non.  
@@ -800,43 +932,49 @@ On réalise d'abord une méthode *backward* et on affiche les statistqiues descr
 # Méthode backward
 mod_back <- step(mod, direction = "backward", trace = FALSE)
 
-# Création d'un tableau qui contient les coefficients du modèle 
+# Création d'un tableau qui contient les coefficients du modèle
 tab_stat <- tidy(mod_back, conf.int = TRUE)
 
 # Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
-tab_stat <- tab_stat %>%
-  mutate(p.value = ifelse(p.value < 0.05, 
-                                    cell_spec(round(p.value, 3), "html", color = "red"), 
-                                    cell_spec(round(p.value, 3), "html")))
+tab_stat <- tab_stat |>
+  mutate(p.value = ifelse(p.value < 0.05,
+    cell_spec(round(p.value, 3), "html", color = "red"),
+    cell_spec(round(p.value, 3), "html")
+  ))
 
 # Affichage du tableau avec mise en forme
-tab_stat %>%
-  kbl(digits = c(0, 3, 3, 3, 4), # Arrondis
-      escape = FALSE, 
-      caption = "Statistiques récapitulatives du modèle construit par la méthode backward") %>%
+tab_stat |>
+  kbl(
+    digits = c(0, 3, 3, 3, 4), # Arrondis
+    escape = FALSE,
+    caption = "Statistiques récapitulatives du modèle construit par la méthode backward"
+  ) |>
   kable_styling()
 ```
 Les variables importantes sont celles du test Anova ainsi que *restecg* et *thalach*.
 
 On refait alors un test Anova sur le modèle obtenu par la méthode *backward* pour vérifier si les variables *restecg* et *thalach* sont réellement importantes.
 ```{r, include = FALSE}
-# Test Anova 
-Ano_back <- Anova(mod_back, type = 3,test.statistic = "LR")
+# Test Anova
+Ano_back <- Anova(mod_back, type = 3, test.statistic = "LR")
 
-# Création d'un tableau qui contient les coefficients du modèle 
+# Création d'un tableau qui contient les coefficients du modèle
 tab_stat <- tidy(Ano_back, conf.int = TRUE)
 
 # Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
-tab_stat <- tab_stat %>%
-  mutate(p.value = ifelse(p.value < 0.05, 
-                                    cell_spec(round(p.value, 3), "html", color = "red"), 
-                                    cell_spec(round(p.value, 3), "html")))
+tab_stat <- tab_stat |>
+  mutate(p.value = ifelse(p.value < 0.05,
+    cell_spec(round(p.value, 3), "html", color = "red"),
+    cell_spec(round(p.value, 3), "html")
+  ))
 
 # Affichage du tableau avec mise en forme
-tab_stat %>%
-  kbl(digits = c(0, 3, 3, 3, 4), # Arrondis
-      escape = FALSE,  
-      caption = "Résultats du test Anova effectué sur le modèle construit à partir de la méthode backward") %>%
+tab_stat |>
+  kbl(
+    digits = c(0, 3, 3, 3, 4), # Arrondis
+    escape = FALSE,
+    caption = "Résultats du test Anova effectué sur le modèle construit à partir de la méthode backward"
+  ) |>
   kable_styling()
 ```
 Le test donne le même résultat que la méthode *backward*. 
@@ -844,27 +982,31 @@ Le test donne le même résultat que la méthode *backward*.
 On réalise maintenant une méthode *forward* de sélection de modèle et on affiche là encore, les statistqiues descriptives du modèle obtenu. Les p_valeurs inférieures à 0.05 sont affichées en rouge. 
 ```{r}
 # Méthode forward
-mod_for <- step(mod_int, 
-                target ~ age + sex + trestbps + chol + fbs + restecg + thalach
-                 + exang + oldpeak + slope + ca + thal, 
-                data = train,
-                trace = FALSE, 
-                direction = c("forward"))
+mod_for <- step(mod_int,
+  target ~ age + sex + trestbps + chol + fbs + restecg + thalach
+    + exang + oldpeak + slope + ca + thal,
+  data = train,
+  trace = FALSE,
+  direction = c("forward")
+)
 
-# Création d'un tableau qui contient les coefficients du modèle 
+# Création d'un tableau qui contient les coefficients du modèle
 tab_stat <- tidy(mod_for, conf.int = TRUE)
 
 # Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
-tab_stat <- tab_stat %>%
-  mutate(p.value = ifelse(p.value < 0.05, 
-                                    cell_spec(round(p.value, 3), "html", color = "red"), 
-                                    cell_spec(round(p.value, 3), "html")))
+tab_stat <- tab_stat |>
+  mutate(p.value = ifelse(p.value < 0.05,
+    cell_spec(round(p.value, 3), "html", color = "red"),
+    cell_spec(round(p.value, 3), "html")
+  ))
 
 # Affichage du tableau avec mise en forme
-tab_stat %>%
-  kbl(digits = c(0, 3, 3, 3, 4), # Arrondis
-      escape = FALSE,  
-      caption = "Statistiques récapitulatives du modèle construit par la méthode forward") %>%
+tab_stat |>
+  kbl(
+    digits = c(0, 3, 3, 3, 4), # Arrondis
+    escape = FALSE,
+    caption = "Statistiques récapitulatives du modèle construit par la méthode forward"
+  ) |>
   kable_styling()
 ```
 
@@ -874,29 +1016,32 @@ On réalise une dernière méthode : la méthode *both* en affichant toujours le
 
 ```{r}
 # Méthode both
-mod_both <- step(mod_int, 
-                 target ~ age + sex + trestbps + chol + fbs + restecg + thalach
-                 + exang + oldpeak + slope + ca + thal, 
-                 data = train, 
-                 trace = F, 
-                 direction = c("both"))
+mod_both <- step(mod_int,
+  target ~ age + sex + trestbps + chol + fbs + restecg + thalach
+    + exang + oldpeak + slope + ca + thal,
+  data = train,
+  trace = F,
+  direction = c("both")
+)
 
-# Création d'un tableau qui contient les coefficients du modèle 
+# Création d'un tableau qui contient les coefficients du modèle
 tab_stat <- tidy(mod_both, conf.int = TRUE)
 
 # Mise en forme de la colonne p.value pour afficher en rouge les les p-valeurs inférieures à 0.05
-tab_stat <- tab_stat %>%
-  mutate(p.value = ifelse(p.value < 0.05, 
-                                    cell_spec(round(p.value, 3), "html", color = "red"), 
-                                    cell_spec(round(p.value, 3), "html")))
+tab_stat <- tab_stat |>
+  mutate(p.value = ifelse(p.value < 0.05,
+    cell_spec(round(p.value, 3), "html", color = "red"),
+    cell_spec(round(p.value, 3), "html")
+  ))
 
 # Affichage du tableau avec mise en forme
-tab_stat %>%
-  kbl(digits = c(0, 3, 3, 3, 4), # Arrondis
-      escape = FALSE,  
-      caption = "Statistiques récapitulatives du modèle construit par la méthode both") %>%
+tab_stat |>
+  kbl(
+    digits = c(0, 3, 3, 3, 4), # Arrondis
+    escape = FALSE,
+    caption = "Statistiques récapitulatives du modèle construit par la méthode both"
+  ) |>
   kable_styling()
-
 ```
 Le modèle garde les mêmes variables que celles obtenues avec la méthode *forward*. 
 
@@ -905,14 +1050,18 @@ Enfin, on compare l'AIC des modèles obtenus par les 3 méthodes.
 ```{r}
 # Création d'un dataframe avec les AIC
 deviance <- data.frame(AIC(mod_back), AIC(mod_for), AIC(mod_both))
-colnames(deviance) <- c("Méthode backward",
-                        "Méthode forward",
-                        "Méthode both") # Nom des colonnes 
+colnames(deviance) <- c(
+  "Méthode backward",
+  "Méthode forward",
+  "Méthode both"
+) # Nom des colonnes
 
 # Affichage des AIC des modèles
-deviance %>% 
-  kbl(digits = c(1, 1, 1), # pour les arrondis
-      caption = "AIC des modèles") %>% # Titre du tableau
+deviance |>
+  kbl(
+    digits = c(1, 1, 1), # pour les arrondis
+    caption = "AIC des modèles"
+  ) |> # Titre du tableau
   kable_styling()
 ```
 
@@ -924,8 +1073,9 @@ On définit alors notre modèle final avec les variables *restecg, cp, sex, exan
 ```{r}
 # Construction du modèle final
 mod_final <- glm(target ~ sex + exang + oldpeak + ca + thal + restecg + thalach + cp,
-                 data = train, 
-                 family = "binomial")
+  data = train,
+  family = "binomial"
+)
 ```
 
 # Validation du modèle
@@ -938,12 +1088,14 @@ On passe alors à la validation de notre modèle ainsi construit. On regarde dan
 ```{r}
 # Création d'un dataframe avec les déviances
 deviance <- data.frame(mod$null.deviance, mod_final$deviance)
-colnames(deviance) <- c("Déviance du modèle réduit à l'intercept", 
-                        "Déviance du modèle final") # nom des colonnes 
+colnames(deviance) <- c(
+  "Déviance du modèle réduit à l'intercept",
+  "Déviance du modèle final"
+) # nom des colonnes
 
 # Affichage des dimensions des ensembles d'entraînement et de test
-deviance %>% 
-  kbl(digits = c(2, 2), caption = "Déviance des modèles") %>% # pour les arrondis
+deviance |>
+  kbl(digits = c(2, 2), caption = "Déviance des modèles") |> # pour les arrondis
   kable_styling()
 ```
 
@@ -956,8 +1108,10 @@ On a aussi tracé sur ce même graphe des lignes de seuil pour repérer les obse
 
 ```{r}
 par(mfrow = c(1, 1))
-plot(rstudent(mod_final), type = "p", cex = 0.5, ylab = "Résidus studentisés ", 
-    col = "#0066CC", ylim = c(-3, 3))
+plot(rstudent(mod_final),
+  type = "p", cex = 0.5, ylab = "Résidus studentisés ",
+  col = "#0066CC", ylim = c(-3, 3)
+)
 abline(h = c(-2, 2), col = "#CC3333")
 ```
 On remarque que les résidus suivent un schéma aléatoire, ce qui valide le modèle. 
@@ -968,7 +1122,7 @@ Les quelques points au-delà des lignes rouges sont les valeurs atypiques que no
 Enfin, on affiche le graphe des *outliers*.
 ```{r}
 # Plot des outliers
-plot(mod_final,5)
+plot(mod_final, 5)
 ```
 Il ne semble pas y avoir d'outliers car aucun point n'a une distance de Cook supérieure à 1.
 
@@ -1001,25 +1155,29 @@ youden_index <- sapply(val_seuil, function(threshold) {
 optimal <- val_seuil[which.max(youden_index)]
 
 # Créer le graphique de l'indice de Youden en fonction des seuils
-plot(val_seuil, 
-     youden_index, 
-     type = "l", 
-     col = "#0066CC", # Couleur de la courbe
-     xlab = "Seuils", # Nom de l'axe des abscisses 
-     ylab = "Indice de Youden",# Nom de l'axe des ordonnées 
-     main = "Graphique de l'évolution de l'ndice de Youden en fonction des seuils") # Titre du graphique 
+plot(val_seuil,
+  youden_index,
+  type = "l",
+  col = "#0066CC", # Couleur de la courbe
+  xlab = "Seuils", # Nom de l'axe des abscisses
+  ylab = "Indice de Youden", # Nom de l'axe des ordonnées
+  main = "Graphique de l'évolution de l'ndice de Youden en fonction des seuils"
+) # Titre du graphique
 
 # Afficher le seuil optimal
-abline(v = optimal, 
-       col = "#CC3333", # Couleur de la droite
-       lty = 2) # Épaisseur de la droite 
+abline(
+  v = optimal,
+  col = "#CC3333", # Couleur de la droite
+  lty = 2
+) # Épaisseur de la droite
 
-# Afficher la légende 
-text(optimal, 
-     max(youden_index), 
-     paste("Seuil optimal =", round(optimal, 3)), 
-     pos = 4, 
-     col = "#CC3333")
+# Afficher la légende
+text(optimal,
+  max(youden_index),
+  paste("Seuil optimal =", round(optimal, 3)),
+  pos = 4,
+  col = "#CC3333"
+)
 ```
 Le seuil qui maximise l'indice de Youden vaut 0.556. On va donc garder ce seuil et prédire à patir de celui-ci. 
 On affiche ci-dessous l'évolution de la sensibilité et de la spécificité en fonction de la valeur du seuil. On affiche sur ce même-graphique la valeur du seuil optimal. 
@@ -1033,43 +1191,49 @@ for (threshold in val_seuil) {
   pred_pos <- predicted_probs_train > threshold
   sens <- sum(pred_pos & (train$target == 1)) / sum(train$target == 1)
   spec <- sum(!pred_pos & (train$target == 0)) / sum(train$target == 0)
-  
+
   sensitivities <- c(sensitivities, sens)
   specificities <- c(specificities, spec)
 }
 
 # Création du graphique avec la courbe de l'évolution de la sensibilité
-plot(val_seuil, 
-     sensitivities, 
-     type = "l", 
-     col = "#0066CC", # Couleur de la courbe 
-     xlab = "Seuil", # Nom de l'axe des abscisses 
-     ylab = "Valeur des paramètres", # Nom de l'axe des ordonnées
-     main = "Évolution de la sensibilité et de la spécificité en fonction des seuils") # Titre du graphique
+plot(val_seuil,
+  sensitivities,
+  type = "l",
+  col = "#0066CC", # Couleur de la courbe
+  xlab = "Seuil", # Nom de l'axe des abscisses
+  ylab = "Valeur des paramètres", # Nom de l'axe des ordonnées
+  main = "Évolution de la sensibilité et de la spécificité en fonction des seuils"
+) # Titre du graphique
 
 # Ajout de la courbe de l'évolution de la spécificité
-lines(val_seuil, 
-      specificities, 
-      type = "l", 
-      col = "#339966") # Couleur de la droite 
+lines(val_seuil,
+  specificities,
+  type = "l",
+  col = "#339966"
+) # Couleur de la droite
 
-# Ajout de la légende 
-legend("bottomright", 
-       legend = c("Sensibilité", "Spécificité"), 
-       col = c("#0066CC", "#339966"), 
-       lty = 1)
+# Ajout de la légende
+legend("bottomright",
+  legend = c("Sensibilité", "Spécificité"),
+  col = c("#0066CC", "#339966"),
+  lty = 1
+)
 
 # Ajout de la valeur du seuil optimal
-abline(v = optimal, 
-       col = "#CC3333", 
-       lty = 2)
+abline(
+  v = optimal,
+  col = "#CC3333",
+  lty = 2
+)
 
 # Ajout de texte
-text(optimal, 
-     max(youden_index),
-     paste("Seuil optimal =", round(optimal, 3)), 
-     pos = 4, 
-     col = "#CC3333")
+text(optimal,
+  max(youden_index),
+  paste("Seuil optimal =", round(optimal, 3)),
+  pos = 4,
+  col = "#CC3333"
+)
 ```
 On remarque donc que la valeur optimale pour l'indice de Youden ne l'est pas pour la sensibilité ni la spécificité. Cela est du au fait qu'on a du faire un choix en selectionnant un indicateur à optimiser parmi plusieurs autres, ici, le nombre de faux négatifs. Cependant, au seuil optimal, la spécificité et la sensibilité sont satisfaisantes. On garde donc ce seuil.
 
@@ -1103,22 +1267,23 @@ Pour étudier les performances de prédiction, on affiche la matrice de confusio
 # Création de la matrice de confusion
 confusion_matrix <- table(factor(predicted), factor(test$target))
 # Affichage de la matrice de confusion
-par(mfrow=c(1, 1))
-ctable <- as.table(confusion_matrix, 
-                   nrow = 2,
-                   byrow = TRUE)
+par(mfrow = c(1, 1))
+ctable <- as.table(confusion_matrix,
+  nrow = 2,
+  byrow = TRUE
+)
 # Définir les étiquettes "malade" et "sain" pour les lignes et colonnes
 rownames(ctable) <- colnames(ctable) <- c("malade (1)", "sain (0)")
 
 # Définir les étiquettes "Réel" et "Prédit"
 dimnames(ctable) <- list(Réel = rownames(ctable), Prédit = colnames(ctable))
 
-fourfoldplot(ctable, 
-             color = c("#CC6666", "#CCCCCC"),
-             conf.level = 0, 
-             margin = 1, 
-             main = "Matrice de confusion \ndu modèle de regression logistique")
-
+fourfoldplot(ctable,
+  color = c("#CC6666", "#CCCCCC"),
+  conf.level = 0,
+  margin = 1,
+  main = "Matrice de confusion \ndu modèle de regression logistique"
+)
 ```
 On obtient qu’on a prédit 3 faux négatifs, 7 faux positifs, 21 vrais positifs et 30 vrais négatifs. Ce résultat est tout à fait satisfaisait car le nombre de faux négatifs est assez faible, ce qui était notre objectif.
 
@@ -1143,10 +1308,12 @@ specific_values <- unlist(results$byClass[specific_metrics])
 # Création du tableau avec les valeurs spécifiques
 results_df_spe <- data.frame(Valeur = specific_values)
 
-# Affichage du tableau 
-rbind(acc, results_df_spe) %>% # Fusion des deux dataframe
-  kable(digits = 3, # Arrondi
-        caption = "Indicateurs et métriques de performance.") %>% # Titre
+# Affichage du tableau
+rbind(acc, results_df_spe) |> # Fusion des deux dataframe
+  kable(
+    digits = 3, # Arrondi
+    caption = "Indicateurs et métriques de performance."
+  ) |> # Titre
   kable_styling()
 ```
 
@@ -1182,9 +1349,8 @@ Pour terminer le projet, on compare le modèle de régression logistique à 2 au
 On construit d'abord un modèle de forêt aléatoire (*Random Forest*) qui est populaire en raison de sa capacité à produire des prédictions précises, à gérer des ensembles de données complexes et bruités, et à éviter le surajustement.
 
 ```{r, include = FALSE}
-
 # Créer un modèle de Random Forest
-mod_rf <- randomForest(target ~., data = train, ntree = 500)
+mod_rf <- randomForest(target ~ ., data = train, ntree = 500)
 
 # Prédire les probabilités sur l'ensemble d'entraînement
 predicted_probs_train_rf <- predict(mod_rf, newdata = train, type = "response")
@@ -1259,39 +1425,42 @@ results_tree <- confusionMatrix(predicted_factor_tree, test_target_factor_tree, 
 On peut afficher les matrices de confusions des modèles construits.
 
 ```{r}
-par(mfrow=c(1, 2))
+par(mfrow = c(1, 2))
 # Affichage de la matrice de confusion de la forêt aléatoire
-ctable <- as.table(results_rf, 
-                   nrow = 2,
-                   byrow = TRUE)
+ctable <- as.table(results_rf,
+  nrow = 2,
+  byrow = TRUE
+)
 # Définir les étiquettes "malade" et "sain" pour les lignes et colonnes
 rownames(ctable) <- colnames(ctable) <- c("malade (1)", "sain (0)")
 
 # Définir les étiquettes "Réel" et "Prédit"
 dimnames(ctable) <- list(Réel = rownames(ctable), Prédit = colnames(ctable))
 
-fourfoldplot(ctable, 
-             color = c("#CC6666", "#CCCCCC"),
-             conf.level = 0, 
-             margin = 1, 
-             main = "Matrice de confusion \ndu modèle de forêt aléatoire")
+fourfoldplot(ctable,
+  color = c("#CC6666", "#CCCCCC"),
+  conf.level = 0,
+  margin = 1,
+  main = "Matrice de confusion \ndu modèle de forêt aléatoire"
+)
 
 # Affichage de la matrice de confusion de l'arbre de décision
-ctable <- as.table(results_tree, 
-                   nrow = 2,
-                   byrow = TRUE)
+ctable <- as.table(results_tree,
+  nrow = 2,
+  byrow = TRUE
+)
 # Définir les étiquettes "malade" et "sain" pour les lignes et colonnes
 rownames(ctable) <- colnames(ctable) <- c("malade (1)", "sain (0)")
 
 # Définir les étiquettes "Réel" et "Prédit"
 dimnames(ctable) <- list(Réel = rownames(ctable), Prédit = colnames(ctable))
 
-fourfoldplot(ctable, 
-             color = c("#CC6666", "#CCCCCC"),
-             conf.level = 0, 
-             margin = 1, 
-             main = "Matrice de confusion \ndu modèle d'arbre de décision")
-
+fourfoldplot(ctable,
+  color = c("#CC6666", "#CCCCCC"),
+  conf.level = 0,
+  margin = 1,
+  main = "Matrice de confusion \ndu modèle d'arbre de décision"
+)
 ```
 
 ## Comparaison des performances
@@ -1317,17 +1486,17 @@ specific_metrics <- c("Sensitivity", "Neg Pred Value", "Precision")
 metrics <- c("Sensibilité", "F1 Score", "Valeur prédictive négative", "Accuracy", "Nombre de faux négatifs", "AUC")
 models <- c("Regression logistique", "Random Forest", "Arbre de décision")
 data <- matrix(NA, nrow = length(models), ncol = length(metrics))
-colnames(data) <- metrics 
+colnames(data) <- metrics
 rownames(data) <- models
 
 # Insertion des valeurs spécifiques dans le dataframe
-data["Regression logistique", ] <- c(unlist(results$byClass[specific_metrics ]), results$overall['Accuracy'], results$table[1, 2], auc_value)
-data["Random Forest",] <- c(unlist(results_rf$byClass[specific_metrics]), results_rf$overall['Accuracy'], results_rf$table[1, 2], auc_value_rf)
-data["Arbre de décision",] <- c(unlist(results_tree$byClass[specific_metrics]), results_tree$overall['Accuracy'], results_tree$table[1, 2], auc_value_tree)
+data["Regression logistique", ] <- c(unlist(results$byClass[specific_metrics]), results$overall["Accuracy"], results$table[1, 2], auc_value)
+data["Random Forest", ] <- c(unlist(results_rf$byClass[specific_metrics]), results_rf$overall["Accuracy"], results_rf$table[1, 2], auc_value_rf)
+data["Arbre de décision", ] <- c(unlist(results_tree$byClass[specific_metrics]), results_tree$overall["Accuracy"], results_tree$table[1, 2], auc_value_tree)
 
 # Affichage du tableau
-data %>%
-  kbl(digits = c(3, 3, 3, 3, 1, 2), caption = "Comparaison des performances des différents modèles ") %>% # pour les arrondis et titres  
+data |>
+  kbl(digits = c(3, 3, 3, 3, 1, 2), caption = "Comparaison des performances des différents modèles ") |> # pour les arrondis et titres
   kable_styling()
 ```
 

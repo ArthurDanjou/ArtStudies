@@ -297,7 +297,7 @@ On présente ci-dessous un aperçu des données.
 fold <- getwd()
 
 # Load data
-# load(paste0(fold, "/M2/Data Visualisation/tp1", "/data/datafreMPTL.RData")) # VSCode # nolint
+# load(paste0(fold, "/M2/Data Visualisation/tp1", "/data/datafreMPTL.RData")) # VSCode
 load(paste0(fold, "/data/datafreMPTL.RData")) # RStudio
 paged_table(dat, options = list(rows.print = 15))
 ```
@@ -505,7 +505,7 @@ df_plot <- dat |>
 p3 <- ggplot(df_plot, aes(x = DrivAge, y = freq)) +
   geom_point() +
   geom_smooth() +
-  labs(x = "Age du conducteur", y = "Frequence")  +
+  labs(x = "Age du conducteur", y = "Frequence") +
   theme_bw()
 p3
 ```
@@ -642,12 +642,16 @@ plot_pairwise_disc <- function(df, var1, var2) {
 
   df |>
     group_by(varx, vary) |>
-    summarize(exp = sum(Exposure),
-              nb_claims = sum(ClaimNb),
-              freq = sum(ClaimNb) / sum(Exposure), .groups = "drop") |>
+    summarize(
+      exp = sum(Exposure),
+      nb_claims = sum(ClaimNb),
+      freq = sum(ClaimNb) / sum(Exposure), .groups = "drop"
+    ) |>
     ggplot(aes(x = varx, y = freq, colour = vary, group = vary), alpha = 0.3) +
-    geom_point() + geom_line() + theme_bw() +
-    labs(x = var1,  y = "Frequence", colour = var2)
+    geom_point() +
+    geom_line() +
+    theme_bw() +
+    labs(x = var1, y = "Frequence", colour = var2)
 }
 ```
 
