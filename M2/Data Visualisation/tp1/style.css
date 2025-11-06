@@ -1,0 +1,198 @@
+.infobox {
+  padding: 1em 1em 1em 4em;
+  margin-bottom: 10px;
+  border: 2px solid orange;
+  border-radius: 10px;
+  background: #f5f5f5 5px center/3em no-repeat;
+}
+
+/* Custom box styles for math environments */
+
+/* Lemma Box */
+.lemma-box {
+  border: 2px solid #3c8dbc;
+  background-color: #e6f7ff;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Theorem Box */
+.theorem-box {
+  border: 2px solid #2ca02c;
+  background-color: #eaffea;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Corollary Box */
+.corollary-box {
+  border: 2px solid #2ca02c;
+  background-color: #eaffea;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Proposition Box */
+.proposition-box {
+  border: 2px solid #ff7f0e;
+  background-color: #fff3e6;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Conjecture Box */
+.conjecture-box {
+  border: 2px solid #9467bd;
+  background-color: #f5e6ff;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Definition Box */
+.definition-box {
+  border: 2px solid #d62728;
+  background-color: #ffe6e6;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Example Box */
+.example-box {
+  border: 2px solid #17becf;
+/*  background-color: #e6f7ff;*/
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Exercise Box */
+.exercise-box {
+  border: 2px solid #1f77b4;
+  background-color: #e6f7ff;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Hypothesis Box */
+.hypothesis-box {
+  border: 2px solid #e377c2;
+  background-color: #ffe6f5;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Remark Box */
+.remark-box {
+  border: 2px solid #7f7f7f;
+  background-color: #f2f2f2;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Proof Box */
+.proof-box {
+  border: 2px solid #bcbd22;
+  background-color: #fafad2;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* Hint Box */
+.hint-box {
+  border: 2px solid #7f7f7f;
+  background-color: #f2f2f2;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+
+/* Numérotation automatique */
+
+
+.lemma-box::before {
+  counter-increment: lemma-counter;
+  content: "Lemme " counter(lemma-counter) ". ";
+  font-weight: bold;
+}
+
+.theorem-box::before {
+  counter-increment: theorem-counter;
+  content: "Théorème " counter(theorem-counter) ". ";
+  font-weight: bold;
+}
+
+.corollary-box::before {
+  counter-increment: corollary-counter;
+  content: "Corollaire " counter(corollary-counter) ". ";
+  font-weight: bold;
+}
+
+.proposition-box::before {
+  counter-increment: proposition-counter;
+  content: "Proposition " counter(proposition-counter) ". ";
+  font-weight: bold;
+}
+
+.conjecture-box::before {
+  counter-increment: conjecture-counter;
+  content: "Conjecture " counter(conjecture-counter) ". ";
+  font-weight: bold;
+}
+
+.definition-box::before {
+  counter-increment: definition-counter;
+  content: "Définition " counter(definition-counter) ". ";
+  font-weight: bold;
+}
+
+.example-box::before {
+  counter-increment: example-counter;
+  content: "Exemple " counter(example-counter) ". ";
+  font-weight: bold;
+}
+
+
+.exercise-box::before {
+  counter-increment: exercise-counter;
+  content: "Question " counter(exercise-counter) ". ";
+  font-weight: bold;
+}
+
+.hypothesis-box::before {
+  counter-increment: hypothesis-counter;
+  content: "Hypothèse " counter(hypothesis-counter) ". ";
+  font-weight: bold;
+}
+
+.remark-box::before {
+  counter-increment: remark-counter;
+  content: "Remarque " counter(remark-counter) ". ";
+  font-weight: bold;
+}
+
+.proof-box::before {
+  counter-increment: proof-counter;
+  content: "Preuve " counter(proof-counter) ". ";
+  font-weight: bold;
+}
+
+.hint-box::before {
+  content: "Indice." ;
+  font-weight: bold;
+}
+
+/* Initialisation des compteurs */
+body {
+  counter-reset: lemma-counter corollary-counter proposition-counter conjecture-counter definition-counter example-counter exercise-counter hypothesis-counter remark-counter proof-counter;
+}
