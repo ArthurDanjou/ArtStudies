@@ -1,0 +1,40 @@
+---
+title: "Dashboard des accidents de vélo"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include = FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(gapminder)
+library(rmarkdown)
+```
+
+## column {data-width="650"}
+
+### Graphique 1
+
+```{r}
+paged_table(gapminder, options = list(rows.print = 15))
+```
+
+## column {data-width="350"}
+
+### Graphique 2
+
+```{r}
+ggplot(data = gapminder, aes(x = lifeExp)) +
+  geom_histogram(aes(y = ..density..), bins = 30) +
+  geom_density()
+```
+
+### Graphique 3
+
+```{r}
+ggplot(data = gapminder, aes(x = lifeExp)) +
+  geom_histogram(aes(y = ..density..), bins = 30) +
+  geom_density()
+```

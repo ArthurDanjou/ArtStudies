@@ -467,6 +467,10 @@ g_map_acc
     périodiques.
 :::
 
+```{r}
+library(flexdashboard)
+```
+
 # Informations de session {.unnumbered}
 
 ```{r}
