@@ -51,12 +51,10 @@ server <- function(input, output) {
 
         strikes = seq(K - 30, K + 30)
         vcall = sapply(strikes, function(k) BS(S, k, T, v, rf, dv)[1])
-        vput  = sapply(strikes, function(k) BS(S, k, T, v, rf, dv)[2])
 
-        df = data.frame(strikes = strikes, Call = vcall, Put = vput)
+        df = data.frame(strikes = strikes, Call = vcall)
         p <- ggplot(df, aes(x = strikes)) + 
             geom_line(aes(y = Call, color = "Call")) + 
-            geom_line(aes(y = Put, color = "Put")) + 
             labs(title = "Black-Scholes Option Pricing",
                  x = "Strike Price",
                  y = "Option Price") + 
@@ -75,13 +73,11 @@ server <- function(input, output) {
         dv = input$divrate
 
         strikes = seq(K - 30, K + 30)
-        vcall = sapply(strikes, function(k) BS(S, k, T, v, rf, dv)[1])
         vput  = sapply(strikes, function(k) BS(S, k, T, v, rf, dv)[2])
 
-        df = data.frame(strikes = strikes, Call = vcall, Put = vput)
+        df = data.frame(strikes = strikes, Put = vput)
         p <- ggplot(df, aes(x = strikes)) + 
-            geom_line(aes(y = Put, color = "Put")) + 
-            geom_line(aes(y = Call, color = "Call")) + 
+            geom_line(aes(y = Put, color = "Put")) +  
             labs(title = "Black-Scholes Option Pricing",
                  x = "Strike Price",
                  y = "Option Price") + 
