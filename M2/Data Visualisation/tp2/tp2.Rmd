@@ -446,6 +446,10 @@ g_map_acc <- ggplot(map_acc) +
 g_map_acc
 ```
 
+```{r}
+
+```
+
 ### Bar plots
 
 ::: exercise-box
