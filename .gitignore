@@ -14,3 +14,7 @@
 *.log
 logs
 catboost_info
+
+tp1_files
+tp2_files
+tp3_files
