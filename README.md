@@ -33,7 +33,7 @@ The projects are organized into two main sections:
   - `Deep Learning`
   - `Linear Models`
   - `Machine Learning`
-  - `Risks Management`
+  - `VBA`
   - `SQL`
 
 ## 🛠️ Technologies & Tools
