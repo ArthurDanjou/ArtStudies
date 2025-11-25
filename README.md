@@ -33,6 +33,7 @@ The projects are organized into two main sections:
   - `Deep Learning`
   - `Linear Models`
   - `Machine Learning`
+  - `Reinforcement Learning`
   - `VBA`
   - `SQL`
 
