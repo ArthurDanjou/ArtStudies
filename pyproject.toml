@@ -46,7 +46,19 @@ select = [
     "I",  # isort
     "B",  # flake8-bugbear
     "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+    "UP", # pyupgrade,
+    "C4",  # flake8-comprehensions
+    "FIX", # auto-fixable issues
+    "G",  # flake8-logging-format
+    "Q",  # flake8-quotes
+    "RET", # flake8-return
+    "SLF", # flake8-self
+    "SIM", # flake8-simplify
+    "ARG", # flake8-unused-arguments
+    "PD", # flake8-pandas-vet
+    "DOC", # pydocstyle
+    "D", # pydocstyle
+    "PL", # pylint
 ]
 
 # Désactiver certaines règles
