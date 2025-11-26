@@ -34,8 +34,10 @@ The projects are organized into two main sections:
   - `Linear Models`
   - `Machine Learning`
   - `Reinforcement Learning`
-  - `VBA`
   - `SQL`
+  - `Unsupervised Learning`
+  - `VBA`
+
 
 ## 🛠️ Technologies & Tools
 
