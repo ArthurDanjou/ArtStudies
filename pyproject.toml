@@ -47,6 +47,9 @@ ignore = [
     # "E501", # line too long, géré par le formatter
     "E402", # Imports in top of file
     "T201", # Print
+    "N806",
+    "N803",
+    "N802"
 ]
 
 # Exclure certains fichiers ou répertoires
