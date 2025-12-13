@@ -40,32 +40,13 @@ line-length = 88
 
 [tool.ruff.lint]
 # Activer les règles de linting courantes
-select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # Pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade,
-    "C4",  # flake8-comprehensions
-    "FIX", # auto-fixable issues
-    "G",  # flake8-logging-format
-    "Q",  # flake8-quotes
-    "RET", # flake8-return
-    "SLF", # flake8-self
-    "SIM", # flake8-simplify
-    "ARG", # flake8-unused-arguments
-    "PD", # flake8-pandas-vet
-    "DOC", # pydocstyle
-    "D", # pydocstyle
-    "PL", # pylint
-]
+select = ["ALL"]
 
 # Désactiver certaines règles
 ignore = [
-    "E501", # line too long, géré par le formatter
+    # "E501", # line too long, géré par le formatter
     "E402", # Imports in top of file
+    "T201", # Print
 ]
 
 # Exclure certains fichiers ou répertoires
@@ -96,6 +77,11 @@ exclude = [
 fixable = ["ALL"]
 unfixable = []
 
-# Formatage des imports
-[tool.isort]
-known_third_party = ["pydantic", "django"]
+[tool.ruff.lint.isort]
+# Regrouper les imports par thématiques
+section-order = ["future", "standard-library", "third-party", "data-science", "ml", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+# On sépare les outils de manipulation de données des frameworks de ML lourds
+"data-science" = ["numpy", "pandas", "scipy", "matplotlib", "seaborn", "plotly"]
+"ml" = ["tensorflow", "keras", "torch", "sklearn", "xgboost", "catboost", "shap"]
