@@ -44,7 +44,7 @@ header-includes:
         % Utilisation d'une minipage pour contrôler la largeur du texte (80% de la page)
         \begin{minipage}{0.85\textwidth}
             \centering
-            \Large \textit{«~Comment l'analyse de données permet-elle de dépasser les moyennes nationales pour établir une segmentation opérationnelle de l'épidémie de tuberculose à l'échelle mondiale ?~»}
+            \Large \textit{«~Au-delà des agrégats nationaux : comment l'analyse multivariée permet-elle de révéler une typologie opérationnelle des risques sanitaires mondiaux face à la tuberculose ?~»}
         \end{minipage}
         
         \vspace{2cm}
@@ -106,7 +106,7 @@ Avec 1,6 million de décès annuels et plus de 10 millions de nouveaux cas estim
 
 Pour piloter la réponse mondiale, l'Organisation Mondiale de la Santé produit le Global Tuberculosis Report, une base de données exhaustive comptant plus de 200 pays et une quarantaine d'indicateurs. Cependant, la richesse même de ces données pose un défi d'analyse : face à la multitude de variables (incidence, notification, mortalité, co-infection), les tableaux statistiques traditionnels échouent à offrir une vision synthétique et opérationnelle. Ils ne permettent ni d'identifier rapidement les profils à risque, ni de visualiser les dynamiques temporelles complexes.
 
-## Problématique : Comment l'analyse de données permet-elle de dépasser les moyennes nationales pour établir une segmentation opérationnelle de l'épidémie de tuberculose à l'échelle mondiale ?
+## Problématique : Au-delà des agrégats nationaux : comment l'analyse multivariée permet-elle de révéler une typologie opérationnelle des risques sanitaires mondiaux face à la tuberculose ?
 
 Ce projet déploie une chaîne de traitement Data Science complète reposant sur trois piliers. Premièrement, une rationalisation de la donnée par sélection de variables et analyse exploratoire (EDA) pour isoler les signaux pertinents. Deuxièmement, une segmentation intelligente (Clustering K-Means) pour identifier des profils de risque homogènes au-delà des simples zones géographiques. Enfin, une opérationnalisation interactive via une application R Shiny, offrant aux décideurs une interface dynamique pour visualiser les tendances 2000-2024.
 
