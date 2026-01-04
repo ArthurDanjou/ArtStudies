@@ -104,7 +104,7 @@ library(factoextra)
 
 Avec 1,6 million de décès annuels et plus de 10 millions de nouveaux cas estimés en 2022, la tuberculose (TB) demeure la deuxième maladie infectieuse la plus meurtrière au monde après le COVID-19 (OMS, 2025). Pourtant, derrière ces chiffres globaux se cache une épidémie profondément inégalitaire. Alors que certains pays rapportent une incidence maîtrisée inférieure à 10 cas pour 100 000 habitants, d'autres font face à des taux critiques dépassant les 500 cas, révélant des fractures sanitaires majeures entre les nations.
 
-Pour piloter la réponse mondiale, l'Organisation Mondiale de la Santé produit le Global Tuberculosis Report, une base de données exhaustive comptant plus de 200 pays et une quarantaine d'indicateurs. Cependant, la richesse même de ces données pose un défi d'analyse : face à la multitude de variables (incidence, notification, mortalité, co-infection), les tableaux statistiques traditionnels échouent à offrir une vision synthétique et opérationnelle. Ils ne permettent ni d'identifier rapidement les profils à risque, ni de visualiser les dynamiques temporelles complexes.
+Pour piloter la réponse mondiale, l'Organisation Mondiale de la Santé produit le *Global Tuberculosis Report*, une base de données exhaustive comptant plus de 200 pays et une quarantaine d'indicateurs. Cependant, la richesse même de ces données pose un défi d'analyse : face à la multitude de variables (incidence, notification, mortalité, co-infection), les tableaux statistiques traditionnels échouent à offrir une vision synthétique et opérationnelle. Ils ne permettent ni d'identifier rapidement les profils à risque, ni de visualiser les dynamiques temporelles complexes.
 
 ## Problématique : Au-delà des agrégats nationaux : comment l'analyse multivariée permet-elle de révéler une typologie opérationnelle des risques sanitaires mondiaux face à la tuberculose ?
 
@@ -122,7 +122,7 @@ La suite de cette notice détaille la méthodologie : la préparation des donné
 
 ### Origine et portée des données
 
-Le socle empirique repose sur les données du *Global Tuberculosis Report* 2025 de l'OMS, référence internationale couvrant 25 ans (2000-2024) pour 215 territoires. Le fichier brut de 50 variables s'articule autour de trois dimensions complémentaires : **épidémiologique** (morbidité, mortalité, prise en charge), **démographique** (structure de population nécessaire à la standardisation des taux) et **géopolitique** (métadonnées spatiales et codes ISO-3) dédiées à l'analyse spatiale.
+Le socle empirique repose sur les données du *Global Tuberculosis Report* 2024 de l'OMS, référence internationale couvrant 25 ans (2000-2024) pour 215 territoires. Le fichier brut de 50 variables s'articule autour de trois dimensions complémentaires : **épidémiologique** (morbidité, mortalité, prise en charge), **démographique** (structure de population nécessaire à la standardisation des taux) et **géopolitique** (métadonnées spatiales et codes ISO-3) dédiées à l'analyse spatiale.
 
 ### Convention de nommage et sémantique
 
@@ -555,7 +555,7 @@ L'algorithme K-Means étant sensible à l'initialisation des centroïdes (risque
 set.seed(123)
 
 km_res <- kmeans(data_scaled, centers = 3, nstart = 25)
-round(km_res$betweenss / km_res$totss * 100, 1)
+var_totale <- round(km_res$betweenss / km_res$totss * 100, 1)
 ```
 
 Avec **83,9 % de variance expliquée**, le modèle valide la robustesse statistique de la segmentation ternaire. Ce score élevé traduit une séparation nette des profils épidémiologiques, corroborant ainsi la forte structuration spatiale pressentie lors de l'analyse exploratoire.
@@ -694,7 +694,7 @@ Fondée sur une architecture client-serveur réactive, l'application mobilise un
 
 ### Flux de Données Réactif
 
-Le coeur de l'application réside dans son graphe de dépendance réactif qui, contrairement à un script statique, optimise les ressources en ne recalculant les éléments qu'à la demande. Le flux suit une logique séquentielle : toute interaction sur un **Input** (sélection d'une année ou d'un pays) déclenche une **Expression Réactive** chargée de filtrer le jeu de données `tb_final`. Ce nouveau sous-ensemble propage alors instantanément la mise à jour vers les **Outputs** (cartes, tableaux et courbes) sans nécessiter de rechargement de la page.
+Le coeur de l'application réside dans son graphe de dépendance réactif qui, contrairement à un script statique, optimise les ressources en ne recalculant les éléments qu'à la demande. Le flux suit une logique séquentielle : toute interaction sur un **Input** (sélection d'une année ou d'un pays) déclenche une **Expression Réactive** chargée de filtrer le jeu de données `tb_clustered`. Ce nouveau sous-ensemble propage alors instantanément la mise à jour vers les **Outputs** (cartes, tableaux et courbes) sans nécessiter de rechargement de la page.
 
 ## Fonctionnalités décisionnelles :
 
