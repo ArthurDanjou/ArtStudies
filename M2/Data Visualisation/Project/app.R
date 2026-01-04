@@ -86,7 +86,7 @@ ui <- shinydashboard::dashboardPage(
         value = max(tb_clustered$year),
         step = 1,
         sep = "",
-        animate = animationOptions(interval = 3000, loop = FALSE)
+        animate = animationOptions(interval = 5000, loop = FALSE)
       )
     )
   ),
