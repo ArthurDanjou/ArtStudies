@@ -4,7 +4,6 @@ n = 100
 Z = sample.int(3, n, replace=T)
 ```
 
-
 ```{r}
 mu1 = -3
 mu2 = 0
@@ -16,7 +15,6 @@ X = rnorm(n, mu1, sqrt(sigma12))
 X[Z == 2] = rnorm(sum(Z == 2), mu2, sqrt(sigma22))
 X[Z == 3] = rnorm(sum(Z == 3), mu3, sqrt(sigma32))
 ```
-
 
 ```{r}
 plot(density(X, bw = 0.1), ylim = c(0, 0.85), main = 'Estimation de la densité')
@@ -68,7 +66,6 @@ legend(
 ```
 
 La validation croisée non biaisée (UCV) semble donner les meilleurs résultats..
-
 
 ```{r}
 kmax = 50
