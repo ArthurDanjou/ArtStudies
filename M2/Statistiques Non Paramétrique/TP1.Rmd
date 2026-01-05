@@ -1,0 +1,129 @@
+
+```{r}
+n = 100
+Z = sample.int(3, n, replace=T)
+```
+
+
+```{r}
+mu1 = -3
+mu2 = 0
+mu3 = 1
+sigma12 = 1
+sigma22 = 1
+sigma32 = 0.03
+X = rnorm(n, mu1, sqrt(sigma12))
+X[Z == 2] = rnorm(sum(Z == 2), mu2, sqrt(sigma22))
+X[Z == 3] = rnorm(sum(Z == 3), mu3, sqrt(sigma32))
+```
+
+
+```{r}
+plot(density(X, bw = 0.1), ylim = c(0, 0.85), main = 'Estimation de la densité')
+rug(X)
+x = seq(-6, 2, length.out = 100)
+points(
+  x,
+  (dnorm(x, mu1, sqrt(sigma12)) +
+    dnorm(x, mu2, sqrt(sigma22)) +
+    dnorm(x, mu3, sqrt(sigma32))) /
+    3,
+  type = 'l',
+  col = 'darkgreen'
+)
+legend(
+  'topleft',
+  c('Vraie densité', 'Estimation'),
+  lty = c(1, 1),
+  col = c('darkgreen', 1))
+```
+
+La valeur 0. semble donner une meilleure estimation.
+
+```{r}
+plot(
+  density(X, bw = 'SJ'),
+  ylim = c(0, 0.85),
+  main = 'Estimation de la densité'
+)
+lines(density(X, bw = 'ucv'), col = 2)
+lines(density(X, bw = 'bcv'), col = 4)
+
+rug(X)
+x = seq(-6, 2, length.out = 100)
+points(
+  x,
+  (dnorm(x, mu1, sqrt(sigma12)) +
+    dnorm(x, mu2, sqrt(sigma22)) +
+    dnorm(x, mu3, sqrt(sigma32))) /
+    3,
+  type = 'l',
+  col = 'darkgreen'
+)
+legend(
+  'topleft',
+  c('Vraie densité', 'SJ', 'ucv', 'bcv'),
+  lty = rep(1, 4),
+  col = c('darkgreen', 1, 2, 4))
+```
+
+La validation croisée non biaisée (UCV) semble donner les meilleurs résultats..
+
+
+```{r}
+kmax = 50
+H = (1:kmax)^2 / (n * sqrt(2 * pi))
+hmin = min(H)
+p = 5000
+fhat = matrix(NA, kmax, p)
+fhatmin = density(X, bw = hmin, n = p)
+x = fhatmin$x
+fhat[1, ] = fhatmin$y
+for (j in 2:kmax) {
+  fhat[j, ] = density(X, bw = H[j], n = p)$y
+}
+# Calcul du critere PCO
+b = rep(NA, kmax)
+v = rep(NA, kmax)
+crit = rep(NA, kmax)
+for (k in 1:kmax) {
+  b[k] = mean((fhat[k, ] - fhat[1, ])^2)
+  v[k] = 2 * mean(dnorm(x, sd = hmin) * dnorm(x, sd = H[k])) / n
+  crit[k] = b[k] + v[k]
+}
+khat = which.min(crit)
+hhat = H[khat]
+fhhat = fhat[khat, ]
+plot(
+  x,
+  fhhat,
+  main = paste("Minimum atteint pour h=", signif(hhat, 2)),
+  xlab = 't',
+  ylab = expression(hat(f)[hat(h)]),
+  type = 'l'
+)
+points(
+  x,
+  (dnorm(x, mu1, sqrt(sigma12)) +
+    dnorm(x, mu2, sqrt(sigma22)) +
+    dnorm(x, mu3, sqrt(sigma32))) /
+    3,
+  type = 'l',
+  col = 'darkgreen',
+  lwd = 2
+)
+```
+
+```{r}
+plot(density(precip, bw = 'ucv'))
+rug(precip)
+```
+
+Les données sont bimodales. On décèle deux groupes de villes : un groupe avec des précipitations situées autour de 15 inches avec une grande dispersion et un autre groupe avec des précipitations moyennes situées autours de 40 inches.
+
+```{r}
+plot(density(faithful[, 1], bw = 'ucv'))
+rug(faithful[, 1])
+```
+
+On distingue là aussi deux groupes : un groupe de geysers ayant un temps d'éruption autour de 2 mins et un autre 4 mins/4 mins 30. La règle du pouce donne ds estimateurs très différents de la validation croisée et de la méthode de Sheather et Jones.
