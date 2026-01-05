@@ -35,6 +35,7 @@ The projects are organized into two main sections:
   - `Machine Learning`
   - `Reinforcement Learning`
   - `SQL`
+  - `Statistiques Non Paramétrique`
   - `Unsupervised Learning`
   - `VBA`
 
