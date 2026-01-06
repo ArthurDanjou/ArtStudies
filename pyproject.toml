@@ -51,7 +51,7 @@ select = ["ALL"]
 
 # Désactiver certaines règles
 ignore = [
-    # "E501", # line too long, géré par le formatter
+    "E501", # line too long, géré par le formatter
     "E402", # Imports in top of file
     "T201", # Print
     "N806",
