@@ -31,6 +31,7 @@ The projects are organized into two main sections:
 - `M2`
   - `Data Visualisation`
   - `Deep Learning`
+  - `Generative AI`
   - `Linear Models`
   - `Machine Learning`
   - `Reinforcement Learning`
@@ -58,4 +59,5 @@ The projects are organized into two main sections:
 - [FactoMineR](https://factominer.free.fr/): An R package focused on multivariate exploratory data analysis (e.g., PCA, MCA, CA).
 - [ggplot2](https://ggplot2.tidyverse.org): A grammar-based graphics package for creating complex and elegant visualizations in R.
 - [RShiny](https://shiny.rstudio.com): A web application framework for building interactive web apps directly from R.
+- [LangChain](https://langchain.com): A framework for developing applications powered by language models.
 - and my 🧠.
