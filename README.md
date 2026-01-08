@@ -29,6 +29,7 @@ The projects are organized into two main sections:
   - `Statistical Learning`
 
 - `M2`
+  - `Clustering In Practice`
   - `Data Visualisation`
   - `Deep Learning`
   - `Generative AI`

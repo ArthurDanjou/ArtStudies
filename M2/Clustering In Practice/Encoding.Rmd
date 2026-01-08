@@ -1,0 +1,53 @@
+```{r}
+library(caret)
+library(dplyr)
+```
+
+# One Hot Encoding
+
+```{r}
+df <- data.frame(
+  team = c('A', 'A', 'B', 'B', 'B', 'B', 'C', 'C'),
+  points = c(25, 12, 15, 14, 19, 23, 25, 29)
+)
+
+dummies <- dummyVars(~team + points, data = df)
+one_hot_data <- predict(dummies, newdata = df)
+
+one_hot_data
+```
+
+# Target Encoding
+
+```{r}
+train <- data.frame(
+  target = c(10, 20, 15),
+  cat_col1 = c('city1', 'city2', 'city1'),
+  cat_col2 = c('james', 'adam', 'charles')
+)
+
+global_mean <- mean(train$target)
+alpha <- 10
+
+target_encoding <- train %>%
+  group_by(cat_col1) %>%
+  summarise(
+    n = n(),
+    sum_target = sum(target),
+    cat_col1_te = (sum_target + (alpha * global_mean)) / (n + alpha),
+    .groups = "drop"
+  ) %>%
+  select(cat_col1, cat_col1_te)
+
+train <- train %>% left_join(target_encoding, by = "cat_col1")
+```
+
+# Frequential Encoding
+
+
+```{r}
+df <- data.frame(
+  color = c('blue', 'red', 'blue', 'green'),
+  value = c(10, 20, 10, 30)
+)
+```
