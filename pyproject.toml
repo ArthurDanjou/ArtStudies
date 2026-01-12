@@ -13,6 +13,7 @@ dependencies = [
     "langchain-community>=0.4.1",
     "langchain-huggingface>=1.2.0",
     "langchain-ollama>=1.0.1",
+    "langchain-text-splitters>=1.1.0",
     "matplotlib>=3.10.1",
     "nbformat>=5.10.4",
     "numpy>=2.2.5",
