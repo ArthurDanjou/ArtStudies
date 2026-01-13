@@ -25,3 +25,11 @@ Baudelaire_len_32.p
 NoticeTechnique_files
 .posit
 renv
+
+results/
+results_stage_1/
+results_stage_2/
+*.safetensors
+*.pt
+*.pth
+*.bin
