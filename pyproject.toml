@@ -9,6 +9,7 @@ dependencies = [
     "catboost>=1.2.8",
     "datasets>=4.4.2",
     "faiss-cpu>=1.13.2",
+    "gymnasium[toy-text]>=1.2.3",
     "imblearn>=0.0",
     "ipykernel>=6.29.5",
     "langchain>=1.2.0",
