@@ -1,0 +1,197 @@
+# Estimateur de Nadaraya-Watson
+
+1. 
+```{r}
+n = 500
+sigma2 = 0.01
+epsilon = rnorm(n, 0, sqrt(sigma2))
+
+X = runif(n, 0, 1)
+Y = exp(abs(X - 0.5)) + epsilon
+
+plot(X, Y, pch = 3)
+```
+
+2. 
+
+```{r}
+library(np)
+
+bw = npregbw(Y ~ X)
+ghat = npreg(bw)
+x = seq(0, 1, length.out = 100)
+
+plot(ghat)
+points(x, exp(abs(x - 0.5)), type = 'l', col = 'darkgreen')
+legend(
+  'top',
+  c(expression(hat(g)[h]), 'g'),
+  col = c(1, 'darkgreen'),
+  lty = rep(1, 2)
+)
+```
+
+3.  
+
+...
+
+# Estimation par projection
+
+4. 
+
+```{r}
+mmax = 100
+Dmax = 2 * mmax + 1
+phiX = matrix(1, n, Dmax)
+for (j in 1:mmax) {
+  phiX[, 2 * j] = sqrt(2) * cos(2 * pi * j * X)
+  phiX[, 2 * j + 1] = sqrt(2) * sin(2 * pi * j * X)
+}
+G = crossprod(phiX) / n
+```
+
+5. 
+
+```{r}
+hatb = crossprod(phiX, Y) / n
+hata = solve(G, hatb)
+```
+
+6. 
+
+```{r}
+p = 500
+t = seq(0, 1, length.out = p)
+phi = matrix(1, Dmax, p)
+
+for (j in 1:mmax) {
+  phi[2 * j, ] = sqrt(2) * cos(2 * pi * j * t)
+  phi[2 * j + 1, ] = sqrt(2) * sin(2 * pi * j * t)
+}
+
+hatg = crossprod(phi, hata)
+
+plot(t, hatg, type = 'l', col = 'red')
+points(t, exp(abs(t - 0.5)), type = 'l', col = 'darkgreen')
+legend(
+  'topright',
+  c('g', expression(hat(g)[501])),
+  lty = c(1, 1),
+  col = c('darkgreen', 'red')
+)
+```
+
+7. 
+
+
+```{r}
+hata1 = solve(G[1, 1], hatb[1])
+hatg1 = hata1 * phi[1, ]
+
+hata3 = solve(G[1:3, 1:3], hatb[1:3])
+hatg3 = crossprod(phi[1:3, ], hata3)
+
+hata5 = solve(G[1:5, 1:5], hatb[1:5])
+hatg5 = crossprod(phi[1:5, ], hata5)
+
+plot(t, hatg, type = 'l', col = 'red', main = 'Projection estimators')
+points(t, exp(abs(t - 0.5)), type = 'l', col = 'darkgreen')
+points(t, hatg1, type = 'l', col = 'blue')
+points(t, hatg3, type = 'l', col = 'green')
+points(t, hatg5, type = 'l', col = 'purple')
+legend(
+  'topright',
+  c(
+    'g',
+    expression(hat(g)[1]),
+    expression(hat(g)[3]),
+    expression(hat(g)[5]),
+    expression(hat(g)[501])
+  ),
+  lty = rep(1, 5),
+  col = c('darkgreen', 'blue', 'green', 'purple', 'red')
+)
+```
+
+```{r}
+kappa = 2.5
+mmax = 10
+gamman = rep(NA, mmax)
+penm = sigma2 * (2 * (1:mmax) + 1) / n
+for (m in 1:mmax) {
+  hatam = solve(G[1:(2 * m + 1), 1:(2 * m + 1)], hatb[1:(2 * m + 1)])
+  hatgmX = crossprod(t(phiX[, 1:(2 * m + 1)]), hatam)
+  gamman[m] = mean((Y - hatgmX)^2)
+}
+crit = gamman + kappa * penm
+plot(
+  (2 * (1:mmax) + 1),
+  gamman,
+  type = 'l',
+  ylim = range(c(gamman, crit, kappa * penm)),
+  xlab = 'm',
+  ylab = 'crit(m)',
+  col = 'blue'
+)
+points((2 * (1:mmax) + 1), kappa * penm, type = 'l', col = 'red')
+points((2 * (1:mmax) + 1), crit, type = 'l')
+legend(
+  'left',
+  c('contraste', 'penalité', 'critère'),
+  col = c('blue', 'red', 1),
+  lty = rep(1, 3)
+)
+hatm = which.min(crit)
+points(2 * hatm + 1, crit[hatm], pch = 16)
+```
+
+```{r}
+hatahatm = solve(G[1:(2 * hatm + 1), 1:(2 * hatm + 1)], hatb[1:(2 * hatm + 1)])
+hatghatm = crossprod(phi[1:(2 * hatm + 1), ], hatahatm)
+plot(
+  t,
+  hatghatm,
+  type = 'l',
+  col = 'green',
+  main = 'Selected projection estimators',
+  ylab = expression(hat(g)[hat(m)](t))
+)
+points(t, exp(abs(t - 0.5)), type = 'l', col = 'darkgreen')
+```
+
+# Application aux données réelles
+
+9. 
+
+
+```{r}
+data(cps71)
+attach(cps71)
+plot(age, logwage, xlab = "Age", ylab = "log(wage)")
+```
+
+
+```{r}
+bw = npregbw(logwage ~ age)
+ghat = npreg(bw)
+
+plot(ghat, xlab = "Age", ylab = "log(wage)")
+points(age, logwage)
+```
+
+10. 
+
+```{r}
+data(Italy)
+attach(Italy)
+
+plot(year, gdp, xlab = "Année", ylab = "GDP")
+```
+
+
+```{r}
+bw = npregbw(gdp ~ year)
+ghat = npreg(bw)
+
+plot(ghat, xlab="Année", ylab="gdp",type='l')
+```
