@@ -175,6 +175,8 @@ plot(age, logwage, xlab = "Age", ylab = "log(wage)")
 bw = npregbw(logwage ~ age)
 ghat = npreg(bw)
 
+print(bw)
+
 plot(ghat, xlab = "Age", ylab = "log(wage)")
 points(age, logwage)
 ```
