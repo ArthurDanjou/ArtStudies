@@ -281,8 +281,9 @@ legend(
 
 ```{r}
 data(aml)
-
 leukemia.surv = survfit(Surv(time, status) ~ x, data = aml)
 
 plot(leukemia.surv, lty = 2:3)
+legend(100, .9, c("Maintained", "Non Maintained"), lty = 2:3)
+title("Kaplan-Meier Curves \nfor AML Maintenance Study")
 ```
