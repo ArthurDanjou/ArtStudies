@@ -1,0 +1,288 @@
+# 1
+
+```{r}
+alphas <- seq(0.5, 3, length.out = 3)
+lambdas <- seq(1, 5, length.out = 3)
+x <- seq(0, 10, length.out = 500)
+
+colors <- rainbow(length(alphas) * length(lambdas))
+counter <- 1
+
+plot(
+  x,
+  x,
+  type = "n",
+  ylim = c(0, 1.5),
+  main = "Densités Weibull superposées",
+  ylab = "Densité",
+  xlab = "x"
+)
+
+for (alpha in alphas) {
+  for (lambda in lambdas) {
+    f <- dweibull(x, shape = alpha, scale = lambda)
+    lines(x, f, col = colors[counter], lwd = 1.5)
+
+    counter <- counter + 1
+  }
+}
+
+legend("topright", legend = c("Divers alpha/lambda"), col = "black", lty = 1)
+```
+
+# 2
+
+```{r}
+n = 500
+alpha = 2
+lambda = 1 / 2
+
+Tvec = rweibull(n, alpha, lambda)
+```
+
+```{r}
+lambda1 = 1
+lambda2 = 1/2
+lambda3 = 3
+
+C1 = rexp(n, lambda1)
+C2 = rexp(n, lambda2)
+C3 = rexp(n, lambda3)
+```
+
+
+```{r}
+Y1 = pmin(Tvec, C1)
+delta1 = Tvec <= C1
+
+Y2 = pmin(Tvec, C2)
+delta2 = Tvec <= C2
+
+Y3 = pmin(Tvec, C3)
+delta3 = Tvec <= C3
+
+print(1 - mean(delta1))
+print(1 - mean(delta2))
+print(1 - mean(delta3))
+```
+
+# 3
+
+```{r}
+plot(
+  density(Tvec, bw = 'ucv'),
+  main = "Densité des données observées",
+  col = 1,
+  ylim = c(0, 3)
+)
+points(density(Y1, bw = 'ucv'), col = 2, type = 'l')
+points(density(Y2, bw = 'ucv'), col = 3, type = 'l')
+points(density(Y3, bw = 'ucv'), col = 4, type = 'l')
+legend(
+  'topright',
+  c(
+    as.expression(bquote(lambda[e] == .(lambda1))),
+    as.expression(bquote(lambda[e] == .(lambda2))),
+    as.expression(bquote(lambda[e] == .(lambda3)))
+  ),
+  col = c(1, 2, 3, 4),
+  lty = c(1, 1, 1, 1)
+)
+```
+
+# 4
+
+```{r}
+# estimateur de Kaplan-Meier à la main
+KL <- function(Y, delta) {
+  Yordtot = sort.int(Y, index.return = T)
+  Yord = Yordtot$x
+  deltaord = delta[Yordtot$ix]
+  hatSTY = cumprod((1 - 1 / (seq(n, 1, -1)))^deltaord)
+  list(Yord = Yord, hatSTY = hatSTY)
+}
+# KL calcule l'estimateur en les temps d'évènements
+KL1 = KL(Y1, delta1)
+KL2 = KL(Y2, delta2)
+KL3 = KL(Y3, delta3)
+plot(
+  KL1$Yord,
+  1 - KL1$hatSTY,
+  type = 's',
+  col = 2,
+  main = "Estimateur de Kaplan-Meier (à la main)",
+  xlab = 't',
+  ylab = expression(
+    hat(F)[T](t)
+  )
+)
+points(KL2$Yord, 1 - KL2$hatSTY, col = 3, type = 's')
+points(KL3$Yord, 1 - KL3$hatSTY, col = 4, type = 's')
+plot(ecdf(Tvec), add = T, do.points = F, verticals = T)
+points(
+  sort(Tvec),
+  pweibull(sort(Tvec), alpha, lambda),
+  lwd = 2,
+  type = 'l',
+  col = "darkgreen",
+  lty = 2
+)
+legend(
+  'bottomright',
+  c(
+    expression(F[T]),
+    "sans censure",
+    as.expression(bquote(lambda[e] == .(lambda1))),
+    as.expression(bquote(lambda[e] == .(lambda2))),
+    as.expression(bquote(lambda[e] == .(lambda3)))
+  ),
+  col = c(
+    "darkgreen",
+    1,
+    2,
+    4,
+    3
+  ),
+  lty = c(2, rep(1, 4)),
+  lwd = c(2, rep(1, 4))
+)
+```
+
+```{r}
+# Package survival
+library(survival)
+sample = c(rep(1, n), rep(2, n), rep(3, n))
+fit = survfit(Surv(c(Y1, Y2, Y3), c(delta1, delta2, delta3)) ~ sample)
+plot(
+  fit,
+  fun = 'F',
+  col = 2:4,
+  main = "Estimateur de Kaplan-Meier (avec survfit)",
+  xlab = 'Tvec',
+  ylab = expression(hat(F)[Tvec](Tvec))
+)
+plot(ecdf(Tvec), add = TRUE, do.points = FALSE, verticals = TRUE)
+points(
+  sort(Tvec),
+  pweibull(sort(Tvec), alpha, lambda),
+  lwd = 2,
+  type = 'l',
+  col = "darkgreen",
+  lty = 2
+)
+legend(
+  'bottomright',
+  c(
+    expression(F[Tvec]),
+    "sans censure",
+    as.expression(bquote(lambda[e] == .(lambda1))),
+    as.expression(bquote(lambda[e] == .(lambda2))),
+    as.expression(bquote(lambda[e] == .(lambda3)))
+  ),
+  col = c(
+    "darkgreen",
+    1,
+    3,
+    2,
+    4
+  ),
+  lty = c(2, rep(1, 4)),
+  lwd = c(2, rep(1, 4))
+)
+```
+
+# 5
+
+```{r}
+get_km_density <- function(sfit) {
+  jumps <- -diff(c(1, sfit$surv))
+  jumps <- pmax(0, jumps)
+  return(density(sfit$time, weights = jumps, bw = "ucv"))
+}
+
+add_density_ci <- function(Y, delta, main_dens, col_idx, n_boot = 100) {
+  eval_points <- main_dens$x
+  n_points <- length(eval_points)
+  boot_mat <- matrix(NA, nrow = n_boot, ncol = n_points)
+
+  for (i in 1:n_boot) {
+    idx <- sample(length(Y), replace = TRUE)
+    Y_b <- Y[idx]
+    d_b <- delta[idx]
+
+    fit_b <- survfit(Surv(Y_b, d_b) ~ 1)
+
+    jumps_b <- -diff(c(1, fit_b$surv))
+    jumps_b <- pmax(0, jumps_b)
+
+    dens_b <- density(
+      fit_b$time,
+      weights = jumps_b,
+      bw = "nrd0",
+      from = min(eval_points),
+      to = max(eval_points),
+      n = n_points
+    )
+
+    boot_mat[i, ] <- dens_b$y
+  }
+
+  ci_lower <- apply(boot_mat, 2, quantile, probs = 0.025, na.rm = TRUE)
+  ci_upper <- apply(boot_mat, 2, quantile, probs = 0.975, na.rm = TRUE)
+
+  polygon(
+    c(eval_points, rev(eval_points)),
+    c(ci_lower, rev(ci_upper)),
+    col = adjustcolor(col_idx, alpha.f = 0.2),
+    border = NA
+  )
+}
+
+sample1 <- fit[1]
+sample2 <- fit[2]
+sample3 <- fit[3]
+
+d1 <- get_km_density(sample1)
+d2 <- get_km_density(sample2)
+d3 <- get_km_density(sample3)
+
+plot(
+  density(Tvec, bw = 'ucv'),
+  main = "Densité estimée par KM (pondérée) avec IC 95%",
+  lwd = 2,
+  ylim = c(0, 3),
+  xlab = "Temps"
+)
+
+add_density_ci(Y1, delta1, d1, col_idx = 2)
+add_density_ci(Y2, delta2, d2, col_idx = 3)
+add_density_ci(Y3, delta3, d3, col_idx = 4)
+
+lines(d1, col = 2, lwd = 2)
+lines(d2, col = 3, lwd = 2)
+lines(d3, col = 4, lwd = 2)
+
+legend(
+  "topright",
+  legend = c(
+    "Vraie densité T",
+    as.expression(bquote(hat(f)[KM] ~ (lambda[e] == .(lambda1)))),
+    as.expression(bquote(hat(f)[KM] ~ (lambda[e] == .(lambda2)))),
+    as.expression(bquote(hat(f)[KM] ~ (lambda[e] == .(lambda3))))
+  ),
+  col = c(1, 2, 3, 4),
+  lwd = 2,
+  lty = 1
+)
+```
+
+# 6
+
+
+```{r}
+data(aml)
+
+leukemia.surv = survfit(Surv(time, status) ~ x, data = aml)
+
+plot(leukemia.surv, lty = 2:3)
+```
