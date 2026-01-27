@@ -43,13 +43,11 @@ ui <- shinydashboard::dashboardPage(
         tabName = "methodo",
         icon = icon("info-circle")
       ),
-
       menuItem(
         "Vue d'Ensemble",
         tabName = "dashboard",
         icon = icon("dashboard")
       ),
-
       menuItem("Données Brutes", tabName = "data", icon = icon("table")),
 
       # Footer - Informations et crédits
@@ -66,7 +64,6 @@ ui <- shinydashboard::dashboardPage(
           )
         )
       ),
-
       hr(),
 
       # Filtre par Région
@@ -147,7 +144,6 @@ ui <- shinydashboard::dashboardPage(
             plotlyOutput("cluster_scatter", height = "530px")
           )
         ),
-
         fluidRow(
           # Plot des tendances
           box(
@@ -190,7 +186,6 @@ ui <- shinydashboard::dashboardPage(
       # Page 3 - Méthodologie
       tabItem(
         tabName = "methodo",
-
         fluidRow(
           # Indicateurs OMS
           box(
@@ -307,7 +302,6 @@ ui <- shinydashboard::dashboardPage(
               p("Dernière mise à jour du dataset : Octobre 2024.")
             ),
           ),
-
           column(
             width = 6,
             box(
@@ -319,7 +313,6 @@ ui <- shinydashboard::dashboardPage(
               p(
                 "Afin de synthétiser l'information et de faciliter la prise de décision, j'ai appliqué un algorithme d'apprentissage non supervisé (K-Means) pour regrouper les pays ayant des profils épidémiques similaires sous 4 clusters."
               ),
-
               h4("Méthodologie"),
               tags$ul(
                 tags$li(
@@ -335,7 +328,6 @@ ui <- shinydashboard::dashboardPage(
                   "Utilisation de `set.seed(123)` pour garantir la reproductibilité des résultats."
                 )
               ),
-
               h4("Interprétation des 3 Groupes"),
 
               # Tableau des Groupes
@@ -395,7 +387,6 @@ ui <- shinydashboard::dashboardPage(
               status = "primary",
               solidHeader = TRUE,
               width = 12,
-
               tags$p(
                 "Ce projet suit une approche Open Science.",
                 style = "font-style: italic;"
@@ -403,7 +394,6 @@ ui <- shinydashboard::dashboardPage(
               tags$p(
                 "L'intégralité du code source (Rmd, App) ainsi que la notice technique (PDF) sont disponibles en libre accès sur le dépôt GitHub."
               ),
-
               tags$a(
                 href = "https://go.arthurdanjou.fr/datavis-code",
                 target = "_blank",
@@ -524,7 +514,9 @@ server <- function(input, output, session) {
   # KPI - Pire pays
   output$kpi_worst_country <- shinydashboard::renderValueBox({
     data <- filtered_data()
-    worst <- data |> arrange(desc(e_inc_100k)) |> slice(1)
+    worst <- data |>
+      arrange(desc(e_inc_100k)) |>
+      slice(1)
 
     if (nrow(worst) > 0) {
       valueBox(
@@ -743,7 +735,7 @@ server <- function(input, output, session) {
   output$cluster_scatter <- plotly::renderPlotly({
     data <- filtered_data()
     sel_iso <- selected_country()
-    highlight_data <- data %>% filter(iso3 == sel_iso)
+    highlight_data <- data |> filter(iso3 == sel_iso)
 
     p <- ggplot(data, aes(x = e_inc_100k, y = e_mort_exc_tbhiv_100k)) +
       geom_point(

@@ -185,9 +185,9 @@ cor_mat <- cor(vars_candidates, use = "pairwise.complete.obs")
 ```
 
 ```{r}
-cor_df <- as.data.frame(cor_mat) %>%
-  tibble::rownames_to_column(var = "Var1") %>%
-  pivot_longer(-Var1, names_to = "Var2", values_to = "r") %>%
+cor_df <- as.data.frame(cor_mat) |>
+  tibble::rownames_to_column(var = "Var1") |>
+  pivot_longer(-Var1, names_to = "Var2", values_to = "r") |>
   mutate(
     Var1 = factor(Var1, levels = unique(Var1)),
     Var2 = factor(Var2, levels = rev(unique(Var1)))
@@ -503,7 +503,9 @@ Bien que nous ayons appliqué une transformation logarithmique pour corriger l'a
 Nous appliquons donc une standardisation (Z-score) : $z = \frac{x - \mu}{\sigma}$
 
 ```{r}
-data_scaled <- tb_ready |> select(log_inc, log_mort) |> scale()
+data_scaled <- tb_ready |>
+  select(log_inc, log_mort) |>
+  scale()
 
 check_table <- data.frame(
   Variable = c("Incidence (Log)", "Mortalité (Log)"),
