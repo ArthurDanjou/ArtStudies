@@ -88,7 +88,7 @@ cat("MSE =", mse_matrix, "\n")
 
 
 # Règle du coude (Elbow Method)
-# tracez l'évolution de la Within-Cluster Sum of Squares (WCSS) en fonction de $k$
+# tracez l'évolution de la Within-Cluster Sum of Squares en fonction de $k$
 # Prnde k = 2 à 32
 # A partir de quel $k$ le gain visuel devient-il négligeable pour l'œil humain ?
 
@@ -123,7 +123,7 @@ elbow_wss <- function(X, ks = 2:32, nstart = 10, scale_data = FALSE) {
     main = "Méthode du coude (k-means)"
   )
   grid()
-  #  invisible(data.frame(k = ks, WSS = wss))
+  invisible(data.frame(k = ks, WSS = wss))
 }
 
 # Exemple d'utilisation :
@@ -165,7 +165,7 @@ elbow_wss_safe <- function(X, ks = 2:32, nstart = 20, scale_data = FALSE, seed =
   )
   axis(1, at = ks)
   grid()
-  #   invisible(data.frame(k = ks, WSS = wss))
+  invisible(data.frame(k = ks, WSS = wss))
 }
 
 # Exemple :
@@ -181,6 +181,8 @@ jpeg("./data/image_compressed.jpg")
 # Afficher l'image compressée dans le fichier
 plot(0, 0, type = "n", axes = FALSE, ann = FALSE)
 rasterImage(img_compressed, -1, -1, 1, 1)
+
+dev.off()
 
 info <- file.info("./data/PampasGrass.jpg")
 (taille_octets_reelle <- info$size / 1024)
