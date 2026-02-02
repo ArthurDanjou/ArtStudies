@@ -1,0 +1,228 @@
+# Simulation des données
+
+## 1. 
+
+```{r}
+MvB = function(n, p) {
+  X = rnorm(n * p) / sqrt(p - 1)
+  X = matrix(X, ncol = p)
+  MvB = matrix(0, ncol = p, nrow = n)
+  for (i in 1:n) {
+    MvB[i, ] = cumsum(X[i, ])
+  }
+  MvB
+}
+
+n = 500
+p = 300
+X = MvB(n, p)
+t = seq(0, 1, length.out = p)
+```
+
+```{r}
+plot(
+  c(0, 1),
+  range(X),
+  type = 'n',
+  xlab = 't',
+  ylab = expression(X[i](t)),
+  main = 'n mouvements browniens sur [0,1]'
+)
+
+for (i in 1:n) {
+  points(t, X[i, ], type = 'l', col = i)
+}
+```
+
+## 2.
+
+```{r}
+sigma = 0.1
+epsilon = rnorm(n, 0, sigma)
+betas = function(t) {
+  sin(10 * t)
+}
+Y = X %*% betas(t) / p + epsilon
+```
+
+## 3. 
+
+```{r}
+mmax = 100
+Dmax = 2*mmax+1
+
+phiX = matrix(NA,n,Dmax) # matrice contenant <X_i,phi_k>
+phi = matrix(1,Dmax,p)   # matrice contenant phi_k(t_l)
+phiX[,1] = rowMeans(X)
+
+for (j in 1:mmax){
+    phiX[,2*j] = (sqrt(2)/p)*X%*%cos(2*pi*j*t)
+    phiX[,2*j+1] = (sqrt(2)/p)*X%*%sin(2*pi*j*t)
+    phi[2*j,] = sqrt(2)*cos(2*pi*j*t)
+    phi[2*j+1,] = sqrt(2)*sin(2*pi*j*t)
+}
+```
+
+
+```{r}
+G = crossprod(phiX) / n
+hatb = crossprod(phiX, Y) / n
+
+m1 = 1
+hata1 = hatb[1] / G[1, 1]
+hatbeta1 = rep(hata1, p)
+
+m2 = 5
+hata5 = solve(G[1:m2, 1:m2], hatb[1:m2])
+hatbeta5 = hata5 %*% phi[1:m2, ]
+
+m3 = 31
+hata31 = solve(G[1:m3, 1:m3], hatb[1:m3])
+hatbeta31 = hata31 %*% phi[1:m3, ]
+```
+
+
+```{r}
+plot(t, betas(t), col = "darkgreen", type = 'l', lwd = 2, lty = 2)
+abline(h = hata1, col = 'blue')
+points(t, hatbeta5, type = 'l', col = "green")
+points(t, hatbeta31, type = 'l', col = "red")
+legend(
+  'bottomleft',
+  c(
+    paste(expression(beta), '*'),
+    expression(hat(beta)[1]),
+    expression(hat(beta)[5]),
+    expression(hat(beta)[31])
+  ),
+  lty = c(2, rep(1, 3)),
+  lwd = c(2, rep(1, 3)),
+  col = c('darkgreen', 'blue', 'green', 'red')
+)
+```
+
+## 4.
+
+```{r}
+kappa = 2.5
+gamma = rep(0, Dmax)
+for (m in 1:Dmax) {
+  hatam = solve(G[1:m, 1:m], hatb[1:m])
+  hatbetam = hatam %*% phi[1:m, ]
+  gamma[m] = mean((Y - tcrossprod(X, hatbetam) / p)^2)
+}
+```
+
+
+```{r}
+plot(gamma, col = 'blue', type = 'b', pch = 16, xlab = 'm', ylab = 'crit(m)')
+points(gamma + kappa * sigma^2 * (1:Dmax) / n, col = 'green', type = 'l')
+points(gamma * (1 + kappa * (1:Dmax) / n), col = 'orange', type = 'l')
+legend(
+  'topright',
+  c(expression(gamma[n](hat(beta)[m])), 'crit1', 'crit2'),
+  lty = rep(1, 3),
+  col = c(
+    'blue',
+    'green',
+    'orange'
+  )
+)
+```
+
+## 5. 
+
+
+```{r}
+hatm1 = which.min(gamma + kappa * sigma^2 * (1:Dmax) / n)
+hatm1
+```
+
+
+```{r}
+hatm2 = which.min(gamma * (1 + kappa * (1:Dmax) / n))
+hatm2
+```
+
+
+```{r}
+hatahatm1 = solve(G[1:hatm1, 1:hatm1], hatb[1:hatm1])
+hatbetahatm1 = hatahatm1 %*% phi[1:hatm1, ]
+hatahatm2 = solve(G[1:hatm2, 1:hatm2], hatb[1:hatm2])
+hatbetahatm2 = hatahatm2 %*% phi[1:hatm2, ]
+```
+
+
+```{r}
+plot(t, betas(t), col = "darkgreen", type = 'l', lwd = 2, lty = 2)
+points(t, hatbetahatm1, type = 'l', col = "green", lwd = 2)
+points(t, hatbetahatm2, type = 'l', col = "orange")
+legend(
+  'bottomleft',
+  c(
+    expression(beta),
+    expression(hat(beta)[hat(m)[1]]),
+    expression(hat(beta)[hat(m)[2]])
+  ),
+  lty = c(
+    2,
+    1,
+    1
+  ),
+  lwd = c(2, 2, 1),
+  col = c('darkgreen', 'green', 'orange')
+)
+```
+
+# Application à l’évaluation de la concentration en nitrate des eaux usées
+
+```{r}
+Xnc <- read.table("./data/X.dat")
+Ync <- read.table("./data/Y.dat")
+Ync <- Ync[, 1]
+n <- length(Ync)
+```
+
+```{r}
+palette(rainbow(14, start = 0, end = 4 / 6))
+plot(c(0, 1), range(Xnc), type = 'n', xlab = 'wavelength', ylab = 'absorbance')
+for (i in 1:n) {
+  points(
+    seq(0, 1, length.out = ncol(Xnc)),
+    Xnc[i, ],
+    type = 'l',
+    col = floor(Ync[i])
+  )
+}
+ry = range(Ync)
+legend(
+  "topright",
+  paste(floor(ry[1]):floor(ry[2]), '<=Y<', floor(ry[1] + 1):floor(ry[2] + 1)),
+  col = 1:9,
+  lty = rep(1, 9)
+)
+
+Xbar <- colMeans(Xnc)
+points(1:ncol(Xnc), Xbar, col = 2, type = 'l')
+```
+
+
+```{r}
+X <- scale(Xnc, scale = F)
+plot(
+  c(1, ncol(Xnc)),
+  range(X),
+  type = 'n',
+  xlab = 'wavelength',
+  ylab = '',
+  main = "Données centrées"
+)
+for (i in 1:n) {
+  points(1:ncol(Xnc), X[i, ], type = 'l', col = floor(Ync[i]))
+}
+```
+
+
+```{r}
+Y1 <- Ync - mean(Ync)
+```
