@@ -8,4 +8,5 @@ dependencies = [
     "ale-py>=0.11.2",
     "numpy>=2.2.5",
     "pyclustertend>=1.4.9",
+    "sequenzo>=0.1.20",
 ]
