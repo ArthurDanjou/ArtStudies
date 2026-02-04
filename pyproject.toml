@@ -113,3 +113,8 @@ section-order = ["future", "standard-library", "third-party", "data-science", "m
 # On sépare les outils de manipulation de données des frameworks de ML lourds
 "data-science" = ["numpy", "pandas", "scipy", "matplotlib", "seaborn", "plotly"]
 "ml" = ["tensorflow", "keras", "torch", "sklearn", "xgboost", "catboost", "shap"]
+
+[tool.uv.workspace]
+members = [
+    "M2/Reinforcement Learning/project",
+]
