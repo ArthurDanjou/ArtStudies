@@ -1,0 +1,237 @@
+# Import des données
+
+```{r}
+library(tseries)
+
+data = read.csv2('./data/TD1.csv')
+data_series = ts(data)
+```
+
+# Graphique
+
+```{r}
+plot(
+  data_series,
+  main = "Exemple de série temporelle",
+  ylab = "Valeurs",
+  xlab = "Temps",
+  col = "blue",
+  type = "o"
+)
+
+acf(data, main = "Fonction d'Autocorrélation (ACF)")
+```
+
+## 1. Analyse de la série temporelle (Time Plot)
+
+-   Tendance : Il y a une tendance linéaire croissante extrêmement claire et forte sur toute la période (de `t=0` à `t=100`). La moyenne de la série augmente de façon constante, ce qui confirme une non-stationnarité pure.
+
+-   Saisonnalité : Nous observons des oscillations très régulières en forme de "dents de scie". La répétition systématique de ces motifs indique une composante saisonnière forte.
+
+-   Variabilité : L'amplitude des oscillations semble ici rester constante par rapport à la tendance (modèle additif).
+
+## 2. Analyse de la Fonction d'Autocorrélation (ACF)
+
+-   Profil de Non-Stationnarité : Nous observons une décroissance très lente et linéaire des pics. Même au lag 20, la corrélation reste très élevée (environ `0.4`), bien au-dessus de la zone de significativité bleue. C'est la signature typique d'une série avec une tendance non traitée.
+
+-   Saisonnalité de période 2 : les retards pairs (2,4,6...) sont systématiquement plus élevés que les retards impairs (1,3,5...).
+
+    -   Le pic au lag 2 est particulièrement fort, presque au même niveau que le lag 1.
+    -   Cela confirme que la valeur à l'instant `t` est très fortement corrélée à la valeur à `t−2`.
+
+# Lag plot
+
+```{r}
+lag.plot(
+  data_series,
+  lags = 4,
+  do.lines = FALSE,
+  main = "Lag-Plot"
+)
+```
+
+## 1. Analyse par retard (Lag)
+
+-   Lag 2 et Lag 4 (Forte corrélation positive) : Les nuages de points pour les retards pairs sont extrêmement resserrés autour de la première bissectrice (la ligne pointillée). Cela signifie que la valeur à l'instant `t` est presque parfaitement prédite par la valeur à `t−2` et `t−4`. Cela confirme la saisonnalité de péridoe `2`.
+
+-   Lag 1 et Lag 3 (Dispersion organisée) : Pour les retards impairs, nous observons deux "nuages" ou une dispersion plus large. Cela traduit l'oscillation "haut-bas" : une valeur haute est suivie d'une valeur basse, créant cet écart par rapport à la ligne d'identité.
+
+## 2. Relation avec la tendance
+
+L'alignement global de tous les lags le long d'une diagonale ascendante confirme la tendance déterministe. Même avec le "bruit" saisonnier, la valeur globale `Y_t`​ augmente proportionnellement à `Y_{t−k}`​. C'est ce qui expliquait la p-value de `0.581` à l'ADF : la série ne revient jamais vers une moyenne centrale, elle "s'échappe" vers le haut.
+
+# Saisonnalité
+
+```{r}
+kpss_test_result <- kpss.test(data_series)
+print(kpss_test_result)
+
+adf_test_result <- adf.test(data_series)
+print(adf_test_result)
+```
+
+## 1. Analyse du test ADF (Augmented Dickey-Fuller)
+
+-   Hypothèse nulle (`H0​`) : La série est non stationnaire.
+
+-   Résultat : La p-value est de `0.581`.
+
+-   Interprétation : Étant donné que la p-value est très supérieure au seuil classique de `0.05`, nous conservons `H0`. La série est donc considérée comme non stationnaire par l'ADF.
+
+## 2. Analyse du test KPSS
+
+-   Hypothèse nulle (`H0​`) : La série est stationnaire.
+
+-   Résultat : La statistique de test est très élevée (`2.0282`) et la p-value est de `0.01`.
+
+-   Interprétation : La p-value est inférieure à `0.05`, nous rejetons donc l'hypothèse de stationnarité. Le test KPSS confirme que la série n'est pas stationnaire.
+
+## Conclusion croisée
+
+| Test | Hypothèse Nulle (`H0​`) | Résultat | Conclusion statistique |
+|------------------|------------------|------------------|------------------|
+| ADF | Non stationnaire | Non rejetée (`p=0.58`) | La série n'est pas stationnaire |
+| KPS | Stationnaire | Rejetée (`p=0.01`) | La série n'est pas stationnaire. |
+
+# Correction de la saisonnalité
+
+## Lag 1
+
+```{r}
+serie_diff = diff(data_series)
+plot(serie_diff, type = "l")
+acf(serie_diff, main = "ACF de la série différenciée lag 1")
+```
+
+### Pourquoi la différenciation d=1 a "échoué" ?
+
+Le graphique ACF de la série différenciée montre des pics à `-0.9` (lag 1) et `+0.85` (lag 2). Le Lag-Plot explique pourquoi : en faisant `Y_t​−Y_{t−1}`​, la pente est supprimée, mais l'oscillation `S=2` est transformée en une alternance de signes massive.
+
+**Verdict final** : Pour modéliser proprement cette série, nous ne pouvons pas nous contenter d'un modèle ARIMA classique. Nous devons utiliser la différence saisonnière : diff(data_series, lag = 2).
+
+## Lag 2
+
+```{r}
+serie_diff_2 <- diff(data_series, lag = 2)
+plot(serie_diff_2, type = "l")
+acf(serie_diff_2, main = "ACF de la série différenciée lag 2")
+```
+
+### 1. Disparition de la non-stationnarité
+
+-   Observation : Contrairement aux ACF précédentes qui affichaient des pics massifs et persistants, celle-ci chute immédiatement vers zéro dès le premier retard.
+
+-   Conclusion : La série résultante est désormais stationnaire. La moyenne et la variance sont stabilisées.
+
+### 2. Élimination de la structure saisonnière `S=2`
+
+-   Observation : L'alternance parfaite "haut-bas" (pics à `+0.8`/`-0.9`) que nous voyions après la différenciation classique (`diff(x)`) a totalement disparu.
+
+-   Interprétation : En appliquant `diff(x, lag = 2)`, nous avons retiré à chaque point sa valeur correspondante au cycle précédent. Cela a "neutralisé" l'oscillation déterministe de période 2.
+
+### 3. Identification des résidus (Bruit Blanc ?)
+
+-   Pic au Lag 2 : Nous observons un pic négatif significatif au lag 2. Cela suggère qu'il reste une petite dépendance de type `MA(1)` saisonnier ou `MA(2)`.
+
+-   Reste du graphique : Pour tous les autres retards, les pics sont situés à l'intérieur des bandes de confiance bleues.
+
+-   Conclusion : La série est maintenant très proche d'un bruit blanc. Les résidus sont quasi-indépendants, ce qui est l'objectif ultime avant de valider un modèle de prévision.
+
+## Moyenne
+
+```{r}
+t.max = length(data_series)
+serie_moy = ts((data_series[1:(t.max - 1)] + data_series[2:t.max]) / 2)
+plot(serie_moy, type = "l")
+acf(serie_moy, main = "ACF de la série moyenne")
+```
+
+### 1. Analyse de la série temporelle (serie_moy)
+
+-   Lissage de la saisonnalité : L'effet le plus frappant est la disparition presque totale des dents de scie (l'oscillation "haut-bas" de période 2). En moyennant deux points consécutifs, nous avons annulé les variations saisonnières de court terme pour ne laisser apparaître que la composante de tendance.
+
+-   Allure de la tendance : La série montre une croissance qui n'est pas strictement linéaire mais légèrement curviligne (quadratique). On observe une accélération de la pente à mesure que le temps progresse.
+
+-   Stationnarité : La série n'est toujours pas stationnaire. La moyenne augmente de façon continue avec le temps (environ de 100 à 1100).
+
+### 2. Analyse de l'ACF de la série moyenne
+
+-   Disparition de l'alternance : On ne voit plus l'oscillation caractéristique (pics positifs/négatifs) tous les deux lags. Cela prouve mathématiquement que la saisonnalité de période 2 a été filtrée avec succès par la moyenne mobile.
+
+-   Profil de "Trend" pur : L'ACF décroît de manière très lente, régulière et presque linéaire. C'est la signature typique d'une série dont la seule source de non-stationnarité restante est la tendance.
+
+-   Persistance : Même au lag 15, l'autocorrélation reste très élevée (\>0.5). Cela confirme que la série a une "mémoire" longue induite par sa dérive déterministe.
+
+## Synthèse des corrections
+
+| Caractéristique | Série Brute | Différenciation Lag 1 (`diff(x)`) | Différenciation Lag 2 (`diff(x, 2)`) | Série Moyenne (`serie_moy`) |
+|:--------------|:--------------|:--------------|:--------------|:--------------|
+| **Allure Visuelle** | Tendance ascendante forte + oscillations en "dents de scie". | Moyenne stabilisée mais oscillations "haut-bas" amplifiées. | Série stationnaire, ressemble à un bruit blanc avec peu de structure. | Courbe lisse montrant la tendance (sans les oscillations). |
+| **Stationnarité** | **Non** (moyenne mobile dans le temps). | **Partielle** (moyenne stable mais forte dépendance cyclique). | **Oui** (la plus proche de la stationnarité complète). | **Non** (la tendance est toujours présente). |
+| **Profil ACF** | Décroissance linéaire très lente. | Alternance parfaite de pics positifs/négatifs ($S=2$). | Chute immédiate vers 0 après le lag 2. | Décroissance lisse et très lente. |
+| **Saisonnalité** | Présente (période 2) mais masquée par la tendance. | **Exacerbée** : l'alternance devient la structure dominante. | **Éliminée** : le cycle de période 2 est neutralisé. | **Filtrée** : les variations de court terme sont lissées. |
+| **Usage Typique** | Observation initiale des données. | Suppression d'une tendance linéaire simple. | Traitement d'une tendance + saisonnalité de période 2. | Isolation de la tendance pour une régression polynomiale. |
+
+# Régression polynomiale
+
+```{r}
+n <- length(data_series)
+time <- 1:n
+
+data_deseas <- (data_series[2:n] + data_series[1:(n - 1)]) / 2
+time_deseas <- time[2:n]
+
+model_poly <- lm(data_deseas ~ time_deseas + I(time_deseas^2))
+
+summary(model_poly)
+
+plot(
+  time,
+  data_series,
+  type = "l",
+  col = "gray",
+  lty = 2,
+  main = "Ajustement Polynomial (deg 2) sur Série Dé-saisonnalisée",
+  xlab = "Temps",
+  ylab = "Valeurs"
+)
+lines(time_deseas, data_deseas, col = "blue", lwd = 1)
+lines(time_deseas, fitted(model_poly), col = "red", lwd = 2)
+
+legend(
+  "topleft",
+  legend = c("Série Brute", "Série Dé-saisonnalisée", "Régression Poly (d=2)"),
+  col = c("gray", "blue", "red"),
+  lty = c(2, 1, 1),
+  lwd = c(1, 1, 2)
+)
+```
+
+## Interprétation
+
+-   Superposition visuelle : La courbe rouge (prédiction) doit épouser parfaitement la ligne bleue (série dé-saisonnalisée). Si la courbe rouge passe par le "centre" des oscillations de la série brute (grise), cela confirme que le degré 2 est suffisant pour capturer la dynamique de long terme.
+
+-   Analyse des résidus : Après cet ajustement, les résidus de la régression ne doivent plus contenir de tendance. Cependant, ils contiendront encore la saisonnalité de période 2 si nous les calculons par rapport à la série brute.
+
+-   Significativité : Dans le `summary(model_poly)`, nous vérifions que le coefficient lié à `I(time_deseas^2)` possède une p-value très faible (`<0.05`).
+
+# Résidus
+
+```{r}
+residus <- residuals(model_poly)
+
+par(mfrow = c(2, 1))
+plot(
+  time_deseas,
+  residus,
+  type = "l",
+  col = "darkgreen",
+  main = "Série des résidus (après régression poly)",
+  xlab = "Temps",
+  ylab = "Résidus"
+)
+abline(h = 0, col = "red", lty = 2)
+
+acf(residus, main = "ACF des résidus")
+```
+
