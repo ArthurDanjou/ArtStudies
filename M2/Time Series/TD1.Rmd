@@ -99,6 +99,7 @@ print(adf_test_result)
 
 ```{r}
 serie_diff = diff(data_series)
+
 plot(serie_diff, type = "l")
 acf(serie_diff, main = "ACF de la série différenciée lag 1")
 ```
@@ -113,6 +114,7 @@ Le graphique ACF de la série différenciée montre des pics à `-0.9` (lag 1) e
 
 ```{r}
 serie_diff_2 <- diff(data_series, lag = 2)
+
 plot(serie_diff_2, type = "l")
 acf(serie_diff_2, main = "ACF de la série différenciée lag 2")
 ```
@@ -142,6 +144,7 @@ acf(serie_diff_2, main = "ACF de la série différenciée lag 2")
 ```{r}
 t.max = length(data_series)
 serie_moy = ts((data_series[1:(t.max - 1)] + data_series[2:t.max]) / 2)
+
 plot(serie_moy, type = "l")
 acf(serie_moy, main = "ACF de la série moyenne")
 ```
@@ -191,42 +194,36 @@ plot(
   type = "l",
   col = "gray",
   lty = 2,
-  main = "Ajustement Polynomial (deg 2) sur Série Dé-saisonnalisée",
+  main = "Ajustement Polynomial (d=2)",
   xlab = "Temps",
   ylab = "Valeurs"
 )
-lines(time_deseas, data_deseas, col = "blue", lwd = 1)
+lines(time_deseas, data_deseas, col = "blue", lwd = 2)
 lines(time_deseas, fitted(model_poly), col = "red", lwd = 2)
 
-legend(
-  "topleft",
-  legend = c("Série Brute", "Série Dé-saisonnalisée", "Régression Poly (d=2)"),
-  col = c("gray", "blue", "red"),
-  lty = c(2, 1, 1),
-  lwd = c(1, 1, 2)
+plot(
+  time_deseas,
+  resid(model_poly),
+  type = "l",
+  col = "darkred",
+  main = "Résidus du modèle",
+  xlab = "Temps",
+  ylab = "Résidus"
 )
+abline(h = 0, col = "black", lty = 2)
 ```
-
-## Interprétation
-
--   Superposition visuelle : La courbe rouge (prédiction) doit épouser parfaitement la ligne bleue (série dé-saisonnalisée). Si la courbe rouge passe par le "centre" des oscillations de la série brute (grise), cela confirme que le degré 2 est suffisant pour capturer la dynamique de long terme.
-
--   Analyse des résidus : Après cet ajustement, les résidus de la régression ne doivent plus contenir de tendance. Cependant, ils contiendront encore la saisonnalité de période 2 si nous les calculons par rapport à la série brute.
-
--   Significativité : Dans le `summary(model_poly)`, nous vérifions que le coefficient lié à `I(time_deseas^2)` possède une p-value très faible (`<0.05`).
 
 # Résidus
 
 ```{r}
 residus <- residuals(model_poly)
 
-par(mfrow = c(2, 1))
 plot(
   time_deseas,
   residus,
   type = "l",
   col = "darkgreen",
-  main = "Série des résidus (après régression poly)",
+  main = "Série des résidus",
   xlab = "Temps",
   ylab = "Résidus"
 )
@@ -235,3 +232,60 @@ abline(h = 0, col = "red", lty = 2)
 acf(residus, main = "ACF des résidus")
 ```
 
+## Série des résidus
+
+Ce graphique représente l'erreur de prédiction (`e_t​=y_t​−y^​t`​) au cours du temps.
+
+-    Comportement : La série oscille de manière erratique autour de la ligne horizontale rouge pointillée (l'ordonnée 0).
+
+-    Moyenne : Le fait que les résidus soient centrés sur zéro indique que votre régression polynomiale de degré 2 a correctement capturé la tendance globale de la série.
+
+-    Variance : L'amplitude des fluctuations semble rester dans un tunnel constant (approximativement entre `-60` et `+70`), ce qui suggère une certaine stabilité de la variance (homoscédasticité).
+
+-    Saisonnalité : On ne distingue plus le motif en "dents de scie" très marqué de la série brute, ce qui confirme l'efficacité du filtrage par la série moyenne.
+
+## ACF des résidus
+
+Ce graphique (la fonction d'autocorrélation) mesure la corrélation des résidus avec leurs propres valeurs passées.
+
+-    Pic au Lag 0 : Il est toujours égal à `1.0` (corrélation parfaite d'une valeur avec elle-même), on ne l'interprète pas pour le diagnostic.
+
+-    Le pic au Lag 1 : On observe une barre verticale qui dépasse nettement la ligne pointillée bleue supérieure. Cela indique une autocorrélation positive significative au premier retard.
+
+-    Signification statistique : Les lignes pointillées bleues représentent l'intervalle de confiance à 95 % pour un bruit blanc. Puisque le pic au retard 1 sort de cet intervalle, vos résidus ne sont pas encore totalement indépendants (ce n'est pas encore un "bruit blanc" pur).
+
+-    Lags supérieurs : Au-delà du premier retard, les autres pics (2, 3, etc.) rentrent dans la zone de non-significativité, ce qui montre que la dépendance est à très court terme.
+
+# Stationnarité des résidus
+
+
+```{r}
+kpss_test_result <- kpss.test(residus)
+print(kpss_test_result)
+
+adf_test_result <- adf.test(residus)
+print(adf_test_result)
+```
+
+## 1. Test ADF (Augmented Dickey-Fuller)
+
+-    Hypothèse nulle (`H0​`) : La série est non stationnaire.
+
+-    Résultat : La p-value est de `0.01` (indiquée comme inférieure à la valeur affichée par le warning).
+
+-    Interprétation : On rejette `H0​`. Il y a des preuves statistiques fortes que la série des résidus est stationnaire.
+
+## 2. Test KPSS
+
+-    Hypothèse nulle (`H0​`) : La série est stationnaire.
+
+-    Résultat : La p-value est de `0.1`.
+
+-    Interprétation : On ne rejette pas `H0​`. Le test conclut que la série est stationnaire.
+
+## Synthèse
+
+| Test | Hypothèse nulle ($H_0$) | p-value | Décision |
+| :--- | :--- | :--- | :--- |
+| **ADF** | Non stationnaire | 0.01 | Rejet de $H_0$ |
+| **KPSS** | Stationnaire | 0.10 | Échec du rejet de $H_0$ |
