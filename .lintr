@@ -1,0 +1,39 @@
+linters: linters_with_defaults(
+    # Longueur de ligne - 120 caractères pour le code, 80 pour le texte
+    line_length_linter(120),
+    # Noms d'objets : snake_case recommandé, camelCase autorisé pour les packages
+    object_name_linter(styles = c("snake_case")),
+    # Interdire le code commenté (à la place, supprimer ou utiliser roxygen)
+    commented_code_linter(),
+    # Complexity cyclomatique - alerte au-dessus de 10
+    cyclocomp_linter(max = 10)
+  )
+
+# Options de linters supplémentaires
+objects:
+  # Éviter les noms trop courts (sauf dans les fonctions anonymes)
+  - exclude: "(^_.+$)|(^i$)|(^j$)|(^k$)"
+    linters: ["object_name_linter"]
+  # Autoriser les noms courts pour les boucles imbriquées
+  - exclude: ".*\\.funs$"
+    linters: ["object_name_linter"]
+
+# Exclusions : répertoires virtuels ou générés automatiquement
+exclusions: list(
+    # Dependencies renv (gérées séparément)
+    "renv/",
+    "packrat/",
+    # Données brutes (souvent des fichiers génériques)
+    "data/",
+    # Fichiers de configuration de projets R
+    "\\.Rproj\\.",
+    # Cache R
+    "\\.Rhistory",
+    "\\.RData",
+    "\\.Rprofile\\.exprs"
+  )
+
+encoding: "UTF-8"
+
+# Spécificité pour ce projet : autoriser le français dans les commentaires
+# et les noms d'objets pour les projets académiques
