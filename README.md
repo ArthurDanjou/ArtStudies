@@ -2,63 +2,105 @@
 
 [ArtStudies Projects](https://github.com/ArthurDanjou/artstudies) is a curated collection of academic projects completed throughout my mathematics studies. The repository showcases work in both _Python_ and _R_, focusing on mathematical modeling, data analysis, and numerical methods.
 
-The projects are organized into two main sections:
 - **L3** – Third year of the Bachelor's degree in Mathematics
 - **M1** – First year of the Master's degree in Mathematics
 - **M2** – Second year of the Master's degree in Mathematics
 
-## 📁 File Structure
+## 📁 Project Structure
 
-- `L3`
-  - `Analyse Matricielle`
-  - `Analyse Multidimensionnelle`
-  - `Calculs Numériques`
-  - `Équations Différentielles`
-  - `Méthodes Numériques`
-  - `Probabilités`
-  - `Projet Numérique`
-  - `Statistiques`
+### L3 - Bachelor's Degree
 
-- `M1`
-  - `Data Analysis`
-  - `General Linear Models`
-  - `Monte Carlo Methods`
-  - `Numerical Methods`
-  - `Numerical Optimization`
-  - `Portfolio Management`
-  - `Statistical Learning`
+| Course | Description |
+|--------|-------------|
+| `Analyse Matricielle` | Matrix analysis and numerical linear algebra |
+| `Analyse Multidimensionnelle` | Multivariate data analysis (PCA, MCA, CA) |
+| `Calculs Numériques` | Numerical computation methods |
+| `Equations Différentielles` | Differential equations solving |
+| `Méthodes Numériques` | Numerical methods implementation |
+| `Projet Numérique` | Numerical project |
+| `Statistiques` | Applied statistics |
 
-- `M2`
-  - `Clustering In Practice`
-  - `Data Visualisation`
-  - `Deep Learning`
-  - `Generative AI`
-  - `Linear Models`
-  - `Machine Learning`
-  - `Reinforcement Learning`
-  - `SQL`
-  - `Statistiques Non Paramétrique`
-  - `Unsupervised Learning`
-  - `VBA`
+### M1 - Master's Degree 1st Year
 
+| Course | Description |
+|--------|-------------|
+| `Data Analysis` | Exploratory data analysis and visualization |
+| `General Linear Models` | Regression and ANOVA models |
+| `Monte Carlo Methods` | Statistical simulation techniques |
+| `Numerical Methods` | Numerical algorithms implementation |
+| `Numerical Optimisation` | Optimization algorithms |
+| `Portfolio Management` | Financial portfolio optimization |
+| `Statistical Learning` | Machine learning fundamentals |
+
+### M2 - Master's Degree 2nd Year
+
+| Course | Description |
+|--------|-------------|
+| `Advanced Machine Learning` | Advanced ML techniques |
+| `Classification and Regression` | Supervised learning methods |
+| `Clustering In Practice` | Unsupervised learning and clustering |
+| `Data Visualisation` | Data visualization principles and tools |
+| `Deep Learning` | Neural networks and deep architectures |
+| `Enjeux Climatiques` | Climate issues and data analysis |
+| `Generative AI` | Generative models (LLMs, diffusion) |
+| `Linear Models` | Linear modeling techniques |
+| `Machine Learning` | Core machine learning algorithms |
+| `Reinforcement Learning` | Reinforcement learning algorithms |
+| `SQL` | Database and SQL queries |
+| `Statistiques Non Paramétrique` | Non-parametric statistics |
+| `Time Series` | Time series analysis and forecasting |
+| `Unsupervised Learning` | Unsupervised learning methods |
+| `VBA` | Visual Basic for Applications |
 
 ## 🛠️ Technologies & Tools
 
-- [Python](https://www.python.org): A high-level, interpreted programming language, widely used for data science, machine learning, and scientific computing.
-- [R](https://www.r-project.org): A statistical computing environment, perfect for data analysis and visualization.
-- [Jupyter](https://jupyter.org): Interactive notebooks combining code, results, and rich text for reproducible research.
-- [Pandas](https://pandas.pydata.org): A data manipulation library providing data structures and operations for manipulating numerical tables and time series.
-- [NumPy](https://numpy.org): Core package for numerical computing with support for large, multi-dimensional arrays and matrices.
-- [SciPy](https://www.scipy.org): A library for advanced scientific computations including optimization, integration, and signal processing.
-- [Scikit-learn](https://scikit-learn.org): A robust library offering simple and efficient tools for machine learning and statistical modeling, including classification, regression, and clustering.
-- [TensorFlow](https://www.tensorflow.org): A comprehensive open-source framework for building and deploying machine learning and deep learning models.
-- [Keras](https://keras.io): A high-level neural networks API, running on top of TensorFlow, designed for fast experimentation.
-- [Matplotlib](https://matplotlib.org): A versatile plotting library for creating high-quality static, animated, and interactive visualizations in Python.
-- [Plotly](https://plotly.com): An interactive graphing library for creating dynamic visualizations in Python and R.
-- [Seaborn](https://seaborn.pydata.org): A statistical data visualization library built on top of Matplotlib, providing a high-level interface for drawing attractive and informative graphics.
-- [RMarkdown](https://rmarkdown.rstudio.com): A dynamic tool for combining code, results, and narrative into high-quality documents and presentations.
-- [FactoMineR](https://factominer.free.fr/): An R package focused on multivariate exploratory data analysis (e.g., PCA, MCA, CA).
-- [ggplot2](https://ggplot2.tidyverse.org): A grammar-based graphics package for creating complex and elegant visualizations in R.
-- [RShiny](https://shiny.rstudio.com): A web application framework for building interactive web apps directly from R.
-- [LangChain](https://langchain.com): A framework for developing applications powered by language models.
-- and my 🧠.
+### Python
+
+- **Data Science**: `numpy`, `pandas`, `scipy`, `matplotlib`, `seaborn`, `plotly`, `geopandas`
+- **Machine Learning**: `scikit-learn`, `xgboost`, `catboost`, `shap`, `umap-learn`, `imblearn`
+- **Deep Learning**: `tensorflow`, `keras`, `torch`, `accelerate`
+- **LLM/RAG**: `langchain`, `langchain-community`, `sentence-transformers`, `faiss-cpu`
+- **Other**: `statsmodels`, `plotly`, `polars`, `requests`, `openpyxl`
+
+### R
+
+- **Core**: tidyverse, ggplot2, FactoMineR, caret, glmnet
+- **Shiny**: RShiny for interactive web applications
+- **Reporting**: RMarkdown for reproducible reports
+
+### Tools
+
+- **Jupyter** – Interactive notebooks for reproducible research
+- **RStudio** – R development environment
+- **uv** – Fast Python package manager and virtual environment
+- **ruff** – Python linter and formatter
+- **lintr** – R linter
+
+## 🚀 Getting Started
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd studies
+   ```
+
+2. Set up the Python environment:
+   ```bash
+   uv sync
+   ```
+
+3. Run the linter:
+   ```bash
+   ruff check .
+   ```
+
+4. Format code:
+   ```bash
+   ruff format .
+   ```
+
+## 📝 Notes
+
+- Some subprojects have isolated `pyproject.toml` files (e.g., `M2/Reinforcement Learning/project/`)
+- Large datasets are not versioned—download via notebook code when needed
+- Course materials and documentation are primarily in French
