@@ -36,14 +36,6 @@ Certains projets ont leur propre `pyproject.toml` (ex: `M2/Reinforcement Learnin
 - **Gestion packages** : `renv` pour l'isolation (voir `.Rprofile`)
 - **Script d'init** : `M2/Data Visualisation/init.R` installe les packages courants
 - **Documents** : RMarkdown (`.Rmd`) pour les rapports reproductibles
-- **Linting** : utiliser `lintr` pour l'analyse statique et `styler` pour le formatage (config: `.lintr` à la racine)
-  ```r
-  # Vérifier le style d'un fichier
-  lintr::lint("script.R")
-  
-  # Formater automatiquement
-  styler::style_file("script.R")
-  ```
 
 ## SQL (M2/SQL)
 
