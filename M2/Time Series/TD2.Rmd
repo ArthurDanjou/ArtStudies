@@ -63,7 +63,7 @@ airpassengers_mult <- decompose(AirPassengers, type = "multiplicative")
 plot(airpassengers_mult)
 ```
 
-Observation : Le modèle multiplicatif est ici plus pertinent car les résidus (le "random") du modèle additif montrent encore une structure liée à l'amplitude de la série, alors qu'ils sont plus stables (homoscédastiques) dans le modèle multiplicatif. La fonction `decompos()` permet de séparer la série en trois composantes : tendance, saisonnalité et résidus. Cependant, elle suppose que la saisonnalité est fixe dans le temps, ce qui peut ne pas être le cas pour toutes les séries temporelles. De plus, elle est sensible aux valeurs aberrantes, ce qui peut affecter la qualité de la décomposition.
+Observation : Le modèle multiplicatif est ici plus pertinent car les résidus (le "random") du modèle additif montrent encore une structure liée à l'amplitude de la série, alors qu'ils sont plus stables (homoscédastiques) dans le modèle multiplicatif. La fonction `decompose()` permet de séparer la série en trois composantes : tendance, saisonnalité et résidus. Cependant, elle suppose que la saisonnalité est fixe dans le temps, ce qui peut ne pas être le cas pour toutes les séries temporelles. De plus, elle est sensible aux valeurs aberrantes, ce qui peut affecter la qualité de la décomposition.
 
 ## 5. STL
 
