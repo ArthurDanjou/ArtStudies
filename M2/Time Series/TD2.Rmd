@@ -32,14 +32,12 @@ boxplot(
 )
 ```
 
-Il y a en effet une saisonnalité dans les données, avec des pics réguliers tous les 12 mois. Cela suggère que les passagers aériens ont tendance à augmenter à certaines périodes de l'année, probablement en raison de vacances ou d'autres facteurs saisonniers.
+Il y a en effet une saisonnalité dans les données, avec des pics réguliers tous les 12 mois. Cela suggère que les passagers aériens ont tendance à augmenter à certaines périodes de l'année, probablement en raison de vacances ou d'autres facteurs saisonniers. Le boxplot confirme cette saisonnalité, montrant des variations significatives entre les mois, avec des pics plus élevés en été (juin, juillet, août) et des creux en hiver (décembre, janvier).
 
 ## 3. Moyenne mobile
 
 ```{r}
-library(zoo)
-
-ma <- rollmean(AirPassengers, k = 12, fill = NA)
+ma <- filter(AirPassengers, rep(1/12, 12))
 
 plot(
   AirPassengers,
@@ -103,3 +101,5 @@ print(kpss_test_result)
 adf_test_result <- adf.test(final_diff)
 print(adf_test_result)
 ```
+
+Le test KPSS indique que la série différenciée est stationnaire (p-value > 0.05), tandis que le test ADF confirme également la stationnarité (p-value < 0.05). Ainsi, après les différenciations, la série semble être stationnaire.
