@@ -3,6 +3,9 @@
 ## 1. Import et visualisation
 
 ```{r}
+library(tseries)
+par(mfrow = c(1, 1))
+
 data(AirPassengers)
 plot(AirPassengers)
 ```
@@ -83,9 +86,24 @@ Différences clés :
 ## 6. Différenciation
 
 ```{r}
-plot(diff(diff(log(AirPassengers), lag = 12)))
+trend_diff <- diff(log(AirPassengers))
+saison_diff <- diff(log(AirPassengers), lag = 12)
+final_diff <- diff(trend_diff, lag = 12)
+
+plot(trend_diff, main = "Différence première (Trend)", ylab = "Différence")
+plot(saison_diff, main = "Différence saisonnière (Seasonal)", ylab = "Différence saisonnière")
+plot(final_diff, main = "Différence finale (Trend + Seasonal)", ylab = "Différence finale")
 ```
 
 Une différence première ($I−B$) pour retirer la tendance.
 
 Une différence saisonnière ($I−B^{12}$) pour retirer la saisonnalité.
+
+
+```{r}
+kpss_test_result <- kpss.test(final_diff)
+print(kpss_test_result)
+    
+adf_test_result <- adf.test(final_diff)
+print(adf_test_result)
+```
