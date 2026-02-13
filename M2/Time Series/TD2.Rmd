@@ -1,0 +1,91 @@
+# TD2 - Analyse de séries temporelles
+
+## 1. Import et visualisation
+
+```{r}
+data(AirPassengers)
+plot(AirPassengers)
+```
+
+## 2. Saisonnalité
+
+```{r}
+library(forecast)
+
+monthplot(AirPassengers, main = "Graphique par mois (Monthplot)")
+
+lag.plot(
+  AirPassengers,
+  lags = 12,
+  do.lines = FALSE,
+  main = "AirPassengers Lag-Plot"
+)
+
+boxplot(
+  AirPassengers ~ cycle(AirPassengers),
+  main = "Boxplot par mois",
+  xlab = "Mois",
+  ylab = "Nombre de passagers"
+)
+```
+
+Il y a en effet une saisonnalité dans les données, avec des pics réguliers tous les 12 mois. Cela suggère que les passagers aériens ont tendance à augmenter à certaines périodes de l'année, probablement en raison de vacances ou d'autres facteurs saisonniers.
+
+## 3. Moyenne mobile
+
+```{r}
+library(stats)
+
+trend_mm <- filter(
+  AirPassengers,
+  filter = c(1 / 24, rep(1 / 12, 11), 1 / 24),
+  sides = 2
+)
+
+plot(
+  AirPassengers,
+  main = "AirPassengers with Moving Average",
+  ylab = "Number of Passengers"
+)
+lines(ma, col = "red", lwd = 2)
+legend(
+  "topleft",
+  legend = c("AirPassengers", "Moving Average"),
+  col = c("black", "red"),
+  lwd = 2
+)
+```
+
+## 4. Décomposition
+
+```{r}
+airpassengers_add <- decompose(AirPassengers, type = "additive")
+plot(airpassengers_add)
+
+airpassengers_mult <- decompose(AirPassengers, type = "multiplicative")
+plot(airpassengers_mult)
+```
+
+Observation : Le modèle multiplicatif est ici plus pertinent car les résidus (le "random") du modèle additif montrent encore une structure liée à l'amplitude de la série, alors qu'ils sont plus stables (homoscédastiques) dans le modèle multiplicatif.
+
+## 5. STL
+
+```{r}
+dec_stl <- stl(log(AirPassengers), s.window = "periodic")
+plot(dec_stl)
+```
+
+Différences clés :
+
+- `decompose()` est rigide (moyennes mobiles simples, saisonnalité fixe).
+- `stl()` permet de gérer des valeurs aberrantes et d'ajuster la "vitesse" d'évolution de la saisonnalité via le paramètre s.window.
+
+## 6. Différenciation
+
+```{r}
+plot(diff(diff(log(AirPassengers), lag = 12)))
+```
+
+Une différence première ($I−B$) pour retirer la tendance.
+
+Une différence saisonnière ($I−B^{12}$) pour retirer la saisonnalité.
