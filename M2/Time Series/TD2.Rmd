@@ -37,13 +37,9 @@ Il y a en effet une saisonnalité dans les données, avec des pics réguliers to
 ## 3. Moyenne mobile
 
 ```{r}
-library(stats)
+library(zoo)
 
-trend_mm <- filter(
-  AirPassengers,
-  filter = c(1 / 24, rep(1 / 12, 11), 1 / 24),
-  sides = 2
-)
+ma <- rollmean(AirPassengers, k = 12, fill = NA)
 
 plot(
   AirPassengers,
@@ -90,7 +86,7 @@ trend_diff <- diff(log(AirPassengers))
 saison_diff <- diff(log(AirPassengers), lag = 12)
 final_diff <- diff(trend_diff, lag = 12)
 
-plot(trend_diff, main = "Différence première (Trend)", ylab = "Différence")
+plot(trend_diff, main = "Différence tendancielle (Trend)", ylab = "Différence tendancielle")
 plot(saison_diff, main = "Différence saisonnière (Seasonal)", ylab = "Différence saisonnière")
 plot(final_diff, main = "Différence finale (Trend + Seasonal)", ylab = "Différence finale")
 ```
