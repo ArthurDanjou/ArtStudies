@@ -1,0 +1,118 @@
+```{r}
+library(randomForest)
+library(MASS)
+library(tree)
+data(Boston)
+```
+
+## Sampling
+
+```{r}
+set.seed(123)
+appr <- sample(seq_len(nrow(Boston)), nrow(Boston) / 2)
+```
+
+## Regression Tree
+
+```{r}
+arbre_boston <- tree(medv ~ ., Boston, subset = appr)
+summary(arbre_boston)
+plot(arbre_boston)
+text(arbre_boston, pretty = 0)
+```
+
+
+```{r}
+cv_boston <- cv.tree(arbre_boston)
+plot(cv_boston$size, cv_boston$dev, type = "b")
+```
+
+
+```{r}
+yprev <- predict(arbre_boston, newdata = Boston[-appr, ])
+boston_test <- Boston[-appr, "medv"]
+plot(yprev, boston_test)
+abline(0, 1)
+mean((yprev - boston_test)^2)
+```
+
+## Bagging
+
+```{r}
+set.seed(123)
+
+bag_boston <- randomForest(
+  medv ~ .,
+  data = Boston,
+  subset = appr,
+  mtry = 13,
+  importance = TRUE
+)
+bag_boston
+yprev_bag <- predict(bag_boston, newdata = Boston[-appr, ])
+plot(yprev_bag, boston_test)
+abline(0, 1)
+mean((yprev_bag - boston_test)^2)
+```
+
+## Random Forest
+
+```{r}
+set.seed(123)
+rf_boston <- randomForest(
+  medv ~ .,
+  data = Boston,
+  subset = appr,
+  mtry = 6,
+  importance = TRUE
+)
+yprev_rf <- predict(rf_boston, newdata = Boston[-appr, ])
+mean((yprev_rf - boston_test)^2)
+```
+
+## Variable importance
+
+```{r}
+importance(rf_boston)
+varImpPlot(rf_boston)
+```
+
+# Boosting
+
+```{r}
+library(gbm)
+set.seed(1)
+boost_boston <- gbm(
+  medv ~ .,
+  data = Boston[appr, ],
+  distribution = "gaussian",
+  n.trees = 5000,
+  interaction.depth = 4
+)
+
+summary(boost_boston)
+
+par(mfrow = c(1, 2))
+plot(boost_boston, i = "rm")
+plot(boost_boston, i = "lstat")
+```
+
+```{r}
+yhat_boost <- predict(boost_boston, newdata = Boston[-appr, ], n.trees = 5000)
+mean((yhat_boost - boston_test)^2)
+```
+
+```{r}
+boost_boston <- gbm(
+  medv ~ .,
+  data = Boston[appr, ],
+  distribution = "gaussian",
+  n.trees = 5000,
+  interaction.depth = 4,
+  shrinkage = 0.2,
+  verbose = FALSE
+)
+
+yhat_boost <- predict(boost_boston, newdata = Boston[-appr, ], n.trees = 5000)
+mean((yhat_boost - boston_test)^2)
+```
