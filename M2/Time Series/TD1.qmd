@@ -3,6 +3,8 @@
 ```{r}
 library(tseries)
 
+setwd("./M2/Time Series")
+
 data = read.csv2('./data/TD1.csv')
 data_series = ts(data)
 ```
