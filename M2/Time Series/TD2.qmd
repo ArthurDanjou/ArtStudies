@@ -59,18 +59,39 @@ legend(
 ```{r}
 airpassengers_add <- decompose(AirPassengers, type = "additive")
 plot(airpassengers_add)
+residus_add <- airpassengers_add$random
+residus_add_clean <- stats::na.omit(residus_add)
+plot(residus_add_clean, main = "Résidus du modèle additif", ylab = "Résidus")
+acf(residus_add_clean, main = "ACF des résidus du modèle additif")
+```
 
+```{r}
 airpassengers_mult <- decompose(AirPassengers, type = "multiplicative")
 plot(airpassengers_mult)
+residus_mult <- airpassengers_mult$random
+residus_mult_clean <- stats::na.omit(residus_mult)
+
+plot(
+  residus_mult_clean,
+  main = "Résidus du modèle multiplicatif",
+  ylab = "Résidus"
+)
+
+acf(
+  residus_mult_clean,
+  main = "ACF des résidus du modèle multiplicatif"
+)
 ```
 
 Observation : Le modèle multiplicatif est ici plus pertinent car les résidus (le "random") du modèle additif montrent encore une structure liée à l'amplitude de la série, alors qu'ils sont plus stables (homoscédastiques) dans le modèle multiplicatif. La fonction `decompose()` permet de séparer la série en trois composantes : tendance, saisonnalité et résidus. Cependant, elle suppose que la saisonnalité est fixe dans le temps, ce qui peut ne pas être le cas pour toutes les séries temporelles. De plus, elle est sensible aux valeurs aberrantes, ce qui peut affecter la qualité de la décomposition.
+
+La saisonnalité de type multiplicatif colle mieux à AirPassengers car l'amplitude de la saisonnalité semble augmenter avec le temps, ce qui est caractéristique d'une relation multiplicative entre les composantes. En revanche, une décomposition additive supposerait que la saisonnalité a une amplitude constante, ce qui ne correspond pas à la nature des données d'AirPassengers.
 
 ## 5. STL
 
 ```{r}
 dec_stl <- stl(log(AirPassengers), s.window = "periodic")
-plot(dec_stl)
+plot(dec_stl, main = "Décomposition STL de log(AirPassengers)")
 ```
 
 Différences clés :
@@ -100,11 +121,23 @@ plot(
   main = "Différence finale (Trend + Seasonal)",
   ylab = "Différence finale"
 )
+
+acf(
+  final_diff,
+  main = "ACF de la série différenciée",
+  lag.max = 20
+)
 ```
 
-Une différence première ($I−B$) pour retirer la tendance.
+Le symbole $I$ est l'opérateur identité (ne décale pas la série).
+$B$ est l'opérateur de retard (backshift) défini par $B X_t = X_{t-1}$.  
 
-Une différence saisonnière ($I−B^{12}$) pour retirer la saisonnalité.
+Ainsi :
+- $(I - B)X_t = X_t - X_{t-1}$ : différence première (retirer la tendance).  
+- $(I - B^{12})X_t = X_t - X_{t-12}$ : différence saisonnière sur 12 périodes (retirer la saisonnalité).
+
+Donc ma série finale est obtenue en appliquant ces deux différences :
+- $(I - B)(I - B^{12})X_t = X_t - X_{t-1} - X_{t-12} + X_{t-13}$
 
 ```{r}
 kpss_test_result <- kpss.test(final_diff)
