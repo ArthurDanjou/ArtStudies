@@ -129,15 +129,11 @@ acf(
 )
 ```
 
-Le symbole $I$ est l'opérateur identité (ne décale pas la série).
-$B$ est l'opérateur de retard (backshift) défini par $B X_t = X_{t-1}$.  
+- $(I - L)X_t = X_t - X_{t-1}$ : différence première (retirer la tendance).  
+- $(I - L^{12})X_t = X_t - X_{t-12}$ : différence saisonnière sur 12 périodes (retirer la saisonnalité).
 
-Ainsi :
-- $(I - B)X_t = X_t - X_{t-1}$ : différence première (retirer la tendance).  
-- $(I - B^{12})X_t = X_t - X_{t-12}$ : différence saisonnière sur 12 périodes (retirer la saisonnalité).
-
-Donc ma série finale est obtenue en appliquant ces deux différences :
-- $(I - B)(I - B^{12})X_t = X_t - X_{t-1} - X_{t-12} + X_{t-13}$
+Donc la série finale est obtenue en appliquant ces deux différences :
+- $(I - L)(I - L^{12})X_t = X_t - X_{t-1} - X_{t-12} + X_{t-13}$
 
 ```{r}
 kpss_test_result <- kpss.test(final_diff)
