@@ -46,6 +46,7 @@
 | `Linear Models` | Linear modeling techniques |
 | `Machine Learning` | Core machine learning algorithms |
 | `Machine Learning 2` | Applications of machine learning algorithms |
+| `Natural Language Processing` | NLP techniques and applications |
 | `Reinforcement Learning` | Reinforcement learning algorithms |
 | `SQL` | Database and SQL queries |
 | `Statistiques Non Paramétrique` | Non-parametric statistics |
