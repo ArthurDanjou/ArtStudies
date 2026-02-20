@@ -43,7 +43,6 @@
 | `Deep Learning` | Neural networks and deep architectures |
 | `Enjeux Climatiques` | Climate issues and data analysis |
 | `Generative AI` | Generative models (LLMs, diffusion) |
-| `Linear Models` | Linear modeling techniques |
 | `Machine Learning` | Core machine learning algorithms |
 | `Machine Learning 2` | Applications of machine learning algorithms |
 | `Natural Language Processing` | NLP techniques and applications |
