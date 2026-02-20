@@ -1,0 +1,194 @@
+
+# Exercise 1: co2 modelisation with ARIMA
+
+## Data preparation 
+
+```{r}
+library(MASS)
+data(co2)
+
+ts_co2 <- ts(co2, frequency = 12, start = c(1959, 1))
+
+train_size <- round(0.9 * length(ts_co2))
+train_ts <- window(ts_co2, end = time(ts_co2)[train_size])
+test_ts <- window(ts_co2, start = time(ts_co2)[train_size + 1])
+```
+
+## Time series visualization
+
+```{r}
+library(tseries)
+
+plot(ts_co2, main = "CO2 Concentration Over Time", ylab = "CO2 Concentration", xlab = "Time", col="green")
+lines(train_ts, main = "Training Data", ylab = "CO2 Concentration", xlab = "Time", col="blue", lwd=2)
+lines(test_ts, main = "Test Data", ylab = "CO2 Concentration", xlab = "Time", col="red", lwd=2)
+legend("topleft", legend=c("Full Series", "Training Set", "Test Set"), col=c("green", "blue", "red"), lwd=2)
+```
+
+## Decomposition of the time series
+
+```{r}
+dec_add <- decompose(co2, type = "additive")
+
+plot(dec_add)
+plot(dec_add$random, main = "Residuals from Additive Decomposition", ylab = "Residuals", xlab = "Time")
+```
+
+### Stationarity of the residuals
+
+```{r}
+resid_clean <- stats::na.omit(dec_add$random)
+acf(resid_clean, main = "ACF of Residuals")
+pacf(resid_clean, main = "PACF of Residuals")
+```
+
+### ACF Analysis (Diagnostic Tool)
+
+The Autocorrelation Function (ACF) provides crucial insights into the underlying structure of the time series residuals:
+
+- **Sinusoidal Decay Pattern**: The ACF exhibits a characteristic alternating pattern of positive and negative autocorrelations that decay gradually across lags. This sinusoidal behavior is the hallmark signature of an AutoRegressive (AR) process, indicating that current values depend on past values with a decaying influence over time.
+
+- **Seasonal Persistence at Annual Lags**: Significant spikes consistently exceed the 95% confidence intervals (blue dashed lines) at regular intervals. Notably, the pronounced positive spike at lag 1.0 (representing 12 months) demonstrates that residuals maintain strong year-over-year correlations. This persistent autocorrelation at seasonal lags reveals a critical limitation: the classical `decompose()` function, while effective for deterministic trend extraction, fails to completely eliminate stochastic seasonal components. The remaining seasonality suggests the need for either seasonal differencing or a seasonal ARIMA component (SARIMA).
+
+- **Implications for Modeling**: The combination of gradual decay and seasonal spikes suggests a mixed structure requiring both short-term autoregressive dynamics and seasonal adjustment mechanisms.
+
+### PACF Analysis (Model Order Selection)
+
+The Partial Autocorrelation Function (PACF) helps identify the appropriate AR order by revealing direct correlations after removing intermediate lag effects:
+
+- **Sharp Cut-off After Lag 1**: The PACF displays a dominant spike at lag 1 (approximately 0.4), followed by a rapid decline where subsequent partial autocorrelations fall largely within confidence bounds. This sharp truncation is the theoretical signature of an AR(1) process.
+
+- **Seasonal Resurgence Consideration**: Despite the primary AR(1) pattern, minor resurgences appear at seasonal lags (12, 24), reinforcing the need for seasonal modeling components.
+
+- **Model Selection Guidance**: According to Box-Jenkins methodology, a PACF that cuts off after lag $p$ suggests an AR($p$) model. The evidence strongly supports an AR(1) specification for the non-seasonal component, though model selection should be validated through information criteria (AIC/BIC) and residual diagnostics.
+
+### Stationarity tests
+
+```{r}
+kpss_test_result <- kpss.test(resid_clean)
+print(kpss_test_result)
+
+adf_test_result <- adf.test(resid_clean)
+print(adf_test_result)
+```
+
+### Stationarity Tests
+
+Stationarity is a fundamental prerequisite for valid time series modeling. We employ two complementary unit root tests to rigorously assess the stationarity of the decomposed residuals:
+
+- **Augmented Dickey-Fuller (ADF) Test**: This test evaluates the null hypothesis of a unit root (non-stationarity) against the alternative of stationarity. A rejection of the null hypothesis provides strong evidence that the time series does not contain a stochastic trend. In this case, the ADF test rejects the unit root null hypothesis at conventional significance levels, supporting the conclusion of stationarity.
+
+- **KPSS Test**: Operating under a reverse null hypothesis framework, the KPSS test assumes stationarity as the null and tests against the alternative of a unit root. Acceptance of the null hypothesis (failure to reject) corroborates the ADF findings. The KPSS test results support the stationarity hypothesis, providing convergent validity.
+
+- **Synthesis of Results**: The concordance between the ADF and KPSS tests (ADF rejects non-stationarity, KPSS fails to reject stationarity) provides robust evidence that the decomposition procedure successfully extracted the deterministic trend component from the original CO2 series. The resulting residuals exhibit mean reversion behavior, oscillating around a constant mean with finite variance—precisely the conditions required for valid ARMA modeling. The absence of unit root dynamics ensures that model estimates will be consistent and that forecasts will not diverge over time.
+
+## ARIMA modeling
+
+```{r}
+library(forecast)
+
+model_final = auto.arima(resid_clean, seasonal = FALSE)
+
+model_final
+```
+
+```{r}
+checkresiduals(model_final)
+```
+
+### 1. Residual Time Series (Chronogram)
+
+The top panel displays the time series of model residuals after fitting:
+
+- **Visual Assessment**: The residuals exhibit white noise characteristics, fluctuating randomly around the zero line without discernible patterns. The absence of trend, cyclical movements, or variance clustering (heteroscedasticity) indicates that the ARIMA model has successfully captured the systematic components of the time series.
+
+- **Validation**: The visual inspection corroborates the formal stationarity tests (ADF and KPSS). The residuals display mean-reverting behavior with constant variance, satisfying the assumptions required for reliable inference and prediction. No obvious outliers or structural breaks are apparent in the residual series.
+
+### 2. Autocorrelation Function (ACF) of Residuals
+
+The ACF plot (bottom left) evaluates whether any autocorrelation structure remains unmodeled:
+
+- **White Noise Verification**: The majority of autocorrelation spikes lie within the 95% confidence bands (blue dashed lines), indicating that the residuals approximate white noise. This confirms the model's adequacy in capturing short-term dependencies.
+
+- **Seasonal Concerns**: Despite the overall good fit, marginal spikes persist at lag 12 (annual seasonality) and lag 24 (bi-annual seasonality). These exceedances suggest residual seasonal autocorrelation that the non-seasonal ARIMA specification could not fully absorb.
+
+- **Diagnostic Implication**: The remaining seasonal structure indicates that a Seasonal ARIMA (SARIMA) model with seasonal AR or MA components might yield improved fit. Alternatively, the classical decomposition approach's deterministic seasonal extraction may be insufficient for capturing stochastic seasonal variation.
+
+### 3. Residual Distribution (Normality Assessment)
+
+The histogram with superimposed normal density curve (bottom right) assesses the distributional properties:
+
+- **Normality**: The empirical distribution (gray bars) closely approximates the theoretical normal distribution (orange curve), exhibiting symmetry around zero and bell-shaped curvature. This normality validates the Gaussian error assumption underlying maximum likelihood estimation and confidence interval construction.
+
+- **Implications for Inference**: Normal residuals ensure that parameter standard errors, hypothesis tests, and prediction intervals maintain their nominal properties. The reliable distributional behavior supports the use of this model for forecasting applications where interval estimates are critical.
+
+## Forecasting
+
+```{r}
+trend_decomp <- na.omit(dec_add$trend)
+trend_data <- data.frame(time = time(trend_decomp), trend = trend_decomp)
+
+trend_model <- lm(trend ~ I(time), data = trend_data)
+summary(trend_model)
+```
+
+```{r}
+new_time_values <- seq(
+  from = max(time(trend_decomp)) + delta(trend_decomp),
+  by = delta(trend_decomp),
+  to = max(time(test_ts))
+)
+
+new_data <- data.frame(time = new_time_values)
+
+forecast_residuals <- forecast(model_final, h = length(new_time_values))
+
+# TODO: use correction
+```
+
+# Exercise 2
+
+## Simulation of ARIMA(3,0,2) processes with and without constant
+
+```{r}
+set.seed(123)
+
+n <- 100
+AR <- c(0.5, -0.3, -0.1)
+MA <- c(0.4, -0.2)
+
+X1 <- arima.sim(model = list(ar = AR, ma = MA), n = n)
+
+plot(X1, main = "Chronoplot ARIMA(3,0,2) without constant", ylab = "Xt")
+acf(X1)
+pacf(X1)
+```
+
+```{r}
+X2 <- X1 + 100 / (1 - sum(AR))
+
+plot(X2, main = "ARIMA(3,0,2) with constant c=100", ylab = "Xt")
+abline(h = mean(X2), col = "red", lty = 2)
+```
+
+```{r}
+X3_d1 <- arima.sim(
+  model = list(ar = AR, ma = MA, order = c(3, 1, 2)),
+  n = n
+)
+
+X3_d2 <- arima.sim(
+  model = list(ar = AR, ma = MA, order = c(3, 2, 2)),
+  n = n
+)
+
+plot(X3_d1, main = "ARIMA(3,1,2)")
+plot(X3_d2, main = "ARIMA(3,2,2)")
+```
+
+
+```{r}
+n_large <- 5000
+x_large <- arima.sim(model = list(ar = phi, ma = theta), n = n_large)
+plot(x_large, main = "ARIMA(3,0,2) - Long terme")
+```
