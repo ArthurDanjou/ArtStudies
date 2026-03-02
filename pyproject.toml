@@ -89,6 +89,8 @@ ignore = [
     "N803",
     "N802",
     "N816",
+    "PLR0913", # Too many arguments
+    "FBT001", # Boolean positional argument used in function definition
 ]
 
 # Exclure certains fichiers ou répertoires
