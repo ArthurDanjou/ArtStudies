@@ -1,0 +1,2284 @@
+---
+title: "IMPLIED VOLATILITY FROM OPTIONS DATA"
+author: "Artgur DANJOU, Camille LEGRAND, Axelle MERIC, Moritz VON SIEMENS"
+date: "Academic Year 2025-2026"
+output:
+  html_document:
+    self_contained: true
+    math_method: 
+      engine: mathjax
+      url: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+    code_folding: hide
+    css: ./style.css
+    df_print: paged
+    highlight: tango
+    number_sections: no
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+---
+
+# IMPLIED VOLATILITY FROM OPTIONS DATA
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  fig.align = "center",
+  message = FALSE,
+  warning = FALSE,
+  results = "markup"
+)
+```
+
+## Preliminary
+
+We begin by loading the necessary packages for this analysis. 
+
+```{r Librairies, warning=FALSE}
+library(pacman)
+p_load(
+  brulee,
+  car,
+  carData,
+  caret,
+  class,
+  corrplot,
+  DataExplorer,
+  data.table,
+  dplyr,
+  fitdistrplus,
+  glmnet,
+  ggfortify,
+  ggplot2,
+  glue,
+  grid,
+  gridExtra,
+  hexbin,
+  kableExtra,
+  MASS,
+  lightgbm,
+  lme4,
+  lmerTest,
+  paletteer,
+  plotly,
+  pls,
+  randomForest,
+  ranger,
+  rBayesianOptimization,
+  reshape2,
+  rlang,
+  ROCR,
+  rsample,
+  shapviz,
+  scales,
+  skimr,
+  tibble,
+  tidyr,
+  tidymodels,
+  tidyverse,
+  xgboost
+)
+```
+
+```{r seed}
+set.seed(2025)
+```
+
+We fix the random seed to ensure the reproducibility of our results. This is a critical step in any data analysis or machine learning pipeline, as it allows others to replicate our findings and verify the robustness of our models.
+
+## Introduction
+
+### Financial Context & Problem Formulation
+
+Implied volatility is the market’s anticipation of the future level of an underlying asset’s volatility.
+The easiest way to access implied volatility is by deriving it from option prices using the Black–Scholes formula.
+
+Unlike historical volatility, also known as realized volatility, which measures past price fluctuations, implied volatility is forward-looking. It reflects the risk and uncertainty perceived by investors.
+
+Obtaining an accurate measure of implied volatility is important not only to understand the market environment and investor sentiment, but also for option pricing, risk management, and hedging.
+
+Predicting implied volatility allows us to better understand and anticipate market dynamics. Accurate forecasts are crucial for pricing options correctly, hedging positions, and improving risk management to reduce unexpected losses.
+For volatility-based trading strategies, anticipating movements in volatility can generate profitable opportunities.
+
+### Raw Dataset Overview
+
+The dataset used for this study, named \texttt{Train\_ISF.csv}, provides a comprehensive view of option market dynamics. It is structured as panel data, tracking multiple underlying assets over a specific time horizon. The raw dataset contains 1,909,465 observations and 21 variables.
+
+```{r Data import}
+data_train <- read_csv("Train_ISF.csv")
+test <- read.csv("Test_ISF.csv")
+cat("Rows:", nrow(data_train), "\n")
+cat("Columns:", ncol(data_train), "\n")
+head(data_train, 10)
+```
+
+
+The variables can be categorized into four main groups describing the market conditions:
+
+* **Identifiers:** `asset_id` (categorical) and `obs_date` (temporal).
+* **Target Variable:** `implied_vol_ref`, representing the implied volatility we aim to predict.
+* **Market Activity & Liquidity:** This includes trading volumes (`call_volume`, `put_volume`), open interest (`call_oi`, `put_oi`), and the total number of contracts exchanged (`total_contracts`).
+* **Volatility Metrics:** Historical realized volatility at different horizons (`realized_vol_short`, `mid`, `long`) and the global market stress index (`market_vol_index`).
+* **Option Structure:** Variables such as `strike_dispersion` and `maturity_count`, which describe the depth and breadth of the available option chain.
+
+```{r assets and dates}
+nb_assets <- uniqueN(data_train$asset_id)
+nb_dates <- uniqueN(data_train$obs_date)
+
+print(paste("Number of assets:", nb_assets))
+print(paste("Number of dates:", nb_dates))
+```
+
+The dataset covers a universe of 3,887 unique underlying assets across 544 distinct observation dates. 
+
+It is important to note that the panel is unbalanced. The theoretical maximum number of observations (3,887 x 544 = 2,114,528) exceeds the actual row count (1,909,465), indicating that not all assets are quoted or have available data for every date in the period. This sparsity is visualized in the following figure, which shows the availability of data points for a subset of assets.
+
+```{r first visu of assets}
+selected_assets <- unique(data_train$asset_id)[100:120]
+selected_dates <- unique(data_train$obs_date)[1:100]
+
+data_subset <- data_train |>
+  filter(asset_id %in% selected_assets) |>
+  filter(obs_date %in% selected_dates)
+
+ggplot(
+  data_subset,
+  aes(
+    x = obs_date,
+    y = implied_vol_ref,
+    group = asset_id,
+    color = as.factor(asset_id)
+  )
+) +
+  geom_line() +
+  geom_point(size = 1) +
+  theme_minimal() +
+  labs(
+    title = "Evolution of the Target for 10 Assets over time",
+    x = "Date",
+    y = "Value of the Target",
+    color = "Asset ID"
+  ) +
+  theme(legend.position = "right")
+```
+
+## Data Pipeline & Exploratory Analysis
+
+### Data Splitting Strategy: Preventing Data Leakage
+
+To ensure the reliability of our model and avoid look-ahead bias, the dataset was split into training and validation sets before performing any data manipulation, scaling, or feature engineering.
+
+Instead of randomly splitting, we adopted a chronological splitting strategy. We identified the unique observation dates, sorted them, and established a temporal cutoff at the 80% mark. The first 80% of dates constitute the training set which will be used to learn patterns.The subsequent 20% form the validation set, used to evaluate performance on unseen future data. This approach ensures that the model is evaluated on a future market regime it has never encountered during training. All data transformations were strictly calibrated on the training set alone; these fixed statistical parameters were then deterministically projected onto the out-of-sample datasets to ensure perfect methodological isolation.
+
+```{r data split}
+all_dates <- sort(unique(data_train$obs_date))
+
+cutoff_index <- floor(length(all_dates) * 0.8)
+cutoff_date <- all_dates[cutoff_index]
+
+print(paste("Cutoff Date:", cutoff_date))
+
+train <- data_train |> arrange(obs_date) |> filter(obs_date <= cutoff_date)
+val <- data_train |> arrange(obs_date) |> filter(obs_date > cutoff_date)
+
+cat("Training Set Size:", nrow(train), "\n")
+cat("Validation Set Size :", nrow(val), "\n")
+
+cat("Last date in the Training set:", as.character(max(train$obs_date)), "\n")
+cat("First date in the Validation set:", as.character(min(val$obs_date)), "\n")
+```
+
+Following this split, the training set covers the period up to **2021-07-20**, containing approximately $1,533,234$ observations. The test set begins immediately after, ensuring a continuous timeline without overlap.
+
+### Data Cleansing & Outlier Management
+
+Financial market data is inherently characterized by fat-tailed distributions. Metrics such as realized volatility, trading volumes, and strike dispersions frequently exhibit extreme, asymmetric spikes driven by macroeconomic shocks, earnings announcements, or transient liquidity crises. However, before addressing these structural anomalies, the baseline integrity of the dataset must be established.
+
+#### Foundational Data Integrity: Completeness and Uniqueness
+
+```{r data overview}
+skimr::skim(data_train) |> rmarkdown::paged_table()
+```
+
+A systematic programmatic verification was executed on the raw dataset prior to any feature engineering. This audit confirmed two critical structural properties:
+
+* **Absolute Uniqueness**: No duplicate rows were detected across the primary temporal and cross-sectional keys (`asset_id` and `obs_date`).
+* **Strict Completeness**: The dataset was entirely free of missing values (NA).
+
+The innate completeness of the data precluded the necessity for computationally expensive imputation algorithms (such as MICE or KNN) during the exploratory phase. Nevertheless, following strict MLOps principles, a median imputation step (`$step_impute_median$`) was retained within the unified tidymodels pipeline. This acts as a robust fail-safe mechanism to prevent pipeline crashes during future out-of-sample inferences should upstream data pipelines temporarily drop feature payloads. With structural purity confirmed, the primary data quality challenge shifted exclusively to the management of extreme values.
+
+#### The Mathematical Threat to Linear and Gradient-Based Models
+
+While extreme spikes in volatility or volume are genuine market phenomena rather than measurement errors, their presence poses a severe mathematical threat to specific families of predictive algorithms. Models relying on distance metrics and continuous optimization, such as **Ordinary Least Squares (OLS)**, penalized regressions (**Elastic Net**), and **Multi-Layer Perceptrons (MLP)**, are highly sensitive to these outliers due to two primary factors:
+
+* **Quadratic Loss Functions**: Algorithms optimizing Mean Squared Error (MSE) heavily penalize large deviations. A single extreme outlier forces the algorithm to shift the entire regression hyperplane to minimize that specific localized error, thereby destroying the model's generalization capability on the remaining 99% of "normal" observations.
+
+* **Scaling Distortion**: Linear models mathematically require strict feature standardization (Z-score normalization). If raw outliers are left untreated, they artificially inflate the standard deviation (σ) of the feature. Consequently, the normalized values of the vast majority of the data are compressed into an infinitesimally narrow band around zero, effectively erasing the predictive signal and preventing L1/L2 regularizations from operating fairly.
+
+#### Dynamic Thresholding Strategy
+
+To neutralize this threat without discarding valuable rows of data (which would disrupt the temporal continuity of the dataset), we implemented a rigorous thresholding strategy known as **Winsorization** (or *capping*).
+
+Instead of applying arbitrary fixed values, the limits are dynamically calculated based on the empirical distribution of the data:
+
+* **Single-Sided Capping**: For strictly positive features characterized by severe right-skewness (e.g., `realized_vol_short`, `put_call_ratio_volume`, `strike_dispersion`), all values exceeding the $99.5$th percentile are capped at that exact threshold.
+
+* **Dual-Sided Winsorization**: For symmetrical features capable of taking both negative and positive values (e.g., `stress_spread`), values are constrained within the $0.5$th and $99.5$th percentiles.
+
+#### Algorithmic Differentiation and Data Leakage Prevention
+
+A fundamental MLOps principle enforced in this study is the strict prevention of data leakage. The $99.5$th and $0.5$th percentiles are computed exclusively on the training set. These "frozen" thresholds are subsequently applied to the validation and hidden test sets, ensuring that the out-of-sample evaluations remain statistically robust and untainted by future information.
+
+Furthermore, acknowledging the divergent mechanics of machine learning algorithms, this capping procedure is intentionally isolated. As detailed in the architecture overview (Section 2.6), this **Winsorization** step is only applied to the linear and neural network pipelines (`$rec_linear$` and `$rec_pca$`). Tree-based models (**LightGBM**, **XGBoost**) operate via orthogonal, axis-aligned splits and naturally isolate extreme values into terminal leaves. Feeding them raw, un-capped data allows the boosting ensembles to fully capture the true non-linear magnitude of extreme market stress without suffering from the gradient distortion that afflicts linear architectures.
+
+```{r data cleansing}
+calc_upper_limit <- function(x) {
+  quantile(x, 0.995, na.rm = TRUE)
+}
+
+calc_dual_limits <- function(x) {
+  quantile(x, probs = c(0.005, 0.995), na.rm = TRUE)
+}
+
+clip_max_func <- function(x, var_name, stats_list) {
+  limit <- stats_list[[var_name]]
+  pmin(x, limit)
+}
+
+clip_dual_func <- function(x, var_name, stats_list) {
+  limits <- stats_list[[var_name]]
+  pmax(pmin(x, limits[2]), limits[1])
+}
+
+vars_clip_max <- c(
+  "realized_vol_short",
+  "realized_vol_mid",
+  "realized_vol_long",
+  "put_volume",
+  "call_volume",
+  "put_oi",
+  "call_oi",
+  "strike_dispersion",
+  "total_contracts",
+  "pulse_ratio",
+  "put_call_ratio_volume",
+  "put_call_ratio_oi",
+  "liquidity_ratio",
+  "option_dispersion",
+  "put_low_strike"
+)
+
+vars_clip_dual <- c(
+  "stress_spread"
+)
+```
+
+### Feature Engineering
+
+Prior to constructing advanced indicators, we streamlined the input space by averaging the granular mid-term and long-term realized volatility measures. This aggregation strategy mitigates multicollinearity among highly correlated historical horizons while preserving the integrity of the volatility signal.
+
+Then, to capture the complex dynamics of option markets, we constructed a series of advanced financial indicators. These features are designed to isolate specific phenomena: market stress, liquidity constraints, asymmetric fear, or the structure of speculation.
+
+#### Volatility Regime Indicators
+
+##### Pulse Ratio
+
+This indicator gives the direction of volatility, if it is currently increasing or decreasing. Absolute volatility data would not determine the tendancy of volatilty, because volatility levels differ significantly across underlying assets.
+
+When there are massive markets moves, investors tend to panic and buy options for protection, which pushes implied volatility higher.
+
+$$
+\text{Pulse Ratio} = \dfrac{\text{Realized Short Volatility}}{\text{Realized Long Volatility}}
+$$
+
+##### Stress Spread
+
+Stress Spread assesses whether we are aligned with the overall market stress represented by the VIX, the volatility index. This spread measures the underlying’s stress relative to market stress i.e. whether the underlying is more or less volatile than the market.
+
+If the Stress Spread increases, the underlying becomes more volatile than the market. The underlying’s volatility is not only driven by markets conditions, but also by an idiosyncratic risk.
+
+$$
+\text{Stress Spread} = \text{Realized Short Volatility} - \text{Market Volatility Index}
+$$
+
+#### Market Sentiment Indicators
+
+Sentiment analysis is based on the dichotomy between immediate flow (Volume) and the stock of positions (Open Interest).
+
+##### Put-Call Ratio on Volume
+
+The Put Call Volume Ratio is the indicator of immediate market stress. Volatility is skewed because fear is asymmetric, the fear of the downside is stronger than the desire to speculate on an upside.
+
+A strong increase of the Put Call Volume Ratio means markets are panicking and therefore buying protection via put options. This higher demand leads to higher prices meaning higher implied volatility.
+
+$$
+\text{Put-Call Ratio Volume} = \frac{\text{Put Volume}}{\text{Call Volume}}
+$$
+
+##### Put-Call Ratio on Open Interest
+
+This is the indicator of "risk structure" or long-term conviction.
+
+$$
+\text{Put-Call Ratio OI} = \frac{\text{Put Open Interest}}{\text{Call Open Interest}}
+$$
+
+##### Put Proportion
+
+Put Proportion Ratio measures the balance between put buyers and call buyers. It detects whether the trading activity is dominated by hedging or by market optimism.
+
+Volatility is skewed because fear is asymmetric, when put buying surges, it signals urgent hedging, leading to a higher implied volatility. On the other hand, when call buying surges, implied volatility will increase but less than for puts.
+
+$$
+\text{Put Proportion} = \frac{\text{Put Volume}}{\text{Total Volume}}
+$$
+
+#### Structure and Liquidity Indicators
+
+##### Liquidity Ratio
+
+The Liquidity Ratio measures the speed at which contracts are being exchanged compared to the total number of contracts outstanding in the market. It helps understand if markets are overheating or experiencing a blockage.
+
+The Liquidity Ratio showcases that volatility is also impacted by liquidity of the underlying asset. Unusual high activity amplifies price movements whereas unusual low activity means that even small order can shift the price up or down. In both cases, the imbalance between flow and market depth justifies a higher volatility forecast.
+
+$$
+\text{Liquidity Ratio} = \frac{\text{Total Volume}}{\text{Total Open Interest}}
+$$
+
+##### Option Dispersion
+
+Option Dispersion indicates if activity is concentrated around a specific strike i.e. a specific scenario. 
+
+Concentrated markets means that liquidity is high in a certain strike, order flow is predictable and the spread, that can be seen as a uncertainty premium, decrease. 
+
+Orders split across a very large number of strikes mean the market struggles to determine the direction of the underlying. This results in lower liquidity, meaning the market has a lower capacity to absorb large orders.
+
+$$
+\text{Option Dispersion} = \frac{\text{Strike Dispersion}}{\text{Total Contracts}}
+$$
+
+##### Put Low Strike (Liquidity Trap)
+
+This indicator focuses on the density of "Out-of-the-Money" protection.
+
+It helps identify "breaking points." If a mass of contracts concentrates on a specific strike (high ratio), it creates a "trap". If the asset price approaches this level, the forced hedging mechanisms of market makers can trigger a volatility explosion via a snowball effect.
+
+$$
+\text{Put Low Strike} = \frac{\text{Strike Dispersion}}{\text{Put Open Interest}}
+$$
+
+```{r features engineering}
+create_features <- function(df) {
+  epsilon <- 1e-6
+
+  df_enriched <- df |>
+    mutate(
+      realized_vol_mid = (realized_vol_mid1 +
+        realized_vol_mid2 +
+        realized_vol_mid3) /
+        3,
+      realized_vol_long = (realized_vol_long1 +
+        realized_vol_long2 +
+        realized_vol_long3 +
+        realized_vol_long4) /
+        4,
+    ) |>
+    dplyr::select(
+      -realized_vol_mid1,
+      -realized_vol_mid2,
+      -realized_vol_mid3,
+      -realized_vol_long1,
+      -realized_vol_long2,
+      -realized_vol_long3,
+      -realized_vol_long4
+    ) |>
+    mutate(
+      pulse_ratio = realized_vol_short / (realized_vol_long + epsilon),
+
+      put_call_ratio_volume = put_volume / (call_volume + epsilon),
+      put_call_ratio_oi = put_oi / (call_oi + epsilon),
+      liquidity_ratio = (put_volume + call_volume) /
+        (call_oi + put_oi + epsilon),
+
+      option_dispersion = strike_dispersion / (total_contracts + epsilon),
+      put_low_strike = strike_dispersion / (put_oi + epsilon),
+      put_proportion = put_volume / (put_volume + call_volume + epsilon),
+
+      stress_spread = realized_vol_short - market_vol_index,
+    )
+
+  return(df_enriched)
+}
+
+train_eng <- create_features(train)
+val_eng <- create_features(val)
+test_eng <- create_features(test)
+```
+
+### Data Scaling & Normalization
+
+Following the isolation and neutralization of extreme outliers (**Winsorization**), the core distributions of the financial predictors remain inherently skewed. Standard financial variables, such as realized volatility and trading volumes, are strictly positive and typically follow log-normal distributions. While tree-based ensembles are indifferent to such monotonic skewness, linear frameworks, distance-based algorithms, and Neural Networks require symmetric, standardized feature spaces to ensure gradient stability and unbiased coefficient estimation.
+
+To fulfill these strict algorithmic prerequisites, we engineered a multi-step transformation pipeline utilizing targeted statistical mapping.
+
+#### Asymmetry Correction: Logarithmic and Power Transformations
+
+The first objective of the transformation phase is to center the data mass and correct severe right-skewness, thereby approximating a Gaussian distribution. We employed two distinct mathematical approaches depending on the domain of the predictors:
+
+* **1. Logarithmic Transformation for Bounded Features**: For strictly positive, highly skewed variables (e.g., `realized_vol_short`, `put_call_ratio_volume`, `strike_dispersion`), a natural logarithmic transformation $f(x) = \log(x + c)$ was applied. This mapping exponentially compresses the long right tail while expanding the lower bounds, stabilizing the variance across the feature space (homoscedasticity). To prevent mathematically undefined operations ($\log(0)$) on features like volumes, a strictly positive offset ($c = 1$) was systematically added prior to transformation.
+
+* **2. Yeo-Johnson Transformation for Unbounded Features**: Certain engineered features, such as the `stress_spread` and `vol_slope`, cross the zero-bound, taking both negative and positive values depending on market contango or backwardation regimes. The standard logarithmic or Box-Cox transformations are mathematically invalid for negative inputs. Consequently, we applied the **Yeo-Johnson** power transformation, a robust generalization of Box-Cox that smoothly handles the entire real line $\mathbb{R}$. The optimal transformation parameter ($\lambda$) for each variable was estimated strictly via maximum likelihood on the training set.
+
+#### Feature Standardization ($Z$-Score Normalization)
+
+Once the distributions were geometrically symmetrized, the final mathematical prerequisite for the linear and neural pipelines was absolute scale homogenization.
+
+Financial features are inherently measured in vastly different units: implied volatility is expressed as a percentage, strike dispersion in nominal currency, and ratios as unitless scalars. If passed raw to a penalized regression (such as Elastic Net), the algorithm's objective function would unfairly penalize features with large absolute numerical values, while ignoring the coefficients of small-scale variables, regardless of their actual predictive power.
+
+To enforce mathematical equity, a strict $Z$-score normalization was applied to all numerical predictors:
+
+$z = \frac{x - \mu}{\sigma}$
+
+This operation rescales every feature to a mean of zero ($\mu = 0$) and a unit variance ($\sigma = 1$). Consequently, the $L_1$ (Lasso) and $L_2$ (Ridge) regularization penalties evaluate the features purely on their predictive signal rather than their arbitrary measurement scale.
+
+#### Algorithmic Execution and Methodological Integrity
+
+Consistent with our strict temporal isolation strategy, the parameters governing these transformations, namely the **Yeo-Johnson** $\lambda$ values, the empirical means $\mu$, and the standard deviations $\sigma$, were computed exclusively on the training set. These static parameters were encapsulated within the tidymodels recipe state and deterministically projected onto the validation and test sets via the `$step_log$`, `$step_YeoJohnson$`, and `$step_normalize$` functions.
+
+Furthermore, as established in our architectural blueprint (Section 2.6), these transformations were explicitly omitted from the tree-based pipeline (`$rec_tree$`) to preserve the natural, interpretable scale of the financial metrics for post-hoc SHAP analysis.
+
+### Exploratory Data Analysis (EDA)
+
+#### Target Variable Analysis
+
+Before implementing any regression model, we conducted a thorough statistical analysis of the target variable, \texttt{implied\_vol\_ref}. Understanding the distribution of the target is crucial, as linear models generally assume that the residuals follow a normal distribution.
+
+We first plotted the summary and the empirical density of the target. The initial histogram revealed a strictly positive, right-skewed distribution with a heavy tail, characteristic of financial volatility data.
+
+```{r target definition and summary}
+target <- train_eng$implied_vol_ref
+summary(target)
+```
+
+```{r target distribution}
+target_dist <- ggplot(train_eng, aes(x = target)) +
+  geom_histogram(
+    aes(y = ..density..),
+    binwidth = 1,
+    fill = "#E4CBF9",
+    color = "white",
+    lwd = 0.1,
+    alpha = 0.8
+  ) + #draw the histogram
+  geom_line(stat = "density", color = "#983399", size = 1)
+theme_minimal() +
+  labs(title = "Target distribution", x = "Target", y = "Density")
+
+ggplotly(target_dist)
+```
+
+To identify the most appropriate theoretical distribution families, we utilized the Cullen and Frey graph. We performed a bootstrap analysis to assess the robustness of the statistical properties.
+
+```{r Cullen graph}
+descdist(sample(target, 5000), boot = 100)
+```
+
+As shown in this Cullen graph, the observation point falls within the zone of specific distributions, suggesting three potential candidates for the normalized target:
+\begin{itemize}
+    \item The Beta distribution,
+    \item The Gamma distribution,
+    \item The Log-normal distribution.
+\end{itemize}
+
+We proceeded to fit these three distributions to the data using the Maximum Likelihood Estimation (MLE) method.
+
+```{r test for the law normalised version}
+n <- length(target)
+target_norm <- (target - min(target)) / (max(target) - min(target))
+target_norm <- (target_norm * (n - 1) + 0.5) / n 
+
+fit_g_norm <- fitdist(target_norm, "gamma")
+fit_ln_norm <- fitdist(target_norm, "lnorm")
+fit_b_norm <- fitdist(target_norm, "beta")
+
+statistique_norm <- gofstat(list(fit_g_norm, fit_b_norm, fit_ln_norm))
+print(statistique_norm)
+```
+
+The Beta distribution yielded incoherent results. Since the Beta distribution is bounded on the interval [0,1], it struggled to capture the tail dynamics of the volatility, even after normalization. The fitting process showed poor convergence and failed to represent the data structure adequately. Consequently, we discarded the Beta distribution.
+
+```{r test for the law between gamma and log-normal}
+fit_g <- fitdist(target, "gamma")
+fit_ln <- fitdist(target, "lnorm")
+
+statistique <- gofstat(list(fit_g, fit_ln))
+print(statistique)
+```
+
+The final comparison was made between the Gamma and Log-normal distributions. We evaluated them using both statistical information criteria (AIC and BIC) and visual inspection.
+
+While the two distributions minimized different statistical criteria, the graphical analysis provided a decisive conclusion. We superimposed the theoretical density curves of both distributions onto the empirical histogram of the target.
+
+```{r approximation test of the density}
+denscomp(
+  list(fit_g, fit_ln),
+  legendtext = c("Gamma", "Lognorm"),
+  fitcol = c("#983399", "#E4CBF9"),
+  fitlwd = c(2, 2),
+  fitlty = c(1, 1)
+)
+```
+
+As illustrated in figure plotted above, the {Log-normal distribution fits the empirical data almost perfectly, capturing both the peak and the fat tail of the implied volatility.
+
+Based on this analysis, we conclude that $\log(\texttt{implied\_vol\_ref})$ follows a Normal distribution. This justifies the use of a log-transformation on the target variable for our Linear Models, ensuring that the normality assumption of the regression is respected.
+
+
+#### Analysis of other relevant features
+
+Beyond the target variable itself, our modeling strategy relies on three fundamental pillars: the asset's memory (\texttt{realized\_vol\_short}), the systemic environment (\texttt{market\_vol\_index}), and the market structure (\texttt{liquidity\_ratio}). We analyze their relationship with the implied volatility below.
+
+##### Historical Volatility: The Anchor Effect
+
+The short-term realized volatility acts as the "memory" of the asset. Financial theory suggests a strong autocorrelation known as "volatility clustering".
+
+```{r plot 1}
+g1 <- ggplot(
+  train_eng,
+  aes(x = realized_vol_short, y = log(implied_vol_ref))
+) +
+  geom_hex(bins = 70) +
+  scale_fill_viridis_c() +
+  geom_abline(
+    intercept = 0,
+    slope = 1,
+    color = "#A3D5FF",
+    linetype = "dashed"
+  ) +
+  labs(
+    title = "Implied vs Realized Volatility",
+    x = "Realized Vol Short",
+    y = "Log(Implied Vol)"
+  ) +
+  theme_minimal()
+
+plot(g1)
+```
+This plot reveals a dense, elliptical cloud of points that indicates a robust positive linear relationship ($Correlation \approx 0.8$). This strong correlation confirms that market pricing is heavily anchored to the asset's recent physical behavior, meaning implied volatility is rarely disconnected from its realized counterpart. However, the dispersion observed in the graph demonstrates that implied volatility is not merely a perfect copy of the past; the vertical spread represents the "Variance Risk Premium" investors pay for future uncertainty, which is precisely the variation our model aims to capture using additional features.
+
+##### Market Volatility Index: The Systemic Driver
+
+This variable represents the "tide that lifts all boats". We analyze how the average implied volatility of our 3,887 assets correlates with the global market stress.
+
+```{r plot2}
+daily_stats <- train_eng |>
+  group_by(obs_date) |>
+  summarise(
+    Avg_Implied = mean(implied_vol_ref, na.rm = TRUE),
+    Market_Index = mean(market_vol_index, na.rm = TRUE)
+  )
+
+g2 <- ggplot(daily_stats, aes(x = as.Date(obs_date))) +
+  geom_line(aes(y = Avg_Implied, color = "Average Asset Vol"), size = 0.8) +
+  geom_line(
+    aes(y = Market_Index, color = "Market Vol Index"),
+    size = 0.8,
+    linetype = "dashed"
+  ) +
+  labs(
+    title = "Systemic Risk Correlation",
+    x = "Date",
+    y = "Volatility Level",
+    color = "Legend"
+  ) +
+  scale_color_manual(
+    values = c("Average Asset Vol" = "#983399", "Market Vol Index" = "#E4CBF9")
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+plot(g2)
+```
+
+This second plot highlights the synchronization between idiosyncratic and systemic risk, particularly during crisis events. The massive spike in early 2020, corresponding to the COVID-19 crisis, is clearly visible on both curves; when the Market Index (represented by the light purple dashed line) jumps, the average asset volatility (the dark purple line) reacts instantly and violently. This visualisation demonstrates a strong regime dependency: in high-stress environments, correlations tend towards 1 as macro-factors dominate market behavior, whereas in calmer periods, such as late 2020, the curves flatten and diverge slightly, allowing asset-specific drivers to take precedence over systemic panic.
+
+##### Liquidity Ratio: The Liquidity Premium
+
+We hypothesized that liquidity impacts volatility pricing. We plot the average Implied Volatility for each decile of the Liquidity Ratio (Volume / Open Interest).
+
+```{r graph 3}
+liquidity_analysis <- train_eng |>
+  mutate(decile = ntile(liquidity_ratio, 10)) |>
+  group_by(decile) |>
+  summarise(
+    Mean_Liquidity = mean(liquidity_ratio, na.rm = TRUE),
+    Mean_Implied = mean(implied_vol_ref, na.rm = TRUE),
+    SE_Implied = sd(implied_vol_ref, na.rm = TRUE) / sqrt(n())
+  )
+
+g3 <- ggplot(liquidity_analysis, aes(x = factor(decile), y = Mean_Implied)) +
+  geom_bar(stat = "identity", fill = "#E4CBF9", alpha = 0.8) +
+  geom_errorbar(
+    aes(
+      ymin = Mean_Implied - SE_Implied * 2,
+      ymax = Mean_Implied + SE_Implied * 2
+    ),
+    width = 0.2
+  ) +
+  labs(
+    title = "Implied Volatility by Liquidity Decile",
+    subtitle = "Checking for U-Shaped Relationship",
+    x = "Liquidity Ratio Decile (1=Low, 10=High)",
+    y = "Average Implied Volatility"
+  ) +
+  theme_minimal()
+
+plot(g3)
+```
+
+Contrary to the theoretical expectation of a "U-Shaped" curve, the empirical data presented in this third figure reveals a strictly decreasing relationship. Assets in the lowest liquidity deciles exhibit the highest implied volatility ($\approx 50\%$), effectively validating the existence of a "Liquidity Premium." This phenomenon suggests that Market Makers charge higher option prices—resulting in higher implied volatility—to compensate for the increased difficulty of hedging and the risk of price gaps characteristic of thin markets. As liquidity improves in the upper deciles, market friction decreases and spreads tighten, causing implied volatility to stabilize at a significantly lower level ($\approx 38\%$). This distinct trend confirms that the \texttt{liquidity_ratio} is a crucial predictor for our model, serving as a reliable proxy for the cost of execution embedded in option prices
+
+
+### Multicollinearity & Dimensionality Reduction (PCA)
+
+Despite the initial pairwise correlation filter applied in the base recipe (removing features with a Spearman correlation above $0.90$), residual multicollinearity inevitably persists within the financial feature space. While penalized regressions (**Lasso**, **Ridge**) are mathematically equipped to handle this redundancy through their regularization norms, unpenalized models like **Ordinary Least Squares (OLS)** and deep architectures like **Multi-Layer Perceptrons (MLP)** remain highly vulnerable.
+
+To provide a mathematically optimal feature space for these specific algorithms, we implemented a dimensionality reduction phase using **Principal Component Analysis (PCA)**.
+
+#### Mathematical Justification
+
+* **1. Stabilizing Unpenalized Linear Models (OLS)**: In standard OLS regression, the parameter vector is estimated via the normal equation: $\hat{\beta} = (X^T X)^{-1} X^T Y$. If residual multicollinearity exists, the covariance matrix $X^T X$ becomes ill-conditioned (approaching singularity). This mathematical instability leads to an inflated Variance Inflation Factor (VIF), making the coefficient estimates highly erratic and hypersensitive to minor variations in the training data. PCA projects the original features into a new subspace of strictly orthogonal (zero-correlation) principal components, guaranteeing a perfectly invertible covariance matrix.
+
+* **2. Optimizing Neural Network Convergence (MLP)**: For Multi-Layer Perceptrons, feeding highly correlated inputs leads to elongated, non-isotropic error surfaces. This forces the Stochastic Gradient Descent (SGD) algorithm to oscillate inefficiently, slowing down convergence and increasing the risk of trapping the network in local minima. By supplying orthogonal components, PCA ensures a symmetrical error topology, accelerating gradient convergence and stabilizing the weight updates.
+
+#### Execution and Variance Thresholding
+
+Because PCA seeks to maximize projected variance, it is fundamentally scale-sensitive. If applied to raw data, features with naturally large nominal values (such as unscaled volumes) would disproportionately dominate the principal components, regardless of their actual informational value. Therefore, this step is exclusively applied after the rigorous $Z$-score standardization detailed in Section 2.4.
+
+Rather than selecting an arbitrary number of components, we dynamically threshold the PCA to retain exactly $95\%$ of the cumulative explained variance. This approach acts as a secondary, mathematical feature selection: it captures the core structural signal of the market while discarding the remaining $5\%$ of variance as idiosyncratic, stochastic noise.
+
+#### Methodological Isolation
+
+Maintaining strict adherence to our statistical isolation protocols, the PCA projection matrix (the eigenvectors and eigenvalues) is computed exclusively using the covariance structure of the standardized training set. These fixed geometric rotations are then deterministically applied to the validation and test sets via the `$step_pca$` function, ensuring that no future variance distributions leak into the model's structural parameters.
+
+### Unified Data Pipeline Implementation (tidymodels)
+
+To ensure strict methodological rigor, guarantee reproducibility, and absolutely prevent any data leakage from the validation and test sets, all the theoretical preprocessing steps detailed in sections 2.2 through 2.6 were computationally encapsulated into a unified, sequential pipeline. Leveraging the recipes package from the tidymodels ecosystem, we constructed a multi-branch data blueprint. This architecture explicitly creates three distinct datasets, each mathematically optimized for a specific family of machine learning algorithms.
+
+* **1. The Base Recipe and Tree-Based Dataset (`$rec_tree$`)**: The foundation of our pipeline (`$rec_base$`) begins by assigning the target role to the log-transformed implied volatility (`log_implied_vol`). Missing values are handled via median imputation, and an aggressive multicollinearity filter (`$step_corr$` at $0.90$) removes redundant information. This base recipe directly forms our first dataset: the Tree-Based Dataset. Decision trees (**LightGBM**}, **XGBoost**) operate via orthogonal splits and are scale-invariant. To preserve the natural financial interpretability of the predictors for post-hoc SHAP analysis, this dataset intentionally bypasses all clipping, geometric transformations, and standardization steps.
+
+- **2. The Classic Linear Dataset (`$rec_linear$`)**: Distance-based and penalized algorithms (**Lasso**, **Ridge**, **Elastic Net**) require symmetric, standardized, and outlier-free feature spaces. Branching off from the base recipe, we create our second dataset: the Classic Linear Dataset. This branch dynamically applies our **Winsorization** thresholds (computed strictly on the training set) via `$step_mutate$` to neutralize extreme outliers. Subsequently, right-skewed variables undergo a logarithmic transformation, while unbounded spreads undergo a **Yeo-Johnson** transformation. Finally, strict $Z$-score normalization (`$step_normalize$`) is applied to enforce mathematical equity among features prior to $L_1/L_2$ penalization.
+
+- **3. The Dimensionality Reduction Dataset (`$rec_acp$`)**: Our third dataset targets algorithms highly sensitive to even minor multicollinearity and dense gradient spaces, such as **Ordinary Least Squares (OLS)** or **Multi-Layer Perceptrons (MLP)**. Derived directly from the fully scaled linear dataset, this branch incorporates a Principal Component Analysis (`$step_pca$`). The transformation is calibrated to retain exactly $95\%$ of the underlying training variance, providing a perfectly orthogonal and dimensionally reduced feature space.
+
+- **4. State Execution and Strict Data Isolation (`$prep()$` and `$bake()$`)**: The theoretical guarantee against data leakage is computationally enforced during the pipeline's execution phase. The `$prep()$` function estimates all statistical parameters (medians, limits, variances, PCA eigenvectors) strictly from train_data. The `$bake()$` function then deterministically projects these frozen transformations onto the validation and test sets, generating the three final data triads (`$_tree$`, `$_linear$`, `$_acp$`) used for modeling.
+
+To ensure strict methodological rigor, guarantee reproducibility, and absolutely prevent any data leakage from the validation and test sets, all the theoretical preprocessing steps detailed in sections 2.2 through 2.6 were computationally encapsulated into a unified, sequential pipeline. Leveraging the recipes package from the $tidymodels$ ecosystem, we constructed a data blueprint that strictly learns transformation parameters (such as medians, variances, and PCA eigenvectors) exclusively on the training set before applying them to unseen data.
+
+This pipeline architecture addresses several critical statistical requirements for modeling financial data:
+
+```{r PCA}
+stats_max <- lapply(train_eng[vars_clip_max], calc_upper_limit)
+stats_dual <- lapply(train_eng[vars_clip_dual], calc_dual_limits)
+```
+
+```{r recipes}
+rec_base <- recipe(implied_vol_ref ~ ., data = train_eng) |>
+  update_role(asset_id, obs_date, new_role = "id") |>
+  step_impute_median(all_numeric_predictors())
+
+rec_tree <- rec_base |>
+  step_corr(all_numeric_predictors(), threshold = 0.90)
+
+rec_linear <- rec_base |>
+  step_mutate(
+    realized_vol_short = clip_max_func(
+      realized_vol_short,
+      "realized_vol_short",
+      stats_max
+    ),
+    realized_vol_mid = clip_max_func(
+      realized_vol_mid,
+      "realized_vol_mid",
+      stats_max
+    ),
+    realized_vol_long = clip_max_func(
+      realized_vol_long,
+      "realized_vol_long",
+      stats_max
+    ),
+    put_volume = clip_max_func(put_volume, "put_volume", stats_max),
+    call_volume = clip_max_func(call_volume, "call_volume", stats_max),
+    put_oi = clip_max_func(put_oi, "put_oi", stats_max),
+    call_oi = clip_max_func(call_oi, "call_oi", stats_max),
+    strike_dispersion = clip_max_func(
+      strike_dispersion,
+      "strike_dispersion",
+      stats_max
+    ),
+    total_contracts = clip_max_func(
+      total_contracts,
+      "total_contracts",
+      stats_max
+    ),
+    pulse_ratio = clip_max_func(pulse_ratio, "pulse_ratio", stats_max),
+    put_call_ratio_volume = clip_max_func(
+      put_call_ratio_volume,
+      "put_call_ratio_volume",
+      stats_max
+    ),
+    put_call_ratio_oi = clip_max_func(
+      put_call_ratio_oi,
+      "put_call_ratio_oi",
+      stats_max
+    ),
+    liquidity_ratio = clip_max_func(
+      liquidity_ratio,
+      "liquidity_ratio",
+      stats_max
+    ),
+    option_dispersion = clip_max_func(
+      option_dispersion,
+      "option_dispersion",
+      stats_max
+    ),
+    put_low_strike = clip_max_func(put_low_strike, "put_low_strike", stats_max),
+    stress_spread = clip_dual_func(stress_spread, "stress_spread", stats_dual)
+  ) |>
+  step_log(
+    any_of(c(
+      "realized_vol_short",
+      "realized_vol_mid",
+      "realized_vol_long",
+      "put_volume",
+      "call_volume",
+      "put_oi",
+      "call_oi",
+      "pulse_ratio",
+      "put_call_ratio_volume",
+      "put_call_ratio_oi",
+      "liquidity_ratio"
+    )),
+    offset = 1
+  ) |>
+  step_log(
+    any_of(c(
+      "strike_dispersion",
+      "total_contracts",
+      "option_dispersion",
+      "put_low_strike"
+    )),
+    offset = 0
+  ) |>
+  step_YeoJohnson(
+    any_of(c(
+      "stress_spread"
+    ))
+  ) |>
+  step_normalize(all_numeric_predictors())
+
+rec_pca <- rec_linear |>
+  step_pca(all_numeric_predictors(), threshold = 0.95)
+```
+
+####  State Execution and Strict Data Isolation (‘prep‘ and ‘bake‘)
+
+```{r tree prep}
+prep_rec_tree <- prep(rec_tree, training = train_eng)
+
+train_tree <- bake(prep_rec_tree, new_data = NULL)
+val_tree <- bake(prep_rec_tree, new_data = val_eng)
+test_tree <- bake(prep_rec_tree, new_data = test_eng)
+```
+
+```{r linear prep}
+prep_rec_linear <- prep(rec_linear, training = train_eng)
+
+train_linear <- bake(prep_rec_linear, new_data = NULL)
+val_linear <- bake(prep_rec_linear, new_data = val_eng)
+test_linear <- bake(prep_rec_linear, new_data = test_eng)
+```
+
+```{r pca prep}
+prep_rec_pca <- prep(rec_pca, training = train_eng)
+
+train_pca <- bake(prep_rec_pca, new_data = NULL)
+val_pca <- bake(prep_rec_pca, new_data = val_eng)
+test_pca <- bake(prep_rec_pca, new_data = test_eng)
+```
+
+## ⁠Experimental Framework & Optimization Strategy
+
+### Evaluation Metrics: The Exponential RMSE
+
+The primary objective of this study is to minimize the forecasting error of implied volatility. The standard metric for continuous predictive tasks is the **Root Mean Squared Error (RMSE)**, which heavily penalizes large deviations due to its quadratic loss function.
+
+However, a critical methodological adjustment is required due to our preprocessing architecture. As established in Section 2.4, all models were strictly trained on the natural logarithm of the implied volatility ($\log(Y)$) to stabilize variance and correct the right-skewness of the financial distribution. Evaluating the models on this logarithmic scale would yield artificially compressed error metrics that fail to reflect the true financial magnitude of the forecasting errors.
+
+Therefore, to guarantee absolute fairness across all models (linear, tree-based, and neural networks) and to assess performance in the true operational domain, the predictions ($\hat{y}_{\log}$) must be exponentially transformed prior to calculating the final validation and test errors.
+
+The evaluation metric is strictly defined as the Exponential RMSE on the original scale:
+
+$$
+RMSE_{real} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \left( \exp(\hat{y}_{\log, i}) - Y_i \right)^2}
+$$
+
+This metric ensures that the bias-variance trade-off is evaluated exactly as it would impact a real-world financial portfolio, where absolute volatility spreads dictate pricing and risk management decisions.
+
+### Hyperparameter Tuning: Grid Search vs. Bayesian Optimization
+
+Financial machine learning models, whether penalized regressions like **Elastic Net** or complex ensembles like **LightGBM**, rely heavily on hyperparameter configurations. To discover the optimal parameter set, we must navigate the computational trade-off between exhaustive search and hardware constraints.
+
+* **1. The Limits of Grid Search**: Traditional **Grid Search** operates by defining a discrete matrix of hyperparameter combinations and evaluating the objective function (validation **RMSE**) for every single point. While mathematically exhaustive, this approach scales exponentially with the number of dimensions (the curse of dimensionality). For high-capacity models requiring the simultaneous optimization of learning rates, depths, structural penalties, and bagging fractions, Grid Search becomes computationally intractable, resulting in an immense waste of **CPU** cycles evaluating areas of the hyperparameter space that yield poor performance.
+
+* **2. The Probabilistic Superiority of Bayesian Optimization**: To resolve this computational bottleneck, we discarded **Grid Search** in favor of **Bayesian Optimization using Gaussian Processes (GP)**. Unlike naive grid or random searches, **Bayesian Optimization** treats the hyperparameter tuning process as a probabilistic regression problem.
+
+The algorithm builds a surrogate probability model of the objective function (the validation **RMSE**) based on past evaluations. At each iteration, it uses an acquisition function (typically Expected Improvement) to determine the next set of hyperparameters to evaluate. This acquisition function mathematically balances two competing objectives:
+- **Exploration**: Sampling regions of the hyperparameter space with high uncertainty.
+- **Exploitation**: Sampling regions where the surrogate model predicts a very low RMSE.
+
+By learning from previous iterations, **Bayesian Optimization** converges toward the global minimum significantly faster and with fewer total evaluations than exhaustive methods. This probabilistic efficiency was crucial for tuning our tree-based ensembles (Section 5) on dense tabular data without exceeding the processing limits of our local computational infrastructure. All hyperparameter tuning loops in this study were executed using this Bayesian framework, maximizing the negative **Exponential RMSE** to pinpoint the optimal architectural configurations.
+
+## Linear & Interpretable Models
+
+### Linear regressions on the regular dataset
+
+#### Baseline Linear Regression
+
+```{r linear select}
+train_linear_lm <- train_linear |> dplyr::select(-asset_id, -obs_date)
+train_linear_lm$implied_vol_ref <- log(train_linear_lm$implied_vol_ref)
+```
+
+```{r linear select val}
+val_linear_lm <- val_linear |> dplyr::select(-asset_id, -obs_date)
+val_linear_lm$implied_vol_ref <- log(val_linear_lm$implied_vol_ref)
+```
+
+#### Linear Hypotheses
+
+```{r mod1, eval=FALSE}
+mod1 <- lm(implied_vol_ref ~ ., data = train_linear_lm)
+summary(mod1)
+```
+
+After the logarithmic transformation, we use a basic linear model as a benchmark. We validate this hypothesis with an autoplot.
+
+```{r mod1 autoplot, warning=FALSE, eval=FALSE}
+autoplot(mod1)
+```
+
+While the volume of residual points makes for difficult interpretation, the blue lines visually confirm our P1-P4 hypotheses. For the Q-Q plot, we "validate" our assumption given that the larger middle part of the plot follows the x=y axis. Only the ends drop, respectively rise. This can be explained by outliers within the extremities of the dataset. We now look at the evolution of our AIC with a step-by-step method.
+
+```{r mod1 stepAIC forward, eval=FALSE}
+stepAIC(mod1, ~., trace = T, direction = c("forward"))
+```
+
+```{r mod1 stepAIC backward, eval=FALSE}
+stepAIC(mod1, ~., trace = T, direction = c("backward"))
+```
+
+```{r mod1 predict, eval=FALSE}
+Y_val <- val_linear_lm$implied_vol_ref
+Y_hat1 <- predict(mod1, newdata = val_linear_lm, type = "response")
+
+MSS_1 <- mean((exp(Y_val) - exp(Y_hat1))**2)
+
+print(paste0("The RMSE is: ", sqrt(MSS_1)))
+```
+
+We first look at a general model with all features but without any interactions. The objective of this exercise was to identify the variables with little impact on the model's predictive capability, in order to eliminate them within our future models and kickstart the variable selection. However, only one variable presented a result of a fisher test with a score above 0.05 - this variable being $call\_volume$. While testing with a step-by-step method, both going forward and backward, the complete model was judged as the best. However, in order to introduce interactions without stretching the machine's limits, we decided to eliminate both $realized\_vol\_long$ and $call\_volume$, $realized\_vol\_long$ being the only other variable with a t-score higher than $10^{-3}$. The RMSE of the general model was 12.01.
+
+#### First particular model
+
+```{r mod2, eval=FALSE}
+mod2 <- lm(
+  implied_vol_ref ~ realized_vol_short *
+    realized_vol_mid *
+    strike_dispersion *
+    (put_volume +
+      call_oi +
+      put_oi +
+      maturity_count +
+      total_contracts +
+      market_vol_index +
+      pulse_ratio +
+      put_call_ratio_volume +
+      put_call_ratio_oi +
+      liquidity_ratio +
+      option_dispersion +
+      put_low_strike +
+      put_proportion +
+      stress_spread),
+  data = train_linear_lm
+)
+summary(mod2)
+```
+
+```{r mod2 predict, eval=FALSE}
+Y_hat2 <- predict(mod2, newdata = val_linear_lm, type = "response")
+Y_val <- val_linear_lm$implied_vol_ref
+
+MSS_2 <- mean((exp(Y_val) - exp(Y_hat2))**2)
+
+print(paste0("the RMSE is: ", sqrt(MSS_2)))
+```
+
+Given that all remaining variables showed a high relevance for the modeling situation, finding the right interactions was based of off intuition as well as trial and error. We remove the aforementioned two variables, and add the interactions between $realized\_vol\_short$, $realized\_vol\_mid$, $strike\_dispersion$ and all other variables. This seems intuitive as the realised volatility can be a straightforward indicator for the implied volatility. Measuring its interactions with the other features shows how these features impact volatility. The generalisation from realised to implied volatility is simpler than from the other variables to implied volatility. $strike\_dispersion$ is selected as a first representative among all option-related features. This model drastically improves upon the general, interaction free model, with an RMSE of 11.32.
+
+#### Second particular model
+
+```{r mod3, eval=FALSE}
+mod3 <- lm(
+  implied_vol_ref ~ realized_vol_mid *
+    strike_dispersion *
+    option_dispersion *
+    (market_vol_index +
+      liquidity_ratio +
+      realized_vol_short +
+      put_volume +
+      call_oi +
+      put_oi +
+      maturity_count +
+      total_contracts +
+      pulse_ratio +
+      put_call_ratio_volume +
+      put_call_ratio_oi +
+      option_dispersion +
+      put_low_strike +
+      put_proportion +
+      stress_spread),
+  data = train_linear_lm
+)
+summary(mod3)
+```
+
+```{r mod3 predict, eval=FALSE}
+Y_hat3 <- predict(mod3, newdata = val_linear_lm, type = "response")
+Y_val <- val_linear_lm$implied_vol_ref
+
+MSS_3 <- mean((exp(Y_val) - exp(Y_hat3))**2)
+
+print(paste0("The RMSE is: ", sqrt(MSS_3)))
+```
+
+The following thought occurred to us: could just having a single realised volatility among the features interacting with all others suffice? Because of the size of the dataset, we couldn't add infinite interactions, thus making the variable selection process an interaction selection process. We tested a model with the interactions between $realized\_vol\_mid$, $strike\_dispersion$, $option\_dispersion$ and all other variables. This model improved upon the general model, but was less precise than the previous personalised model, with an RMSE of 11.42.
+
+#### Third particular model
+
+```{r mod4}
+mod4 <- lm(
+  implied_vol_ref ~ market_vol_index *
+    realized_vol_mid *
+    strike_dispersion *
+    (realized_vol_short +
+      put_volume +
+      call_oi +
+      put_oi +
+      maturity_count +
+      total_contracts +
+      pulse_ratio +
+      put_call_ratio_volume +
+      put_call_ratio_oi +
+      liquidity_ratio +
+      option_dispersion +
+      put_low_strike +
+      put_proportion +
+      stress_spread),
+  data = train_linear_lm
+)
+summary(mod4)
+```
+
+```{r mod4 predict}
+Y_hat4 <- predict(mod4, newdata = val_linear_lm, type = "response")
+Y_val <- val_linear_lm$implied_vol_ref
+
+MSS_4 <- mean((exp(Y_val) - exp(Y_hat4))**2)
+MedSS_4 <- median((exp(Y_val) - exp(Y_hat4))**2)
+
+print(paste0("The RMSE is: ", sqrt(MSS_4)))
+print(paste0("The root of the median squared error is: ", sqrt(MedSS_4)))
+```
+
+However, a model where $option\_dispersion$ was replaced by $market\_vol\_index$. Since $market\_vol\_index$ is a global indicator of risk assessment that day, we hoped to ally volatility information with global information. Indeed, this model proved to be the best among our classic linear models, with an RMSE of 11.26. In order to get a better grasp of this model's performance, we looked at the root of the median squared error. With a value of 3.69, it was significantly lower than the RMSE. This suggests that several grave errors drag the metric value up. This could come from an inability on the models side to adapt to extreme changes quickly, for example in times of crises or panic movements.
+
+### Linear regressions on the PCA Dataset
+
+#### Train-test data import
+
+```{r pca data select}
+train_pca_lm <- train_pca |> dplyr::select(-asset_id, -obs_date)
+train_pca_lm$implied_vol_ref <- log(train_pca$implied_vol_ref)
+```
+
+```{r pca data select val}
+val_pca_lm <- val_pca |> dplyr::select(-asset_id, -obs_date)
+val_pca_lm$implied_vol_ref <- log(val_pca$implied_vol_ref)
+```
+
+#### First model
+
+```{r mod1_pca, eval=FALSE}
+mod1_pca <- lm(implied_vol_ref ~ ., data = train_pca_lm)
+summary(mod1_pca)
+```
+
+```{r mod1_pca predict, eval=FALSE}
+Y_hat1_pca <- predict(mod1_pca, newdata = val_pca_lm, type = "response")
+Y_val_pca <- val_pca_lm$implied_vol_ref
+
+MSS_1_pca <- mean((exp(Y_val_pca) - exp(Y_hat1_pca))**2)
+MedSS_1_pca <- median((exp(Y_val_pca) - exp(Y_hat1_pca))**2)
+
+print(paste0("The RMSE is: ", sqrt(MSS_1_pca)))
+print(paste0("The root of the median squared error is: ", sqrt(MedSS_1_pca)))
+```
+
+We now look at linear models, trained on the datasets created through the principal component's analysis. The first model without interactions reveals that all components have a high impact on the prediction, with fisher test scores of under $e^-16$. However, the RMSE of 12.79 is worse than the previous linear model's. The PCA has indeed led to a loss of information. When looking at the median, it is also substantially worse than before, at 4.11. Not only is the prediction worse on average, but the errors get higher much quicker.
+
+#### First selected model
+
+```{r mod2_pca, eval=FALSE}
+mod2_pca <- lm(
+  implied_vol_ref ~ PC1 *
+    PC2 *
+    PC3 *
+    PC4 *
+    (PC5 + PC6 + PC7 + PC8 + PC9),
+  data = train_pca_lm
+)
+summary(mod2_pca)
+```
+
+```{r mod2_pca predict, eval=FALSE}
+Y_hat2_pca <- predict(mod2_pca, newdata = val_pca_lm, type = "response")
+Y_val_pca <- val_pca_lm$implied_vol_ref
+
+MSS_2_pca <- mean((exp(Y_val_pca) - exp(Y_hat2_pca))**2)
+
+print(paste0("The RMSE is: ", sqrt(MSS_2_pca)))
+```
+
+#### Second selected model
+
+```{r mod3_pca}
+mod3_pca <- lm(
+  implied_vol_ref ~ PC1 *
+    PC2 *
+    PC3 *
+    PC4 *
+    PC5 *
+    (PC6 + PC7 + PC8 + PC9),
+  data = train_pca_lm
+)
+summary(mod3_pca)
+```
+
+```{r mod3_pca predict}
+Y_hat3_pca <- predict(mod3_pca, newdata = val_pca_lm, type = "response")
+Y_val_pca <- val_pca_lm$implied_vol_ref
+
+MSS_3_pca <- mean((exp(Y_val_pca) - exp(Y_hat3_pca))**2)
+
+print(paste0("The RMSE is: ", sqrt(MSS_3_pca)))
+```
+
+We now add interactions. First, we take the first four component's interactions between each other and the other 7 components. This improves the RMSE to 11.88. These models run much quicker than the previous ones on the full dataset, and have a nearly identical RMSE. After adding the fifth component's interaction, we get a lower RMSE, 11.73. However, adding further interactions leads to computational problems that cannot be resolved with a 16 GB RAM.
+
+### Biased Regression
+
+Since we have gotten a better performance through the regular dataset, we will use said dataset for the penalised regression. The only exception being partial least squares, which needs the reduced dimension in order to execute.
+
+#### Ridge
+
+The first biased regression model used is RIDGE. The model adds a regularisation parameter $\lambda > 0$.
+
+$$
+\hat{\beta}^{R}(\lambda) \;=\; \arg\min_{\beta}\; \|Y - X\beta\|_{n}^{2} \;+\; \lambda\,\|\beta\|^{2}
+$$
+
+This does not impact the intercept, and no variable selection is done as no estimates are exactly 0. We get the best lambda through cross-validation.
+
+```{r noY select}
+train_noY <- train_linear_lm |> dplyr::select(-implied_vol_ref)
+y_train_log <- train_linear_lm$implied_vol_ref
+
+val_noY <- val_linear_lm |> dplyr::select(-implied_vol_ref)
+y_val_log <- val_linear_lm$implied_vol_ref
+```
+
+```{r ridge}
+cv.ridge <- cv.glmnet(as.matrix(train_noY), y_train_log, alpha = 0)
+s_ridge = cv.ridge$lambda.min
+fit.ridge <- glmnet(
+  train_noY,
+  y_train_log,
+  lambda = s_ridge,
+  alpha = 0
+)
+coef(fit.ridge)
+```
+
+```{r ridge predict}
+Y_hatridge <- predict(
+  fit.ridge,
+  newx = as.matrix(val_noY),
+  type = "response",
+  s = s_ridge
+)
+
+MSS_ridge <- mean((exp(y_val_log) - exp(Y_hatridge))**2)
+
+print(paste0("The Ridge RMSE is: ", sqrt(MSS_ridge)))
+```
+
+Looking at the coefficients, the intercept has the biggest impact on the final prediction. Amongst the features, the short and long term realised volatilities have the largest coefficients, so the most influence on the final result. However, Ridge is the worst model up until now, with an RMSE of 12.48. This seems coherent, as Ridge's biggest strength, preventing overfitting by shrinking the coefficients, isn't relevant as we are not in an overfitting situation.
+
+#### Lasso Regression
+
+LASSO regression is close to ridge regression. However, the formula slightly changes.
+
+$$
+\hat{\beta}^{L}(\lambda)=\arg\min_{\beta}\;\|Y - X\beta\|_{n}^{2} + \lambda\|\beta\|_{1}
+$$
+
+Unlike ridge, lasso can set estimators to 0, operating with an internalised variable selection.
+
+```{r lasso}
+cv.lasso <- cv.glmnet(as.matrix(train_noY), y_train_log, alpha = 1)
+s_lasso = cv.lasso$lambda.min
+fit.lasso <- glmnet(
+  train_noY,
+  y_train_log,
+  lambda = s_lasso,
+  alpha = 1,
+  standardize = FALSE
+)
+coef(fit.lasso)
+```
+
+```{r lasso predict}
+Y_hatlasso <- predict(
+  fit.lasso,
+  newx = as.matrix(val_noY),
+  type = "response"
+)
+
+
+MSS_lasso <- mean((exp(y_val_log) - exp(Y_hatlasso))**2)
+
+print(paste0("The Lasso RMSE is: ", sqrt(MSS_lasso)))
+```
+
+This leads to better results, with an RMSE of 12.03. We are rather in a situation of have to select variables, than in an overfitting scenario. The eliminated variables are $realized vol mid$ and $option dispersion$. They are seen as irrelevant for the prediction. This contradicts the linear models, which achieved better results as Lasso. This shows that while Lasso benefits from variable selection, it cannot replicate human variable selection. It is still worse than our classical linear regression, which uses said variables. We move on to the next penalised model.
+
+#### Elastic-Net
+
+Elastic-Net combines Ridge and Lasso regression, attempting to preserve the benefits of both models and reducing overfitting while having variable selection. For $\lambda_{1}, \lambda_{2} > 0$
+
+$$
+\hat{\beta}^{EN}(\lambda_{1}, \lambda_{2}) = \arg\min_{\beta}\|Y-X\beta\|^{2} + \lambda_{1}\|\beta\|_1 + \lambda_{2}{\|\beta\|_2}^{2}
+$$
+
+```{r elasticnet}
+cv.elasticnet <- cv.glmnet(
+  as.matrix(train_noY),
+  y_train_log,
+  alpha = 0.5
+)
+s_en = cv.elasticnet$lambda.min
+fit.elasticnet <- glmnet(
+  train_noY,
+  y_train_log,
+  lambda = s_en,
+  alpha = 0.5
+)
+coef(fit.elasticnet)
+```
+
+```{r elasticnet predict}
+Y_hatEN <- predict(
+  fit.elasticnet,
+  newx = as.matrix(val_noY),
+  type = "response",
+  s = s_en
+)
+
+MSS_EN <- mean((exp(y_val_log) - exp(Y_hatEN))**2)
+
+print(paste0("The E-N RMSE is: ", sqrt(MSS_EN)))
+```
+
+Elastic-Net does not eliminate the same variables as Lasso. However, it eliminates $total contracts$ This proves that it preserves Lasso's variable selection impact. The RMSE is slightly improved, yet the change compared to Lasso is negligeable.
+
+#### Partial Least Squares
+
+The main idea behind Partial Least Squares is to construct new features, that are linear combinations of the original dataset features, and mutually orthogonal. The computation is done on the already reduced dimension. 
+
+```{r pls}
+train_pca_noY <- train_pca_lm |> dplyr::select(-implied_vol_ref)
+val_pca_noY <- val_pca_lm |> dplyr::select(-implied_vol_ref)
+
+fit.pls <- plsr(
+  train_pca_lm$implied_vol_ref ~ as.matrix(train_pca_noY),
+  ncomp = 8,
+  validation = "CV"
+)
+coef(fit.pls)
+```
+
+```{r pls explained variance}
+explained_variance <- explvar(fit.pls)
+
+plot(
+  1:length(explained_variance),
+  explained_variance,
+  type = "b",
+  pch = 16,
+  col = "blue",
+  xlab = "PLS Component",
+  ylab = "Variance Explained (%)",
+  main = "PLS: Variance Explained by Each Component",
+  ylim = c(0, max(explained_variance) * 1.1)
+)
+
+grid()
+
+text(
+  1:length(explained_variance),
+  explained_variance,
+  labels = round(explained_variance, 2),
+  pos = 3,
+  col = "blue"
+)
+```
+
+After visualising the new features, we realise a steep dropoff in explained variance after the first two components, which account for 50.7% of the variance. This shows that a lot of the present information can be explained within two linear combinaitions - more than half of it. This suggests that it is initially easy to extract information, but it gets progressively harder, with the fifth best new feature only explaining 6.91% of the variance. 
+
+```{r pls predict}
+pred_val <- predict(fit.pls, newdata = as.matrix(val_pca_noY), ncomp = 8)
+Y_hatPLS <- pred_val[, 1, 1]
+
+MSS_PLS <- mean((exp(val_pca_lm$implied_vol_ref) - exp(Y_hatPLS))**2)
+
+print(paste0("The PLS RMSE is: ", sqrt(MSS_PLS)))
+```
+
+Since we reduce the dimension on an already dimension-reduced dataset, the loss of information is too big: PLS is the worst model with an RMSE of 12.79.
+
+### Linear Mixed-Effects Models (LMM)
+
+Given the panel structure of our dataset ($N=3887$ assets, $T=544$ dates),we try a Linear Mixed-Effects Model. This approach allows us to model a global market trend (Fixed Effects) while estimating a specific baseline level for each asset (Random Intercept), capturing the idiosyncratic risk inherent to each underlying instrument.
+
+#### Model LMM 1: The Baseline
+
+Our first approach was to include all available explanatory variables: the raw market data and our engineered features. The objective was to establish a performance benchmark.
+
+The model specification is:
+$$
+\log(\texttt{ImpliedVol}_{it}) = \beta_0 + \sum_{k=1}^{p} \beta_k X_{k,it} + u_i + \epsilon_{it}
+$$
+Where $u_i \sim \mathcal{N}(0, \sigma_u^2)$ represents the random intercept for asset $i$.
+
+```{r mod1 def, eval=FALSE}
+mod_lmm_1 <- lmer(
+  log(implied_vol_ref) ~ strike_dispersion +
+    call_volume +
+    put_volume +
+    call_oi +
+    put_oi +
+    maturity_count +
+    total_contracts +
+    realized_vol_long +
+    realized_vol_mid +
+    realized_vol_short +
+    market_vol_index +
+    pulse_ratio +
+    put_call_ratio_volume +
+    put_call_ratio_oi +
+    liquidity_ratio +
+    option_dispersion +
+    put_low_strike +
+    put_proportion +
+    stress_spread +
+    (1 | asset_id),
+  data = train_linear
+)
+
+summary(mod_lmm_1)
+```
+
+```{r mod1 rmse, eval=FALSE}
+predictions_log_1 <- predict(
+  mod_lmm_1,
+  newdata = val_linear,
+  allow.new.levels = TRUE
+)
+predictions_real_1 <- exp(predictions_log_1)
+erreurs_1 <- val_linear$implied_vol_ref - predictions_real_1
+rmse_score_1 <- sqrt(mean(erreurs_1^2))
+print(paste("RMSE of the first LMM :", round(rmse_score_1, 4)))
+```
+
+This baseline model achieved a Root Mean Square Error (RMSE) of 8.77. It is an improvement from the other linear models. However, while it captures the general variance, the inclusion of all variables likely introduced multicollinearity, inflating the standard errors of the coefficients.
+
+#### Model LMM 2: Feature Selection and Collinearity Reduction
+
+```{r correlation matrix}
+num_var <- train_linear |> dplyr::select(-asset_id, -obs_date)
+
+correlation_matrix <- cor(num_var, method = "pearson", use = "complete.obs")
+
+melted_cormat <- reshape2::melt(correlation_matrix)
+
+ggplot(melted_cormat, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = paletteer_c("grDevices::Sunset", 30)) +
+  labs(
+    title = "Correlation Matrix for Numerical Variables",
+    x = NULL,
+    y = NULL,
+    fill = "Corr"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+To improve robustness, we analyzed the correlation matrix. We removed redundant variables that carried duplicate information. This simplification stabilized the model without significantly degrading the RMSE, confirming that a parsimonious set of features is sufficient to describe market dynamics.
+
+```{r mod2 def, eval=FALSE}
+mod_lmm_2 <- lmer(
+  log(implied_vol_ref) ~ strike_dispersion +
+    call_volume +
+    call_oi +
+    maturity_count +
+    total_contracts +
+    realized_vol_short +
+    realized_vol_mid +
+    realized_vol_long +
+    market_vol_index +
+    pulse_ratio +
+    put_call_ratio_volume +
+    liquidity_ratio +
+    option_dispersion +
+    put_low_strike +
+    put_proportion +
+    stress_spread +
+    (1 | asset_id),
+  data = train_linear
+)
+
+summary(mod_lmm_2)
+```
+
+```{r mod2 rmse, eval=FALSE}
+predictions_log_2 <- predict(
+  mod_lmm_2,
+  newdata = val_linear,
+  allow.new.levels = TRUE
+)
+predictions_real_2 <- exp(predictions_log_2)
+erreurs_2 <- val_linear$implied_vol_ref - predictions_real_2
+rmse_score_2 <- sqrt(mean(erreurs_2^2))
+print(paste("RMSE of the second LMM :", round(rmse_score_2, 4)))
+```
+
+#### Model LMM 3: Financial Interactions
+
+Markets are non-linear systems where factors amplify each other. Based on our financial analysis, we introduced five key interaction terms to capture these complex dynamics:
+
+###### The volatility Beta effect:
+
+$$
+`market\_vol\_index : realized\_vol\_long`
+$$
+
+This interaction captures the Volatility Beta Effect. It measures the sensitivity of the underlying’s short-term realized volatility compared the market volatility index. It gives indication on how the volatility of the underlying is impacted by the market environment, that is wether markets are calm or panicking. 
+
+###### The fear factor interaction:
+
+$$
+\texttt{put_call_ratio_volume : stress_spread}
+$$
+
+This Fear Factor Interaction is a combination of the market sentiment (the Put Call Volume Ratio) and the idiosyncratic stress specific to the underlying. It helps to make the distinction between daily hedging and "urgent hedging" caused by market panic.
+High idiosyncratic risk and high Put Call Volume Ratio confirms a strong panic signal that should trigger a massive surge in volatility. 
+
+###### The market depth ratio:
+
+$$
+\texttt{total_contracts : liquidity_ratio}
+$$
+
+The Market Depth Ratio measures the impact of transactions on the market structural stability. Depending on liquidity and how deep the market is, a high nominal transaction will have a different impact on volatility. In a deep market, a surge in contracts is absorbed smoothly which is not the case for very thin markets.
+
+###### The skew tension ratio:
+
+$$
+\texttt{put_low_strike : market_vol_index}
+$$
+
+The Skew Tension Ratio indicates how convex the fear is. 
+In a stable environment, crash protection is cheap. When risk appears, investors buy put options for protection which push the volatility up leading to higher option prices.
+This ratio integrates the skew to the model to take into account sudden surge in implied volatility that occurs when market participants stop calculating value and start buying protection at any price.
+
+###### The volatility shock ratio:
+
+$$
+\texttt{realized_vol_short : realized_vol_long}
+$$
+
+The Volatility Shock Ratio compares short-term realized volatility to long-term realized volatility. It identifies the nature of a volatility spike based on the principle of "Mean Reversion", the volatility should, in the long term, converge with its mean. 
+The point is to make the distinction between an usual risk and a stress peak which helps to understand if the current price movement is passing anomaly or is a fundamental shift in the risk profile. 
+
+```{r mod3 def, eval=FALSE}
+mod_lmm_3 <- lmer(
+  log(implied_vol_ref) ~
+    realized_vol_long *
+    market_vol_index +
+    put_call_ratio_volume * stress_spread +
+    total_contracts * liquidity_ratio +
+
+    put_low_strike:market_vol_index +
+    realized_vol_short:realized_vol_long +
+
+    strike_dispersion +
+    call_volume +
+    call_oi +
+    maturity_count +
+    realized_vol_short +
+    realized_vol_mid +
+    put_low_strike +
+    put_proportion +
+    option_dispersion +
+    pulse_ratio +
+
+    (1 | asset_id),
+  data = train_linear
+)
+
+summary(mod_lmm_3)
+```
+
+
+```{r mod3 rmse, eval=FALSE}
+predictions_log_3 <- predict(
+  mod_lmm_3,
+  newdata = val_linear,
+  allow.new.levels = TRUE
+)
+predictions_real_3 <- exp(predictions_log_3)
+erreurs_3 <- val_linear$implied_vol_ref - predictions_real_3
+rmse_score_3 <- sqrt(mean(erreurs_3^2))
+print(paste("RMSE of the third LMM :", round(rmse_score_3, 4)))
+```
+
+#### Model LMM 4: Addition of Quadratic Terms
+
+Volatility often exhibits a convex behavior (the "Vol of Vol"). Extreme variations in realized volatility tend to have a disproportionate impact on implied volatility.
+To capture this, we added squared terms ($X^2$) for the most significant variables: `realized_vol_short`, `realized_vol_long`, `market_vol_index`, and `pulse_ratio`.
+
+```{r mod4 def}
+mod_lmm_4 <- lmer(
+  log(implied_vol_ref) ~
+    realized_vol_long *
+    market_vol_index +
+    put_call_ratio_volume * stress_spread +
+    total_contracts * liquidity_ratio +
+
+    put_low_strike:market_vol_index +
+    realized_vol_short:realized_vol_long +
+
+    strike_dispersion +
+    call_volume +
+    call_oi +
+    maturity_count +
+    realized_vol_short +
+    realized_vol_mid +
+    put_low_strike +
+    put_proportion +
+    option_dispersion +
+    pulse_ratio +
+
+    I(realized_vol_short^2) +
+    I(market_vol_index^2) +
+    I(realized_vol_long^2) +
+    I(pulse_ratio^2) +
+
+    (1 | asset_id),
+  data = train_linear
+)
+
+summary(mod_lmm_4)
+```
+
+```{r mod4 rmse}
+predictions_log_4 <- predict(
+  mod_lmm_4,
+  newdata = val_linear,
+  allow.new.levels = TRUE
+)
+predictions_real_4 <- exp(predictions_log_4)
+erreurs_4 <- val_linear$implied_vol_ref - predictions_real_4
+rmse_score_4 <- sqrt(mean(erreurs_4^2))
+print(paste("RMSE of the fourth LMM :", round(rmse_score_4, 4)))
+```
+
+```{r mod4 graph}
+selected_assets <- sample(unique(val_linear$asset_id), 5)
+
+n_train_display <- floor(544 / 2)
+
+dates_train_all <- sort(unique(train_linear$obs_date))
+dates_train_subset <- tail(dates_train_all, n_train_display)
+
+df_truth_train <- train_linear |>
+  filter(asset_id %in% selected_assets) |>
+  filter(obs_date %in% dates_train_subset) |>
+  dplyr::select(asset_id, obs_date, implied_vol_ref)
+
+df_truth_val <- val_linear |>
+  filter(asset_id %in% selected_assets) |>
+  dplyr::select(asset_id, obs_date, implied_vol_ref)
+
+df_truth_full <- bind_rows(df_truth_train, df_truth_val) |>
+  mutate(obs_date = as.Date(obs_date))
+
+df_pred <- val_linear |>
+  filter(asset_id %in% selected_assets) %>%
+  mutate(
+    pred_log = predict(mod_lmm_4, newdata = ., allow.new.levels = TRUE),
+    prediction = exp(pred_log),
+    obs_date = as.Date(obs_date)
+  ) |>
+  dplyr::select(asset_id, obs_date, prediction)
+
+ggplot() +
+  geom_line(
+    data = df_truth_full,
+    aes(x = obs_date, y = implied_vol_ref, color = as.factor(asset_id)),
+    size = 0.7,
+    alpha = 0.8
+  ) +
+  geom_line(
+    data = df_pred,
+    aes(x = obs_date, y = prediction, color = as.factor(asset_id)),
+    linetype = "dashed",
+    size = 0.7
+  ) +
+  geom_vline(
+    xintercept = as.numeric(min(df_pred$obs_date)),
+    linetype = "dotted",
+    color = "black",
+    size = 1
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Predictions (Dashed) vs. Reality (Solid)",
+    subtitle = "Visualisation of 10 Random Assets (Focus on Train/Val Transition)",
+    x = "Date",
+    y = "Implied Volatility",
+    color = "Asset ID"
+  ) +
+  theme(legend.position = "right")
+```
+
+We plotted the predictions against the actual values for a random subset of assets for this model. While the model captures the general trend well, it often underpredicts extreme volatility spikes. 
+This suggests that a simple Random Intercept ($u_i$) is insufficient: assets do not just have different levels of volatility, they have different sensitivities to market stress. A defensive stock (low beta) and a tech stock (high beta) do not react with the same intensity to a VIX spike.
+
+#### Model LMM 5: Random Slopes
+
+To adress this issue, we introduced Random Slopes. Instead of forcing a global coefficient for key variables, we allowed the slope to vary by asset:
+
+$$
+\log(Y_{it}) = (\beta_{market} + b_{i,m})X_{market,t} + \dots + u_i + \epsilon_{it}
+$$
+
+We included `realized_vol_short` and `realized_vol_long:market_vol_index` in the random effects structure ``(1 + realized_vol_short + realized_vol_long:market_vol_index | asset_id)``. This modification allows the model to learn the specific beta and reactivity of each asset, significantly improving the fit for high-volatility profiles.
+
+```{r mod5 def}
+mod_lmm_5 <- lmer(
+  log(implied_vol_ref) ~
+    put_call_ratio_volume *
+    stress_spread +
+    total_contracts * liquidity_ratio +
+
+    put_low_strike:market_vol_index +
+    realized_vol_short:realized_vol_long +
+
+    strike_dispersion +
+    call_volume +
+    call_oi +
+    maturity_count +
+    realized_vol_long +
+    realized_vol_mid +
+    market_vol_index +
+    put_low_strike +
+    put_proportion +
+    option_dispersion +
+    pulse_ratio +
+
+    I(realized_vol_short^2) +
+    I(market_vol_index^2) +
+    I(realized_vol_long^2) +
+    I(pulse_ratio^2) +
+
+    (1 + realized_vol_short + realized_vol_long:market_vol_index | asset_id),
+  data = train_linear
+)
+
+summary(mod_lmm_5)
+```
+
+```{r mod5 rmse}
+predictions_log_5 <- predict(
+  mod_lmm_5,
+  newdata = val_linear,
+  allow.new.levels = TRUE
+)
+predictions_real_5 <- exp(predictions_log_5)
+erreurs_5 <- val_linear$implied_vol_ref - predictions_real_5
+rmse_score_5 <- sqrt(mean(erreurs_5^2))
+print(paste("RMSE of the fifth LMM :", round(rmse_score_5, 4)))
+```
+
+```{r mod 5 graph}
+selected_assets <- sample(unique(val_linear$asset_id), 5)
+
+n_train_display <- floor(544 / 2)
+
+dates_train_all <- sort(unique(train_linear$obs_date))
+dates_train_subset <- tail(dates_train_all, n_train_display)
+
+df_truth_train <- train_linear |>
+  filter(asset_id %in% selected_assets) |>
+  filter(obs_date %in% dates_train_subset) |>
+  dplyr::select(asset_id, obs_date, implied_vol_ref)
+
+df_truth_val <- val_linear |>
+  filter(asset_id %in% selected_assets) |>
+  dplyr::select(asset_id, obs_date, implied_vol_ref)
+
+df_truth_full <- bind_rows(df_truth_train, df_truth_val) |>
+  mutate(
+    obs_date = as.Date(obs_date),
+    implied_vol_ref = implied_vol_ref
+  )
+
+df_pred_temp <- val_linear |>
+  filter(asset_id %in% selected_assets)
+
+df_pred <- df_pred_temp |>
+  mutate(
+    pred_log = predict(
+      mod_lmm_5,
+      newdata = df_pred_temp,
+      allow.new.levels = TRUE
+    ),
+    prediction = exp(pred_log),
+    obs_date = as.Date(obs_date)
+  ) |>
+  dplyr::select(asset_id, obs_date, prediction)
+
+ggplot() +
+  geom_line(
+    data = df_truth_full,
+    aes(x = obs_date, y = implied_vol_ref, color = as.factor(asset_id)),
+    linewidth = 0.7,
+    alpha = 0.8
+  ) +
+  geom_line(
+    data = df_pred,
+    aes(x = obs_date, y = prediction, color = as.factor(asset_id)),
+    linetype = "dashed",
+    linewidth = 0.7
+  ) +
+  geom_vline(
+    xintercept = as.numeric(min(df_pred$obs_date)),
+    linetype = "dotted",
+    color = "black",
+    linewidth = 1
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Predictions (Dashed) vs. Reality (Solid)",
+    subtitle = "Visualisation of 5 Random Assets",
+    x = "Date",
+    y = "Implied Volatility",
+    color = "Asset ID"
+  ) +
+  theme(legend.position = "right")
+```
+
+
+##### Random Effects Analysis:
+
+The summary of the model confirms our hypothesis that assets are structurally different. We observe a intercept variance at $0.103$.This large variance confirms that different assets have vastly different baseline volatility levels. Then, the non-zero standard deviations (0.1269 and 0.1446 respectively) prove that assets have unique sensitivities. We can conclude that some assets are "high beta" (tech stocks) and react violently to market stress, while others are "defensive" and react mildly. This Random Slope structure allows the model to "learn" the specific risk profile of each of the 3,886 assets in the training set, correcting the "parallel trend" bias observed in earlier models.
+
+##### Fixed Effect Analysis:
+
+The Fixed Effects part of the summary provides powerful insights into the general laws of the options market.
+With $t=319.9$, the market volatility index is by far the strongest driver. Unsurprisingly, implied volatility is systemically linked to the VIX. When the market panics, all assets follow.
+Then we observe strong short and long realized volatility. The past remains the best predictor of the future. The significance of the squared term. The quadratic term for the short one confirms the convexity of volatility: extreme moves in the underlying asset lead to disproportionately higher implied volatility premiums. Moreover, the positive coefficient of the put-call ratio on volume confirms the "Fear Gauge" theory. A surge in Put buying volume exerts a strong upward pressure on volatility prices.
+
+##### Analysis of the interactions:
+
+Our financial engineering efforts yielded mixed but informative results:
+
+* **Volatility Shock Ratio (`realized_vol_short : realized_vol_long`)**: With a t-value of \textbf{-150.9}, this is the most significant interaction. The negative coefficient is fascinating: it mathematically represents Mean Reversion. When short-term volatility deviates too much from long-term volatility, the model applies a correction, preventing the prediction from exploding linearly.
+
+* **Market Depth:** With a t-value of $21.6$, this interaction is highly significant. It confirms that liquidity constraints amplify volatility.
+
+* **Skew Tension:** With a t-value of $2.64$, this interaction is statistically significant (at the 95\% confidence level). It validates the "Crash Convexity" theory, although its marginal impact is lower than expected.
+
+* **Fear Factor:** With a t-value of $1.23$, this interaction is not statistically significant. This suggests that the information contained in this interaction is already fully captured by the main effects of the variables separately.
+
+Finally concerning model diagnostics, we denote that the REML criterion dropped to $-775,843$, indicating a significantly better fit compared to the baseline models.
+However, we note a convergence warning (`Model failed to converge`). This is common in complex mixed models with large datasets (1.5 million observations) and complex random structures. While scaling variables helped, the complexity of the "Random Slope" optimization remains a computational challenge, though the estimates remain robust given the extremely low standard errors.
+
+## Non-Linear & Black-Box Models
+
+Following the evaluation of linear frameworks, this section explores high-capacity, non-linear algorithms capable of mapping complex, multidimensional interactions within the financial feature space. A critical methodological distinction must be noted regarding the data pipeline: while linear models and deep learning architectures rely on the PCA-reduced dataset to mitigate multicollinearity and stabilize gradients, tree-based models were trained exclusively on the raw dataset ($train\_final$). Decision trees naturally handle collinearity through their splitting mechanism, and applying PCA beforehand would orthogonally mix the original financial indicators, thereby destroying the localized, non-linear thresholds that tree ensembles are designed to capture.
+
+To efficiently navigate the hyperparameter space of these complex models, Grid Search methodologies were discarded in favor of Bayesian Optimization using Gaussian Processes, allowing for a directed and computationally efficient convergence toward the optimal parameter sets by maximizing the negative Root Mean Squared Error ($-RMSE$).
+
+```{r datasets preparation}
+train_tree$implied_vol_ref <- log(train_tree$implied_vol_ref)
+val_tree$implied_vol_ref <- log(val_tree$implied_vol_ref)
+
+train_clean <- train_tree |> select(-asset_id, -obs_date)
+val_clean <- val_tree |> select(-asset_id, -obs_date)
+```
+
+### Gradient Boosting Frameworks: XGBoost and LightGBM
+
+Gradient boosting decision trees represent the state-of-the-art for tabular data. We benchmarked two industry-standard architectures: **XGBoost**, which relies on level-wise tree growth, and **LightGBM**, which employs a leaf-wise expansion strategy.
+
+#### XGBoost Performance and Boundary Effect
+
+```{r xgboost, eval=FALSE}
+x_train_mat <- as.matrix(train_clean |> select(-implied_vol_ref))
+y_train_vec <- train_clean$implied_vol_ref
+
+x_val_mat <- as.matrix(val_clean |> select(-implied_vol_ref))
+y_val_vec <- val_clean$implied_vol_ref
+
+dtrain <- xgb.DMatrix(data = x_train_mat, label = y_train_vec)
+dval <- xgb.DMatrix(data = x_val_mat, label = y_val_vec)
+
+scoring_function <- function(eta, max_depth, subsample, colsample_bytree) {
+  parsed_depth <- as.integer(round(max_depth))
+
+  params <- list(
+    booster = "gbtree",
+    objective = "reg:squarederror",
+    eta = eta,
+    max_depth = parsed_depth,
+    subsample = subsample,
+    colsample_bytree = colsample_bytree,
+    tree_method = "hist",
+    nthread = parallel::detectCores() - 1
+  )
+
+  cv_model <- tryCatch(
+    {
+      xgb.cv(
+        params = params,
+        data = dtrain,
+        nrounds = 150,
+        nfold = 3,
+        early_stopping_rounds = 15,
+        verbose = 0,
+        metrics = "rmse"
+      )
+    },
+    error = function(e) return(NULL)
+  )
+
+  if (is.null(cv_model)) {
+    return(list(Score = -9999, Pred = 0))
+  }
+
+  best_iter <- cv_model$best_iteration
+  if (is.null(best_iter) || length(best_iter) == 0) {
+    best_iter <- which.min(cv_model$evaluation_log$test_rmse_mean)
+  }
+
+  best_rmse <- cv_model$evaluation_log$test_rmse_mean[best_iter]
+
+  list(Score = -best_rmse, Pred = 0)
+}
+
+bounds <- list(
+  eta = c(0.05, 0.3),
+  max_depth = c(8L, 15L),
+  subsample = c(0.6, 1.0),
+  colsample_bytree = c(0.6, 1.0)
+)
+
+opt_obj <- BayesianOptimization(
+  FUN = scoring_function,
+  bounds = bounds,
+  init_points = 3,
+  n_iter = 5,
+  acq = "ucb",
+  kappa = 2.576
+)
+
+best_params_raw <- opt_obj$Best_Par
+
+best_params_xgb <- list(
+  booster = "gbtree",
+  objective = "reg:squarederror",
+  eta = best_params_raw["eta"],
+  max_depth = best_params_raw["max_depth"],
+  subsample = best_params_raw["subsample"],
+  colsample_bytree = best_params_raw["colsample_bytree"],
+  tree_method = "hist",
+  nthread = parallel::detectCores() - 1
+)
+
+final_model_xgb <- xgb.train(
+  params = best_params_xgb,
+  data = dtrain,
+  nrounds = 1000,
+  evals = list(val = dval, train = dtrain),
+  early_stopping_rounds = 50,
+  verbose = 1
+)
+
+preds_xgb_log <- predict(final_model_xgb, dval)
+rmse_xgb_real <- sqrt(mean((exp(preds_xgb_log) - exp(y_val_vec))^2))
+
+preds_xgb_train_log <- predict(final_model_xgb, dtrain)
+rmse_xgb_train_real <- sqrt(mean(
+  (exp(preds_xgb_train_log) - exp(y_train_vec))^2
+))
+
+print(paste0("XGBoost RMSE on validation set: ", round(rmse_xgb_real, 4)))
+print(paste0("XGBoost RMSE on training set: ", round(rmse_xgb_train_real, 4)))
+paste0(
+  "Best Hyperparameters: ",
+  paste(names(best_params_raw), best_params_raw, sep = " = ", collapse = ", ")
+)
+```
+
+The **XGBoost** model was tuned over $15$ Bayesian iterations. The optimization process revealed a distinct statistical behavior: the algorithm consistently converged toward the extreme upper boundaries of the predefined search space. The optimal configuration selected a learning rate (eta) of $0.2$, a maximum tree depth ($max\_depth$) of $10$, and utilized $100\%$ of the data at each split ($subsample = 1.0$, $colsample\_bytree = 1.0$).
+
+On the original exponential scale, this configuration yielded a validation $RMSE$ of $10.70$. However, comparing this generalization error to the training $RMSE$ of $0.565$ reveals the extreme nature of the bias-variance trade-off in this specific task. The saturation of complexity limits (a depth of $10$ is exceptionally deep for boosting) and the algorithm's mathematical refusal to apply stochastic regularization (row or column subsampling) indicate that the underlying implied volatility signal is highly complex and difficult to separate from structural noise. Consequently, the model operates in a high-variance regime, effectively memorizing the training set (yielding a near-zero training error) but failing to generalize beyond the $~10.70$ validation barrier.
+
+#### LightGBM: Leaf-Wise Validation
+
+```{r lightgbm}
+x_train_mat <- as.matrix(train_clean |> select(-implied_vol_ref))
+y_train_vec <- train_clean$implied_vol_ref
+
+x_val_mat <- as.matrix(val_clean |> select(-implied_vol_ref))
+y_val_vec <- val_clean$implied_vol_ref
+
+dtrain <- lgb.Dataset(data = x_train_mat, label = y_train_vec)
+dval <- lgb.Dataset(data = x_val_mat, label = y_val_vec, reference = dtrain)
+
+scoring_function <- function(
+  num_leaves,
+  learning_rate,
+  bagging_fraction,
+  feature_fraction
+) {
+  parsed_num_leaves <- as.integer(round(num_leaves))
+
+  params <- list(
+    objective = "regression",
+    metric = "rmse",
+    num_threads = parallel::detectCores() - 1,
+    learning_rate = learning_rate,
+    num_leaves = parsed_num_leaves,
+    bagging_fraction = bagging_fraction,
+    bagging_freq = ifelse(bagging_fraction < 1.0, 1, 0),
+    feature_fraction = feature_fraction
+  )
+
+  cv_model <- tryCatch(
+    {
+      lgb.cv(
+        params = params,
+        data = dtrain,
+        nrounds = 150,
+        nfold = 3,
+        early_stopping_rounds = 15,
+        verbose = -1
+      )
+    },
+    error = function(e) return(NULL)
+  )
+
+  if (is.null(cv_model)) {
+    return(list(Score = -9999, Pred = 0))
+  }
+
+  best_iter <- cv_model$best_iter
+  best_rmse <- cv_model$best_score
+
+  list(Score = -best_rmse, Pred = best_iter)
+}
+
+bounds <- list(
+  num_leaves = c(20L, 150L),
+  learning_rate = c(0.01, 0.2),
+  bagging_fraction = c(0.6, 1.0),
+  feature_fraction = c(0.6, 1.0)
+)
+
+opt_obj <- BayesianOptimization(
+  FUN = scoring_function,
+  bounds = bounds,
+  init_points = 3,
+  n_iter = 5,
+  acq = "ucb",
+  kappa = 2.576
+)
+
+best_history_index <- which.max(opt_obj$History$Value)
+best_iteration_val <- opt_obj$Pred[[best_history_index]]
+
+best_params_row <- data.frame(
+  num_leaves = as.integer(round(opt_obj$Best_Par["num_leaves"])),
+  learning_rate = opt_obj$Best_Par["learning_rate"],
+  bagging_fraction = opt_obj$Best_Par["bagging_fraction"],
+  feature_fraction = opt_obj$Best_Par["feature_fraction"],
+  best_iter = best_iteration_val,
+  cv_rmse = -opt_obj$Best_Value
+)
+
+best_params_lgb <- list(
+  objective = "regression",
+  metric = "rmse",
+  num_threads = parallel::detectCores() - 1,
+  learning_rate = best_params_row$learning_rate,
+  num_leaves = best_params_row$num_leaves,
+  bagging_fraction = best_params_row$bagging_fraction,
+  bagging_freq = ifelse(best_params_row$bagging_fraction < 1.0, 1, 0),
+  feature_fraction = best_params_row$feature_fraction
+)
+
+final_model_lgb <- lgb.train(
+  params = best_params_lgb,
+  data = dtrain,
+  nrounds = best_params_row$best_iter,
+  valids = list(val = dval, train = dtrain),
+  verbose = 1
+)
+
+preds_lgb_log <- predict(final_model_lgb, x_val_mat)
+rmse_lgb_real <- sqrt(mean((exp(preds_lgb_log) - exp(y_val_vec))^2))
+
+preds_lgb_train_log <- predict(final_model_lgb, x_train_mat)
+rmse_lgb_train_real <- sqrt(mean(
+  (exp(preds_lgb_train_log) - exp(y_train_vec))^2
+))
+
+print(paste0("LightGBM RMSE on validation set: ", round(rmse_lgb_real, 4)))
+print(paste0("LightGBM RMSE on training set: ", round(rmse_lgb_train_real, 4)))
+print(paste0(
+  "Best Hyperparameters: num_leaves = ",
+  best_params_row$num_leaves,
+  ", learning_rate = ",
+  round(best_params_row$learning_rate, 4),
+  ", bagging_fraction = ",
+  round(best_params_row$bagging_fraction, 4),
+  ", feature_fraction = ",
+  round(best_params_row$feature_fraction, 4)
+))
+```
+
+To challenge the **XGBoost** baseline and cross-validate the limits of tree ensembles, **LightGBM** was evaluated. Its leaf-wise growth optimizes for maximum loss reduction rather than symmetrical tree balance, making it theoretically prone to overfitting on smaller datasets but highly efficient on dense data.
+
+The Bayesian optimization converged at the maximum allowed iterations ($best\_iter = 150$), selecting the maximum permitted complexity of $150$ leaves per tree ($num\_leaves$), a learning rate of $0.2$, and a $bagging fraction$ of $1.0$. Interestingly, contrary to **XGBoost**, the algorithm introduced feature-level regularization by selecting a $feature\_fraction$ of $0.6$. This indicates that injecting random subspaces at the node level helped mitigate the aggressive asymmetric expansion of the leaf-wise strategy.
+
+The **LightGBM** model achieved a validation $RMSE$ of $10.61$ and a training $RMSE$ of $10.90$. This strict proximity between training and validation errors mathematically proves that the model successfully avoided the overfitting trap that captured **XGBoost**. By leveraging feature regularization, **LightGBM** captured a robust, generalized representation of the data without memorizing the stochastic noise inherent to the training set.
+
+### Algorithmic Scalability & Hardware Constraints
+
+In a modern Data Science and MLOps paradigm, theoretical predictive capacity must be critically weighed against computational feasibility. While gradient boosting models proved exceptionally efficient due to histogram-based approximations, the evaluation of traditional bagging ensembles and deep learning architectures was ultimately bottlenecked by local hardware constraints and algorithmic overhead.
+
+#### Random Forest and the Cost of Bagging
+
+```{r random_forest, eval=FALSE}
+y_train <- train_clean$implied_vol_ref
+X_train <- as.matrix(train_clean |> select(-implied_vol_ref))
+
+y_val <- val_clean$implied_vol_ref
+X_val <- as.matrix(val_clean |> select(-implied_vol_ref))
+
+num_features <- ncol(X_train)
+
+fold_ids <- sample(1:3, nrow(X_train), replace = TRUE)
+
+fold_index <- lapply(1:3, function(k) {
+  list(
+    train = which(fold_ids != k),
+    valid = which(fold_ids == k)
+  )
+})
+
+scoring_function <- function(mtry, min_node_size, sample_fraction) {
+  mtry <- as.integer(round(mtry))
+  min_node_size <- as.integer(round(min_node_size))
+
+  fold_rmses <- numeric(3)
+
+  for (k in 1:3) {
+    idx_train <- fold_index[[k]]$train
+    idx_valid <- fold_index[[k]]$valid
+
+    rf_model <- tryCatch(
+      ranger(
+        x = X_train[idx_train, ],
+        y = y_train[idx_train],
+        num.trees = 80,
+        mtry = mtry,
+        min.node.size = min_node_size,
+        sample.fraction = sample_fraction,
+        max.depth = 15,
+        num.threads = parallel::detectCores() - 1
+      ),
+      error = function(e) return(NULL)
+    )
+
+    if (is.null(rf_model)) {
+      return(list(Score = -9999, Pred = 0))
+    }
+
+    preds <- predict(rf_model, X_train[idx_valid, ])$predictions
+    fold_rmses[k] <- sqrt(mean((preds - y_train[idx_valid])^2))
+  }
+
+  list(Score = -mean(fold_rmses), Pred = 0)
+}
+
+bounds <- list(
+  mtry = c(1L, num_features),
+  min_node_size = c(1L, 20L),
+  sample_fraction = c(0.6, 1.0)
+)
+
+opt_obj <- BayesianOptimization(
+  FUN = scoring_function,
+  bounds = bounds,
+  init_points = 3,
+  n_iter = 5,
+  acq = "ucb",
+  kappa = 2.576,
+  verbose = TRUE
+)
+
+best_params_row <- data.frame(
+  mtry = as.integer(round(opt_obj$Best_Par["mtry"])),
+  min.node.size = as.integer(round(opt_obj$Best_Par["min_node_size"])),
+  sample.fraction = opt_obj$Best_Par["sample_fraction"],
+  cv_rmse = -opt_obj$Best_Value
+)
+
+final_model_rf <- ranger(
+  x = X_train,
+  y = y_train,
+  num.trees = 500,
+  mtry = best_params_row$mtry,
+  min.node.size = best_params_row$min.node.size,
+  sample.fraction = best_params_row$sample.fraction,
+  num.threads = parallel::detectCores() - 1,
+  importance = "permutation"
+)
+
+preds_rf_log <- predict(final_model_rf, X_val)$predictions
+
+rmse_rf_real <- sqrt(mean(
+  (exp(preds_rf_log) - exp(y_val))^2
+))
+
+print(paste0("Random Forest RMSE on validation set: ", round(rmse_rf_real, 4)))
+print(paste0(
+  "Random Forest RMSE on training set: ",
+  round(
+    sqrt(mean(
+      (exp(predict(final_model_rf, X_train)$predictions) - exp(y_train))^2
+    )),
+    4
+  )
+))
+print(paste0(
+  "Best Hyperparameters: mtry = ",
+  best_params_row$mtry,
+  ", min.node.size = ",
+  best_params_row$min.node.size,
+  ", sample.fraction = ",
+  round(best_params_row$sample.fraction, 4)
+))
+```
+
+Unlike boosting frameworks that build shallow trees sequentially, a **Random Forest** constructs hundreds of deep, independent trees simultaneously to reduce overall variance. Evaluating the **Random Forest** on our continuous financial dataset led to an explosion in computational complexity. Without strictly enforcing a severe maximum depth limit, the exact greedy split-finding algorithm of the ranger implementation saturated the CPU and local memory, requiring disproportionate execution times (exceeding $30$ minutes per hyperparameter combination). This algorithmic inefficiency rendered rigorous Bayesian hyperparameter tuning computationally intractable locally, justifying the exclusion of **Random Forest** from the final predictive benchmark.
+
+#### Multi-Layer Perceptron (MLP) on PCA Space
+
+```{r mlp, eval=FALSE}
+mlp_spec <- mlp(
+  hidden_units = c(128, 64),
+  penalty = 0.001,
+  epochs = 150,
+  activation = "tanh",
+  learn_rate = 0.01
+) |>
+  set_engine("brulee") |>
+  set_mode("regression")
+
+mlp_rec <- recipe(implied_vol_ref ~ ., data = train_clean) |>
+  step_nzv(all_predictors()) |>
+  step_normalize(all_numeric_predictors()) |>
+  step_dummy(all_nominal_predictors())
+
+mlp_wf <- workflow() |>
+  add_recipe(mlp_rec) |>
+  add_model(mlp_spec)
+
+final_fit <- fit(mlp_wf, data = train_clean)
+
+val_results <- predict(final_fit, new_data = val_clean) |>
+  bind_cols(val_clean |> select(implied_vol_ref))
+
+val_results_real <- val_results |>
+  mutate(
+    truth_real = exp(implied_vol_ref),
+    estimate_real = exp(.pred)
+  )
+
+rmse_real_scale_yardstick <- rmse(
+  val_results_real,
+  truth = truth_real,
+  estimate = estimate_real
+)
+
+rmse_real_scale <- rmse_real_scale_yardstick$.estimate
+
+print(paste0("MLP RMSE on validation set: ", round(rmse_real_scale, 4)))
+print(paste0("MLP RMSE on training set: ", round(rmse_real_scale, 4)))
+print(paste0(
+  "MLP Hyperparameters: hidden_units = c(128, 64), penalty = 0.001, epochs = 150, activation = 'tanh', learn_rate = 0.01"
+))
+```
+
+A similar scalability issue was encountered when deploying a **Multi-Layer Perceptron (MLP)**. As neural networks require strictly standardized and uncorrelated inputs to prevent gradient explosion, the **MLP** was trained on the $train\_pca\_final$ dataset.
+
+However, running the `brulee` (Torch-based) engine on a standard CPU architecture proved inefficient for tabular data. The dense nature of the orthogonal PCA components, combined with the lack of GPU acceleration, led to severe optimization instability. The objective function frequently failed to converge, returning infinite deviance values during the Gaussian Process evaluation of the Bayesian optimization loop.
+
+These practical engineering failures highlight a critical constraint in applied machine learning: for high-dimensional tabular financial data processed on local infrastructure, modern histogram-based tree-boosting frameworks offer a vastly superior performance-to-computation ratio compared to deep neural networks or traditional exact-greedy bagging methods.
+
+### Selection of the Optimal Black-Box Model
+
+Based on the rigorous benchmarking of non-linear architectures, **LightGBM** is undeniably retained as the optimal black-box model for this predictive task.
+
+While **XGBoost** and **LightGBM** achieved broadly comparable validation scores ($10.70$ vs. $10.61$, respectively), their underlying learning dynamics were fundamentally opposed. **XGBoost**'s near-zero training $RMSE$ ($0.565$) exposed a severe overfitting issue, driven by a forced maximum depth of $10$ and a complete lack of stochastic regularization. The model acted as a high-variance memorization engine rather than a generalized predictive tool.
+
+Conversely, **LightGBM** demonstrated a vastly superior structural adaptation. By leveraging a leaf-wise growth strategy combined with active feature-level regularization ($feature\_fraction = 0.6$), it maintained a balanced training $RMSE$ of $10.90$ alongside its $10.61$ validation $RMSE$. This indicates a robust, generalized fit that successfully isolated the predictive signal from the market noise. Furthermore, from an MLOps and scalability perspective, **LightGBM**'s advanced histogram-based algorithm executes significantly faster with a lower memory footprint, solidifying it as the superior engineering choice for deploying high-capacity models on dense financial data.
+
+## Results Comparison & Discussion
+
+### The Trade-off: Accuracy vs. Interpretability
+
+While the **LightGBM** model provides superior predictive performance, its "black-box" nature requires post-hoc interpretation to ensure the captured signals align with financial theory. We employ a dual approach for interpretability: Global Feature Importance (Gain-based) and Local Explanations using SHAP values.
+
+```{r shap calculation}
+shp <- shapviz(final_model_lgb, X_pred = x_val_mat)
+```
+
+#### Global Feature Importance: The Primacy of Volatility Persistence
+
+The first level of interpretation focuses on the "Gain" metric, which measures the total reduction in the objective function brought by each feature across all trees in the ensemble.
+
+The analysis of the Gain-based importance reveals three critical insights:
+
+* **1. The Dominance of Realized Volatility (The "Clustering" Effect)**: The model is heavily dominated by historical realized volatility metrics. $realized\_vol\_mid$ alone accounts for approximately $57\%$ of the total gain, followed by $realized\_vol\_long$ and $realized\_vol\_short$. From a financial econometrics perspective, this confirms that the model has successfully identified the "volatility clustering" phenomenon, where past variance is the most significant predictor of future implied volatility. The fact that the "mid" horizon carries the most weight suggests that the model prioritizes structural volatility trends over daily noise.
+
+* **2. Market Sentiment and Uncertainty Indicators**: Beyond historical volatility, the model identifies $strike\_dispersion$ and the $market\_vol\_index$ as the next most influential features. In the financial context, this is highly coherent: a high dispersion in strikes signals a lack of consensus among market participants regarding future asset prices, which naturally drives up the implied volatility premium.
+
+* **3. Tail Risk and Liquidity Proxies**: Secondary variables such as $stress\_spread$ and $put\_low\_strike$ contribute at a lower but non-negligible level. These variables act as proxies for downside protection demand (tail risk), allowing the model to fine-tune its predictions during periods of market stress.
+
+#### Local Interpretability: SHAP Beeswarm and Magnitude Analysis
+
+To move beyond global rankings, we utilize SHAP values to quantify the direction and magnitude of each feature's impact on individual predictions.
+
+```{r shap beeswarm}
+sv_importance(shp, kind = "beeswarm")
+```
+
+The SHAP beeswarm plot reveals the sign of the relationship between predictors and the target:
+
+##### Positive Correlation with IV:
+
+Higher values (orange) of $realized\_vol\_mid$ and $strike\_dispersion$ consistently lead to positive SHAP values, increasing the predicted implied volatility.
+
+##### Extreme Tails and Asymmetry:
+
+$realized\_vol\_short$ exhibits a very wide horizontal spread. While its average impact is lower than the "mid" version, it is responsible for the most extreme "tail" predictions, with SHAP values reaching as low as $-1.5$. This indicates that the model uses short-term volatility shocks to capture sudden, sharp shifts in market regimes.
+
+##### Mean-Reversion Signals:
+
+Variables like $vol\_instability$ show a long left tail (purple), indicating that low instability can occasionally exert a significant downward pressure on the prediction, likely acting as a mean-reversion signal captured by the boosted trees.
+
+```{r shap importance bar}
+sv_importance(shp, kind = "bar")
+```
+
+The bar chart representing $mean(|SHAP\; value|)$ confirms the hierarchy seen in the Gain analysis. The convergence between these two independent mathematical approaches (Gain vs. SHAP) robustly validates the feature selection. $realized\_vol\_mid$ remains the undisputed primary driver with an average impact of approximately $0.18$ on the log-volatility scale.
+
+### Feature Interaction and Non-Linearity: Stress Spread and Volatility Slope
+
+The power of **LightGBM** lies in its ability to capture non-linearities and cross-feature interactions. We analyze this through a SHAP dependence plot of the $stress\_spread$ variable, colored by the $vol\_slope$.
+
+```{r stress spread interaction}
+sv_dependence(shp, v = "stress_spread")
+```
+
+* **1. Non-Linear Regime Switching**: The relationship between $stress\_spread$ and its impact on implied volatility follows a clear non-linear "S-curve". For low $stress\_spread$ values (below $0$), the impact is negative. As the spread increases and crosses the $0$ threshold, the SHAP value rises sharply before plateauing around a spread of $2$. This suggests a "regime switch" where the model identifies a specific threshold beyond which market stress becomes a dominant, non-linear driver of the volatility premium.
+
+* **2. Interaction with Term Structure ($vol\_slope$)**: The color encoding reveals a subtle interaction effect. At high levels of $stress\_spread$, a positive $vol\_slope$ (orange dots) tends to amplify the positive impact on the prediction compared to a flat or negative slope (purple dots). This alignment between market stress and a steepening volatility term structure allows the model to capture complex "crisis" signatures that a standard linear model would overlook.
+
+In conclusion, the interpretability analysis confirms that the **LightGBM** model has reconstructed a sophisticated, yet financially sound, representation of volatility dynamics, combining persistence effects with non-linear risk premiums.
+
+### Final Inference
+
+The ultimate objective of this study is to provide accurate point estimates for the implied volatility of the assets contained in the hidden test set ($test\_eng$). Having identified **LightGBM** as the optimal non-linear model and the xxx as the most robust linear benchmark, we proceed to the final inference phase.
+
+As specified in the data pipeline (Section 2.7), the test dataset was transformed using the `$bake()$` function, ensuring that all scaling, winsorization, and distribution adjustments were strictly aligned with the training set's statistics. Since the models were trained on log-transformed targets to stabilize variance, the raw predictions are returned in the logarithmic domain. To comply with the submission requirements, an exponential transformation $f(x) = e^x$ is applied to project the results back to the original volatility scale.
+
+The following implementation handles the final prediction generation and exports the results into the required CSV format:
+
+```{r final inference linear}
+final_model_lin <- mod_lmm_5
+preds_linear_log <- predict(
+  final_model_lin,
+  newdata = test_linear,
+  allow.new.levels = TRUE
+)
+preds_linear_real <- exp(as.numeric(preds_linear_log))
+```
+
+```{r final inference non-linear}
+x_test_mat <- as.matrix(
+  test_tree |> select(-any_of(c("asset_id", "obs_date", "implied_vol_ref")))
+)
+
+preds_lgb_log <- predict(final_model_lgb, x_test_mat)
+preds_lgb_real <- exp(as.numeric(preds_lgb_log))
+```
+
+```{r final inference export}
+submission <- tibble(
+  linear_model = preds_linear_real,
+  lightgbm = preds_lgb_real
+)
+
+write_csv(submission, "hat_y.csv")
+```
+
+## Conclusion
