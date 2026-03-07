@@ -1,0 +1,154 @@
+# Exercise 1 : 
+
+```{r}
+set.seed(123)
+
+n <- 100
+t <- 1:n
+eps <- rnorm(n, mean = 0, sd = 1)
+
+X <- eps
+Y <- 3 * t + 2 + 15 * eps
+Z <- 3 * t + 2 + 15 * eps + 55 * sin(t * pi / 6)
+
+par(mfrow = c(3, 1))
+
+plot(ts(X), main = "Série X_t : Bruit blanc", ylab = "X_t", col = "blue")
+plot(ts(Y), main = "Série Y_t : Tendance + bruit", ylab = "Y_t", col = "red")
+plot(
+  ts(Z),
+  main = "Série Z_t : Tendance + saisonnalité + bruit",
+  ylab = "Z_t",
+  col = "darkgreen"
+)
+```
+
+```{r}
+library(forecast)
+
+alpha_vals <- c(0.1, 0.3, 0.5, 0.7, 0.9)
+
+mse_simple <- function(series) {
+  mse <- c()
+
+  for (a in alpha_vals) {
+    fit <- ses(series, alpha = a, initial = "simple", h = 1)
+
+    fitted_vals <- fitted(fit)
+    mse <- c(mse, mean((series - fitted_vals)^2, na.rm = TRUE))
+  }
+
+  data.frame(alpha = alpha_vals, MSE = mse)
+}
+
+mse_simple(X)
+mse_simple(Y)
+mse_simple(Z)
+```
+
+```{r}
+holt_mse <- function(series) {
+  beta_vals <- seq(0.1, 0.9, 0.2)
+  alpha_vals <- seq(0.1, 0.9, 0.2)
+
+  res <- expand.grid(alpha = alpha_vals, beta = beta_vals)
+  res$MSE <- NA_real_
+
+  for (i in seq_len(nrow(res))) {
+    fit <- tryCatch(
+      suppressWarnings(forecast::holt(
+        series,
+        alpha = res$alpha[i],
+        beta = res$beta[i],
+        h = 1
+      )),
+      error = function(e) NULL
+    )
+
+    if (!is.null(fit)) {
+      fitted_vals <- stats::fitted(fit)
+      res$MSE[i] <- mean((series - fitted_vals)^2, na.rm = TRUE)
+    } else {
+      res$MSE[i] <- NA_real_
+    }
+  }
+
+  res[order(res$MSE, na.last = TRUE), , drop = FALSE][1:5, ]
+}
+
+holt_mse(X)
+holt_mse(Y)
+holt_mse(Z)
+```
+
+```{r}
+fit_X <- ses(X)
+fit_Y <- ses(Y)
+fit_Z <- ses(Z)
+
+accuracy(fit_X)
+accuracy(fit_Y)
+accuracy(fit_Z)
+```
+
+```{r}
+fit_X_holt <- holt(X)
+fit_Y_holt <- holt(Y)
+fit_Z_holt <- holt(Z)
+
+accuracy(fit_X_holt)
+accuracy(fit_Y_holt)
+accuracy(fit_Z_holt)
+```
+
+# Exercise 2
+
+```{r}
+library(tseries)
+library(forecast)
+data("AirPassengers")
+log_air <- log(AirPassengers)
+
+n <- length(log_air)
+n_test <- 12
+train <- window(log_air, end = c(1959, 12))
+test <- window(log_air, start = c(1960, 1))
+
+plot(log_air, main = "Série AirPassengers (Log)")
+lines(train, col = "blue")
+lines(test, col = "red")
+legend("topleft", legend = c("Train", "Test"), col = c("blue", "red"), lty = 1)
+```
+
+```{r}
+library(forecast)
+
+fit_simple <- ses(train, h = n_test)
+fit_holt <- holt(train, h = n_test)
+
+plot(log_air)
+lines(fit_simple$mean, col = "green", lwd = 2)
+lines(fit_holt$mean, col = "orange", lwd = 2)
+legend(
+  "topleft",
+  legend = c("Série", "Simple", "Holt"),
+  col = c("black", "green", "orange"),
+  lty = 1
+)
+
+accuracy(fit_simple, test)
+accuracy(fit_holt, test)
+```
+
+```{r}
+fit_hw_add <- hw(train, h = n_test, seasonal = "additive")
+fit_hw_mult <- hw(train, h = n_test, seasonal = "multiplicative")
+
+plot(log_air)
+lines(fit_hw_add$mean, col = "purple", lwd = 2)
+lines(fit_hw_mult$mean, col = "darkgreen", lwd = 2)
+legend("topleft", legend = c("Série", "HW Additif", "HW Multiplicatif"), col = c("black", "purple", "darkgreen"), lty = 1)
+
+accuracy(fit_hw_add, test)
+accuracy(fit_hw_mult, test)
+```
