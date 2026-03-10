@@ -37,7 +37,6 @@
 | Course | Description |
 |--------|-------------|
 | `Advanced Machine Learning` | Advanced ML techniques |
-| `Classification and Regression` | Supervised learning methods |
 | `Clustering In Practice` | Unsupervised learning and clustering |
 | `Data Visualisation` | Data visualization principles and tools |
 | `Deep Learning` | Neural networks and deep architectures |
@@ -51,7 +50,6 @@
 | `Statistiques Non Paramétrique` | Non-parametric statistics |
 | `Time Series` | Time series analysis and forecasting |
 | `Unsupervised Learning` | Unsupervised learning methods |
-| `VBA` | Visual Basic for Applications |
 
 ## 🛠️ Technologies & Tools
 
