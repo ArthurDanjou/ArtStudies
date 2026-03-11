@@ -38,6 +38,7 @@
 |--------|-------------|
 | `Advanced Machine Learning` | Advanced ML techniques |
 | `Clustering In Practice` | Unsupervised learning and clustering |
+| `Cybersecurity` | Data security and analysis |
 | `Data Visualisation` | Data visualization principles and tools |
 | `Deep Learning` | Neural networks and deep architectures |
 | `Enjeux Climatiques` | Climate issues and data analysis |
